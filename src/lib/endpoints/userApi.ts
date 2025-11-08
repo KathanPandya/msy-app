@@ -24,6 +24,20 @@ class UserApi {
 		const response = await axios.post(`/api/auth/register`, payload);
 		return response.data;
 	}
+
+	async getAllUsers({ query }: { query?: string }): Promise<{ users: User.List; total: number }> {
+		const response = await axios.get(
+			'api/user',
+			query
+				? {
+						params: {
+							first_name: query
+						}
+					}
+				: {}
+		);
+		return response.data;
+	}
 }
 
 const userApi = new UserApi();

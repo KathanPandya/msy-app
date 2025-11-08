@@ -1,4 +1,5 @@
 import type { Address } from '$lib/types/address';
+import type { Payment } from '$lib/types/payment';
 import type { Profile } from '$lib/types/profile';
 
 export namespace User {
@@ -64,4 +65,6 @@ export namespace User {
 		reference_member_1: string;
 		reference_member_2: string;
 	};
+
+	export type List = Array<Get>;
 }

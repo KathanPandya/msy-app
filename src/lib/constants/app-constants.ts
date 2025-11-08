@@ -65,5 +65,24 @@ export const APP_CONSTANTS = {
 		{ key: 'draft', label: 'Draft' },
 		{ key: 'removed', label: 'Removed' },
 		{ key: 'dead', label: 'Dead' }
+	],
+
+	PAYMENT_MODES: [
+		{ key: '', label: 'Select payment mode' },
+		{ key: 'upi', label: 'UPI' },
+		{ key: 'cash', label: 'Cash' },
+		{ key: 'cheque', label: 'Cheque' },
+		{ key: 'netbanking', label: 'Net Banking' },
+		{ key: 'card', label: 'Card' },
+		{ key: 'emandate', label: 'E-mandate' },
+		{ key: 'nach', label: 'NACH' }
+	],
+
+	PAYMENT_TYPES: [
+		{ key: '', label: 'Select payment tpe' },
+		{ key: 'deposit', label: 'Deposit' },
+		{ key: 'membership_fee', label: 'Membership Fee' },
+		{ key: 'donation', label: 'Donation' },
+		{ key: 'other', label: 'Other' }
 	]
 };

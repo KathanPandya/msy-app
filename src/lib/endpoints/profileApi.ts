@@ -1,5 +1,6 @@
 import axios from '$lib/config/axios';
 import type { Profile } from '$lib/types/profile';
+import type { User } from '$lib/types/user';
 
 class ProfileApi {
 	async updateProfile({
@@ -25,6 +26,15 @@ class ProfileApi {
 			payload,
 			userToken ? { headers: { 'X-Custom-Authorization': userToken } } : {}
 		);
+		return response.data;
+	}
+
+	async createProfileById({
+		userId
+	}: {
+		userId: string;
+	}): Promise<{ user: User.Get; message: string; success: boolean; profile: Profile.Get }> {
+		const response = await axios.post(`/api/admin/profile/create/${userId}`);
 		return response.data;
 	}
 }

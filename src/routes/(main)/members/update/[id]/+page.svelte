@@ -1,26 +1,24 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Payments from '$lib/components/other/Payments.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
-	import Table from '$lib/components/ui/Table.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import addressApi from '$lib/endpoints/addressApi';
 	import coreApi from '$lib/endpoints/coreApi';
+	import paymentApi from '$lib/endpoints/paymentApi';
 	import profileApi from '$lib/endpoints/profileApi';
 	import userApi from '$lib/endpoints/userApi';
 	import { updateUserSchema } from '$lib/schema/update-user';
 	import type { Address } from '$lib/types/address';
 	import type { Form } from '$lib/types/form';
+	import type { Payment } from '$lib/types/payment';
 	import type { User } from '$lib/types/user';
-	import {
-		capitalizeFirst,
-		formatDate,
-		formatToYYYYMMDD,
-		getUserAddress
-	} from '$lib/utilities/helperFunc';
+	import { formatToYYYYMMDD, getUserAddress } from '$lib/utilities/helperFunc';
+	import { formatString } from '$lib/utilities/stringUtils';
 	import { onMount } from 'svelte';
 
 	/***************
@@ -28,6 +26,7 @@
   ****************/
 	let userInfo = $state<User.AllInfo | null>(null);
 	let userAddress = $state<Address.Data | null>(null);
+	let paymentsTableInfo = $state<Payment.OutstandingData | null>(null);
 	const genders = APP_CONSTANTS.GENDERS;
 	const gotras = APP_CONSTANTS.GOTRAS;
 	const maritalStatus = APP_CONSTANTS.MARITAL_STATUS;
@@ -98,53 +97,55 @@
 	onMount(async () => {
 		const userId = page.params.id;
 		if (userId) {
+			const res = await paymentApi.getOutstandingPaymentOfMember(userId);
+			paymentsTableInfo = res.data;
+
 			userInfo = await coreApi.fetchUserInfo({ userId });
+
+			if (userInfo.profile === null) {
+				const newProfile = await profileApi.createProfileById({
+					userId: userId
+				});
+				userInfo.profile = newProfile.profile;
+			}
 
 			// Populate form with user data
 			if (userInfo?.user) {
-				formData.firstName = userInfo.user.first_name || '';
-				formData.middleName = userInfo.user.middle_name || '';
-				formData.lastName = userInfo.user.surname || '';
-				formData.mobileNumber = userInfo.user.mobile || '';
-				formData.email = userInfo.user.email || '';
-				formData.gender = userInfo.user.gender || '';
-				formData.dob = userInfo.user.date_of_birth?.split('T')[0] || '';
-				formData.status = userInfo?.user?.status || '';
-				formData.refNum1 = userInfo?.user.reference_member_1 || '';
-				formData.refNum2 = userInfo?.user.reference_member_2 || '';
+				formData.firstName = formatString(userInfo.user.first_name, ['trim']);
+				formData.middleName = formatString(userInfo.user.middle_name, ['trim']);
+				formData.lastName = formatString(userInfo.user.surname, ['trim']);
+				formData.mobileNumber = formatString(userInfo.user.mobile, ['trim']);
+				formData.email = formatString(userInfo.user.email, ['trim']);
+				formData.gender = formatString(userInfo.user.gender, ['trim']);
+				formData.dob = formatString(userInfo.user.date_of_birth?.split('T')[0], ['trim']);
+				formData.status = formatString(userInfo?.user?.status, ['trim']);
+				formData.refNum1 = formatString(userInfo?.user.reference_member_1, ['trim']);
+				formData.refNum2 = formatString(userInfo?.user.reference_member_2, ['trim']);
 			}
 
 			if (userInfo.profile) {
-				formData.maritalStatus = userInfo.profile?.marital_status || '';
-				formData.gotra = userInfo.profile?.gotra || '';
-				formData.nativePlace = userInfo.profile?.native_place || '';
+				formData.maritalStatus = formatString(userInfo.profile?.marital_status, ['trim']);
+				formData.gotra = formatString(userInfo.profile?.gotra, ['trim']);
+				formData.nativePlace = formatString(userInfo.profile?.native_place, ['trim']);
 			}
 
 			if (userInfo.address) {
 				userAddress = getUserAddress(userInfo.address);
 				if (userAddress) {
-					formData.addressLine1 = userAddress.address_line_1;
-					formData.addressLine2 = userAddress.address_line_2;
-					formData.areaName = userAddress.area_name;
-					formData.city = userAddress.city;
-					formData.country = userAddress.country;
-					formData.pincode = userAddress.pincode;
-					formData.state = userAddress.state;
-					formData.landmark = userAddress.landmark;
+					formData.addressLine1 = formatString(userAddress.address_line_1, ['trim']);
+					formData.addressLine2 = formatString(userAddress.address_line_2, ['trim']);
+					formData.areaName = formatString(userAddress.area_name, ['trim']);
+					formData.city = formatString(userAddress.city, ['trim']);
+					formData.country = formatString(userAddress.country, ['trim']);
+					formData.pincode = formatString(userAddress.pincode, ['trim']);
+					formData.state = formatString(userAddress.state, ['trim']);
+					formData.landmark = formatString(userAddress.landmark, ['trim']);
 				}
 			}
 		}
-	});
 
-	const tableData: any[] = $derived(
-		userInfo?.payments?.map((payment) => ({
-			_id: payment._id,
-			date: formatDate(payment.date) || '-',
-			amount: payment.amount || '-',
-			payment_mode: capitalizeFirst(payment.payment_mode) || '-',
-			payment_type: capitalizeFirst(payment.payment_type) || '-'
-		})) ?? []
-	);
+		console.log('formData', formData);
+	});
 
 	/***************
     Helper functions
@@ -212,10 +213,6 @@
 					(firstErr as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
 			}, 50);
 		}
-	}
-
-	function inputClasses(errMsg: string) {
-		return `input ${errMsg ? 'input--error' : ''}`;
 	}
 
 	function handleTabChange(tabId: string) {
@@ -743,22 +740,7 @@
 			</div>
 		{:else if activeTab === 'payments'}
 			<!-- Payments Content -->
-			<Card title="Payment History">
-				<div class="space-y-4">
-					<p class="text-sm text-gray-600">Payment records for this user</p>
-
-					<!-- You can use Table component here -->
-					<Table
-						columns={[
-							{ key: 'date', label: 'Date' },
-							{ key: 'amount', label: 'Amount' },
-							{ key: 'payment_mode', label: 'Payment Mode' },
-							{ key: 'payment_type', label: 'Payment Type' }
-						]}
-						data={tableData}
-					/>
-				</div>
-			</Card>
+			<Payments outstandingTableData={paymentsTableInfo}></Payments>
 		{/if}
 	</div>
 </div>
