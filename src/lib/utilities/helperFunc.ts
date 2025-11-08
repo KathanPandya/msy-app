@@ -17,13 +17,6 @@ export function formatDate(isoDate: string | null | undefined): string {
 	return `${day}-${month}-${year}`;
 }
 
-export function capitalizeFirst(str: string | null | undefined): string {
-	if (!str) return '';
-	if (str.trim() === '') return str;
-
-	return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
-
 export function formatToYYYYMMDD(date: Date | string | number | null | undefined): string {
 	if (!date) return '';
 
