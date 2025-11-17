@@ -12,7 +12,7 @@
 
 	// Validation Schema
 	const payoutSchema = Yup.object().shape({
-		userId: Yup.string().required('Processing admin is required'),
+		adminId: Yup.string().required('Processing admin is required'),
 		deadMemberId: Yup.string().required('Deceased member is required'),
 		nomineeId: Yup.string().required('Nominee is required'),
 		paymentAmount: Yup.number()
@@ -31,7 +31,7 @@
 
 	// Form Data
 	let formData = $state({
-		userId: $authStore.userAllInfo?.user._id || '',
+		adminId: $authStore.userAllInfo?.user._id || '',
 		deadMemberId: '',
 		deadMemberName: '',
 		nomineeId: '',
@@ -46,7 +46,7 @@
 
 	// Errors
 	let errors = $state({
-		userId: '',
+		adminId: '',
 		deadMemberId: '',
 		nomineeId: '',
 		paymentAmount: '',
@@ -243,7 +243,7 @@
 
 		// Reset errors
 		errors = {
-			userId: '',
+			adminId: '',
 			deadMemberId: '',
 			nomineeId: '',
 			paymentAmount: '',
@@ -260,7 +260,7 @@
 			// TODO: Replace with actual API call
 			await paymentApi.addPayout({
 				payload: {
-					userId: formData.userId,
+					userId: formData.adminId,
 					deadMemberId: formData.deadMemberId,
 					nomineeId: '68e6999fa5ad5dcd6bc88c5c',
 					payment_amount: parseFloat(formData.paymentAmount),
@@ -295,7 +295,7 @@
 	// Reset form
 	function resetForm() {
 		formData = {
-			userId: '',
+			adminId: '',
 			deadMemberId: '',
 			deadMemberName: '',
 			nomineeId: '',
@@ -307,7 +307,7 @@
 			paymentByPerson: ''
 		};
 		errors = {
-			userId: '',
+			adminId: '',
 			deadMemberId: '',
 			nomineeId: '',
 			paymentAmount: '',
@@ -328,18 +328,18 @@
 	<Card title="Initialize Payout">
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 			<!-- Processing Admin -->
-			<div class="md:col-span-2">
+			<!-- <div class="md:col-span-2">
 				<Input
-					id="userId"
+					id="adminId"
 					label="Processing Admin ID"
-					bind:value={formData.userId}
-					error={errors.userId}
-					onblur={() => validateField('userId')}
+					bind:value={formData.adminId}
+					error={errors.adminId}
+					onblur={() => validateField('adminId')}
 					placeholder="Enter admin user ID"
 					required
 					disabled={true}
 				/>
-			</div>
+			</div> -->
 
 			<!-- Deceased Member Selection -->
 			<div class="md:col-span-2">

@@ -77,10 +77,9 @@
 		// console.log({...row, ...matchedPayment})
 		// debugger;
 
-
 		goto(`/payins/update/${row._id}`, {
 			state: {
-				paymentData: {...row, ...matchedPayment}
+				paymentData: { ...row, ...matchedPayment }
 			}
 		});
 	}
@@ -104,6 +103,7 @@
 				const rowDataJson = encodeURIComponent(JSON.stringify(row));
 
 				return `
+				<div class='flex justify-content-start'>
 		<button 
 			class="px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
 				bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500"
@@ -111,6 +111,7 @@
 		>
 			View/Edit
 		</button>
+		</div>
 	`;
 			}
 		}
@@ -121,6 +122,7 @@
 		paymentList.map((payment) => {
 			const member = $memberListStore.members.find((user) => user._id === payment.userId);
 			return {
+				userId: member?._id,
 				memberId: member?.member_id,
 				_id: payment._id,
 				memberName: member ? `${member.first_name} ${member.surname}` : '-',

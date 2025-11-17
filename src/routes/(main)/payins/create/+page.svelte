@@ -25,6 +25,7 @@
 		paymentMode: Yup.string().required('Payment Mode is required'),
 		paymentType: Yup.string().required('Payment Type is required'),
 		referenceNumber: Yup.string().required('Reference Number is required'),
+		receiptNumber: Yup.string().required('Receipt Number is required'),
 		paymentDate: Yup.date()
 			.typeError('Payment Date is required')
 			.required('Payment Date is required')
@@ -47,6 +48,7 @@
 		referenceNumber: '',
 		paymentDate: '',
 		paymentType: '',
+		receiptNumber: '',
 		file: null as File | null
 	});
 
@@ -59,6 +61,7 @@
 		referenceNumber: '',
 		paymentDate: '',
 		paymentType: '',
+		receiptNumber: '',
 		file: ''
 	});
 
@@ -79,7 +82,7 @@
 
 	// Select member
 	function selectMember(member: any) {
-		debugger
+		// debugger
 		formData.memberId = member._id;
 		formData.memberName = `${member.first_name} ${member.surname}`;
 		memberSearchQuery = formData.memberName;
@@ -197,7 +200,8 @@
 			paymentDate: '',
 			file: '',
 			memberId: '',
-			paymentType: ''
+			paymentType: '',
+			receiptNumber: ''
 		};
 
 		try {
@@ -225,7 +229,7 @@
 				payment_reference: formData.referenceNumber,
 				payment_mode: formData.paymentMode,
 				payment_type: formData.paymentType,
-				reciept_number: formData.referenceNumber,
+				reciept_number: formData.receiptNumber,
 				photo: fileUrl,
 				remarks: formData.description,
 				userId: formData.memberId
@@ -273,7 +277,8 @@
 			referenceNumber: '',
 			paymentDate: '',
 			paymentType: '',
-			file: null
+			file: null,
+			receiptNumber: ''
 		};
 		errors = {
 			memberId: '',
@@ -283,7 +288,8 @@
 			referenceNumber: '',
 			paymentDate: '',
 			paymentType: '',
-			file: ''
+			file: '',
+			receiptNumber: ''
 		};
 		memberSearchQuery = '';
 		fileName = '';
@@ -430,6 +436,17 @@
 				error={errors.referenceNumber}
 				onblur={() => validateField('referenceNumber')}
 				placeholder="Transaction/Cheque number"
+				required
+				disabled={isLoading}
+			/>
+
+			<Input
+				id="receiptNumber"
+				label="Receipt Number"
+				bind:value={formData.receiptNumber}
+				error={errors.receiptNumber}
+				onblur={() => validateField('receiptNumber')}
+				placeholder="Receipt book number"
 				required
 				disabled={isLoading}
 			/>

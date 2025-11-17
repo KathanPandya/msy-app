@@ -23,6 +23,7 @@
 			| 'decimal'
 			| null
 			| undefined;
+		onChange?: (event: Event) => void;
 	};
 
 	let {
@@ -36,7 +37,8 @@
 		disabled = false,
 		onblur,
 		maxlength,
-		inputmode
+		inputmode,
+		onChange
 	}: InputProps = $props();
 
 	// State for password visibility
@@ -78,6 +80,7 @@
 			bind:value
 			{onblur}
 			class={inputClasses}
+			oninput={onChange}
 		/>
 
 		{#if type === 'password'}

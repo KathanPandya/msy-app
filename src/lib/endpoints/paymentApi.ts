@@ -35,6 +35,11 @@ class PaymentApi {
 		return response.data;
 	}
 
+	async getAllUserOutstandingPayment(): Promise<{ data: Payment.Payout_Get[]; success: boolean }> {
+		const response = await axios.get('api/payment/get-all-user-outstanding-amount');
+		return response.data;
+	}
+
 	async addPayment({
 		payload
 	}: {

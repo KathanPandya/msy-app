@@ -10,10 +10,15 @@
 		TrendingUp,
 		MapPin,
 		Hash,
-		UserCircle
+		UserCircle,
+		OctagonX,
+		SmilePlus,
+		IndianRupee,
+		TriangleAlert
 	} from '@lucide/svelte';
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import { formatString } from '$lib/utilities/stringUtils';
+	import dashboardApi from '$lib/endpoints/dashboardApi';
 
 	// State
 	let isLoading = $state(true);
@@ -23,7 +28,7 @@
 			active: 0,
 			deceased: 0,
 			cancelled: 0,
-			inactive: 0
+			removed: 0
 		},
 		financial: {
 			totalCollected: 0,
@@ -34,41 +39,48 @@
 			male: 0,
 			female: 0,
 			other: 0,
-			topSurnames: [] as { name: string; count: number }[],
+			topSurnames: [] as { surname: string; count: number }[],
 			topDistricts: [] as { name: string; count: number }[]
+		},
+		outstanding: {
+			highest: [] as { full_name: string; outstanding_amount: number; _id: string }[],
+			lowest: [] as { full_name: string; outstanding_amount: number; _id: string }[]
 		}
 	});
 
 	// Fetch dashboard data
 	onMount(async () => {
 		try {
+			const res = await dashboardApi.getDashboardStats();
+			console.log('res', res);
+
 			if ($memberListStore.members.length === 0) {
 				memberListStore.fetchAllMembers();
 			}
 
-			let uniqueSurnames: Record<string, number> = {};
+			// let uniqueSurnames: Record<string, number> = {};
 
 			$memberListStore.members.forEach((user) => {
 				dashboardData.members.total += 1;
 
 				const sName = user.surname.toLowerCase().trim();
 
-				if (uniqueSurnames[sName]) {
-					uniqueSurnames[sName] += 1;
-				} else {
-					uniqueSurnames[sName] = 1;
-				}
+				// if (uniqueSurnames[sName]) {
+				// 	uniqueSurnames[sName] += 1;
+				// } else {
+				// 	uniqueSurnames[sName] = 1;
+				// }
 
 				// Status counts
-				if (user.status === 'active') {
-					dashboardData.members.active += 1;
-				} else if (user.status === 'dead') {
-					dashboardData.members.deceased += 1;
-				} else if (user.status === 'cancelled') {
-					dashboardData.members.cancelled += 1;
-				} else if (user.status === 'inactive') {
-					dashboardData.members.inactive += 1;
-				}
+				// if (user.status === 'active') {
+				// 	dashboardData.members.active += 1;
+				// } else if (user.status === 'dead') {
+				// 	dashboardData.members.deceased += 1;
+				// } else if (user.status === 'cancelled') {
+				// 	dashboardData.members.cancelled += 1;
+				// } else if (user.status === 'inactive') {
+				// 	dashboardData.members.inactive += 1;
+				// }
 
 				if (user.gender === 'male') {
 					dashboardData.demographics.male += 1;
@@ -79,26 +91,32 @@
 				}
 			});
 
-			let surnameList = Object.keys(uniqueSurnames)
-				.map((s) => {
-					return { name: formatString(s, ['capitalize-first']), count: uniqueSurnames[s] };
-				})
-				.sort((a, b) => b.count - a.count)
-				.slice(0, 5);
+			// let surnameList = Object.keys(uniqueSurnames)
+			// 	.map((s) => {
+			// 		return { name: formatString(s, ['capitalize-first']), count: uniqueSurnames[s] };
+			// 	})
+			// 	.sort((a, b) => b.count - a.count)
+			// 	.slice(0, 5);
 
 			// Mock data
 			dashboardData = {
-				members: { ...dashboardData.members },
+				members: {
+					total: res.totalUsers,
+					active: res.totalActiveUsers,
+					deceased: res.deceasedUsers,
+					cancelled: 0,
+					removed: res.removedUsers
+				},
 				financial: {
-					totalCollected: 5250000,
-					pending: 1750000,
-					target: 7000000
+					totalCollected: res.totalAmountCollected,
+					pending: res.totalAmountToCollect - res.totalAmountCollected,
+					target: res.totalAmountToCollect
 				},
 				demographics: {
 					male: dashboardData.demographics.male,
 					female: dashboardData.demographics.female,
 					other: dashboardData.demographics.other,
-					topSurnames: surnameList,
+					topSurnames: res.surnames,
 					topDistricts: [
 						{ name: 'Ahmedabad', count: 320 },
 						{ name: 'Surat', count: 280 },
@@ -106,6 +124,10 @@
 						{ name: 'Rajkot', count: 180 },
 						{ name: 'Bhavnagar', count: 145 }
 					]
+				},
+				outstanding: {
+					highest: res.outstanding.highest,
+					lowest: res.outstanding.lowest
 				}
 			};
 
@@ -157,10 +179,10 @@
 {:else}
 	<div class="space-y-6">
 		<!-- Header -->
-		<div class="mb-8">
+		<!-- <div class="mb-8">
 			<h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
 			<p class="mt-1 text-gray-600">Overview of your organization</p>
-		</div>
+		</div> -->
 
 		<!-- Member Statistics -->
 		<div>
@@ -224,7 +246,7 @@
 				<!-- Cancelled Members -->
 				<button
 					type="button"
-					onclick={() => navigateToMembers('cancelled')}
+					onclick={() => navigateToMembers('retired')}
 					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
 				>
 					<div class="mb-4 flex items-center justify-between">
@@ -232,7 +254,7 @@
 							<UserMinus class="h-6 w-6 text-orange-600" />
 						</div>
 					</div>
-					<p class="mb-1 text-sm font-medium text-gray-600">Cancelled</p>
+					<p class="mb-1 text-sm font-medium text-gray-600">Voluntary Retired</p>
 					<p class="text-3xl font-bold text-gray-900">
 						{dashboardData.members.cancelled.toLocaleString()}
 					</p>
@@ -241,7 +263,7 @@
 				<!-- Inactive Members -->
 				<button
 					type="button"
-					onclick={() => navigateToMembers('inactive')}
+					onclick={() => navigateToMembers('removed')}
 					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
 				>
 					<div class="mb-4 flex items-center justify-between">
@@ -249,9 +271,9 @@
 							<UserCircle class="h-6 w-6 text-gray-600" />
 						</div>
 					</div>
-					<p class="mb-1 text-sm font-medium text-gray-600">Inactive</p>
+					<p class="mb-1 text-sm font-medium text-gray-600">Removed</p>
 					<p class="text-3xl font-bold text-gray-900">
-						{dashboardData.members.inactive.toLocaleString()}
+						{dashboardData.members.removed.toLocaleString()}
 					</p>
 				</button>
 			</div>
@@ -265,7 +287,7 @@
 				<div class="rounded-xl border border-gray-200 bg-white p-6">
 					<div class="mb-4 flex items-center justify-between">
 						<div class="rounded-lg bg-green-100 p-3">
-							<DollarSign class="h-6 w-6 text-green-600" />
+							<IndianRupee class="h-6 w-6 text-green-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Total Collected</p>
@@ -279,7 +301,7 @@
 				<div class="rounded-xl border border-gray-200 bg-white p-6">
 					<div class="mb-4 flex items-center justify-between">
 						<div class="rounded-lg bg-orange-100 p-3">
-							<TrendingUp class="h-6 w-6 text-orange-600" />
+							<TriangleAlert class="h-6 w-6 text-orange-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Pending Collection</p>
@@ -315,8 +337,62 @@
 		<div>
 			<h2 class="mb-4 text-lg font-semibold text-gray-900">Demographics</h2>
 			<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-				<!-- Gender Distribution -->
+				<!-- Most Outstanding -->
 				<div class="rounded-xl border border-gray-200 bg-white p-6">
+					<div class="mb-4 flex items-center gap-2">
+						<OctagonX class="h-5 w-5 text-red-600" />
+						<h3 class="text-sm font-semibold text-gray-900">Most Outstanding</h3>
+					</div>
+					<div class="space-y-3">
+						{#each dashboardData.outstanding.highest as user, index}
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-3">
+									<span
+										class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600"
+									>
+										{index + 1}
+									</span>
+									<a
+										href={`/members/view/${user._id}`}
+										class="cursor-pointer text-sm font-medium text-gray-900">{user.full_name}</a
+									>
+								</div>
+								<span class="text-sm font-bold text-red-600">{user.outstanding_amount}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Advance Payment -->
+				<div class="rounded-xl border border-gray-200 bg-white p-6">
+					<div class="mb-4 flex items-center gap-2">
+						<SmilePlus class="h-5 w-5 text-green-600" />
+						<h3 class="text-sm font-semibold text-gray-900">Advance Payment</h3>
+					</div>
+					<div class="space-y-3">
+						{#each dashboardData.outstanding.lowest as user, index}
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-3">
+									<span
+										class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600"
+									>
+										{index + 1}
+									</span>
+									<a
+										href={`/members/view/${user._id}`}
+										class="cursor-pointer text-sm font-medium text-gray-900">{user.full_name}</a
+									>
+								</div>
+								<span class="text-sm font-bold text-green-600"
+									>{Math.abs(user.outstanding_amount)}</span
+								>
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Gender Distribution -->
+				<!-- <div class="rounded-xl border border-gray-200 bg-white p-6">
 					<h3 class="mb-4 text-sm font-semibold text-gray-900">Gender Distribution</h3>
 					<div class="space-y-3">
 						<div>
@@ -373,7 +449,7 @@
 							</div>
 						</div>
 					</div>
-				</div>
+				</div> -->
 
 				<!-- Top Surnames -->
 				<div class="rounded-xl border border-gray-200 bg-white p-6">
@@ -390,7 +466,9 @@
 									>
 										{index + 1}
 									</span>
-									<span class="text-sm font-medium text-gray-900">{surname.name}</span>
+									<span class="text-sm font-medium text-gray-900"
+										>{formatString(surname.surname, ['capitalize-first'])}</span
+									>
 								</div>
 								<span class="text-sm font-bold text-blue-600">{surname.count}</span>
 							</div>
@@ -399,7 +477,7 @@
 				</div>
 
 				<!-- Top Districts -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
+				<!-- <div class="rounded-xl border border-gray-200 bg-white p-6">
 					<div class="mb-4 flex items-center gap-2">
 						<MapPin class="h-5 w-5 text-gray-600" />
 						<h3 class="text-sm font-semibold text-gray-900">Top Districts (Mock Data)</h3>
@@ -419,7 +497,7 @@
 							</div>
 						{/each}
 					</div>
-				</div>
+				</div> -->
 			</div>
 		</div>
 	</div>

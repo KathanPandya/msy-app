@@ -162,26 +162,26 @@
 
 	function resetForm() {
 		formData = {
-			firstName: userInfo?.user?.first_name || '',
-			middleName: userInfo?.user?.middle_name || '',
-			lastName: userInfo?.user?.surname || '',
-			mobileNumber: userInfo?.user?.mobile || '',
-			email: userInfo?.user?.email || '',
-			gender: userInfo?.user?.gender || '',
-			dob: userInfo?.user?.date_of_birth?.split('T')[0] || '',
+			firstName: formatString(userInfo?.user?.first_name, ['trim']),
+			middleName: formatString(userInfo?.user?.middle_name, ['trim']),
+			lastName: formatString(userInfo?.user?.surname, ['trim']),
+			mobileNumber: formatString(userInfo?.user?.mobile, ['trim']),
+			email: formatString(userInfo?.user?.email, ['trim']),
+			gender: formatString(userInfo?.user?.gender, ['trim']),
+			dob: formatString(userInfo?.user?.date_of_birth?.split('T')[0], ['trim']),
 			password: '',
 			confirmPassword: '',
-			maritalStatus: '',
-			gotra: '',
-			nativePlace: '',
-			addressLine1: '',
-			addressLine2: '',
-			areaName: '',
-			landmark: '',
-			city: '',
-			pincode: '',
-			state: '',
-			country: '',
+			maritalStatus: formatString(userInfo?.profile?.marital_status, ['trim']),
+			gotra: formatString(userInfo?.profile?.gotra, ['trim']),
+			nativePlace: formatString(userInfo?.profile?.native_place, ['trim']),
+			addressLine1: formatString(userAddress?.address_line_1, ['trim']),
+			addressLine2: formatString(userAddress?.address_line_2, ['trim']),
+			areaName: formatString(userAddress?.area_name, ['trim']),
+			landmark: formatString(userAddress?.landmark, ['trim']),
+			city: formatString(userAddress?.city, ['trim']),
+			pincode: formatString(userAddress?.pincode, ['trim']),
+			state: formatString(userAddress?.state, ['trim']),
+			country: formatString(userAddress?.country, ['trim']),
 			status: userInfo?.user?.status || '',
 			refNum1: '',
 			refNum2: ''
@@ -362,6 +362,9 @@
 			}
 		}
 	}
+	function checkDiff() {
+		console.log('value changes')
+	}
 </script>
 
 <div class="mx-auto max-w-5xl">
@@ -377,6 +380,7 @@
 						error={errors.firstName}
 						onblur={() => validateField('firstName')}
 						placeholder="First name"
+						onChange={checkDiff}
 					/>
 
 					<Input

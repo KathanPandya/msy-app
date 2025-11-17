@@ -2,92 +2,70 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
+	import Select from '$lib/components/ui/Select.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
+	import dashboardApi from '$lib/endpoints/dashboardApi';
 	import { memberListStore } from '$lib/stores/memberListStore';
+	import { GenericSort, StringSort } from '$lib/utilities/sortingUtil';
 	import { truncateString } from '$lib/utilities/stringUtils';
 	import { Filter, Plus, Search, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	// Load members on mount
 	onMount(() => {
-		console.log('memberListStore.members', $memberListStore.members);
 		if ($memberListStore.members.length === 0) {
 			memberListStore.fetchAllMembers();
 		}
 	});
 
-	// Convert to $state (Svelte 5)
-	// let userList = $state<any[]>([]);
-	// let isLoading = $state(true);
 	let searchQuery = $state('');
+	let amountOperator = $state('');
+	let amountValue = $state('');
+	let sortType = $state<'asc' | 'desc' | ''>('');
 
-	// const fetchMemberList = async (query?: string) => {
-	// 	isLoading = true;
-	// 	userList = [];
-
-	// 	try {
-	// 		const response = await axios.get(
-	// 			'api/user',
-	// 			query
-	// 				? {
-	// 						params: {
-	// 							first_name: query,
-	// 							limit: 10
-	// 						}
-	// 					}
-	// 				: {
-	// 						params: {
-	// 							limit: 10
-	// 						}
-	// 					}
-	// 		);
-	// 		userList = response.data.users || [];
-	// 		return response.data;
-	// 	} catch (error) {
-	// 		userList = [];
-	// 		console.error('Error while fetching user list', error);
-	// 	} finally {
-	// 		isLoading = false;
-	// 	}
-	// };
-
-	// function handleInputChange(event: Event) {
-	// 	const target = event.target as HTMLInputElement;
-	// 	searchQuery = target.value;
-	// 	debouncedSearchHandler(searchQuery);
-	// }
-
-	// const debouncedSearchHandler = debounce(memberListStore.searchMembers, 500);
-
-	// function debounce<T extends (...args: any[]) => any>(
-	// 	callbackFunc: T,
-	// 	delay: number
-	// ): (...args: Parameters<T>) => void {
-	// 	let timer: ReturnType<typeof setTimeout>;
-	// 	return (...args: Parameters<T>) => {
-	// 		clearTimeout(timer);
-	// 		timer = setTimeout(() => {
-	// 			callbackFunc(...args);
-	// 		}, delay);
-	// 	};
-	// }
-
-	// function goToUpdate(user: any) {
-	// 	if (user.status === 'dead') {
-	// 		return;
-	// 	}
-	// 	goto(`/members/update/${user._id}`);
-	// }
+	const amountOperatorOptions = [
+		{ label: 'Sort Outstanding Amount', key: '' },
+		{ label: 'Greater than (>)', key: '>' },
+		{ label: 'Less than (<)', key: '<' },
+		{ label: 'Equal to (=)', key: '=' },
+		{ label: 'Greater than or equal (≥)', key: '>=' },
+		{ label: 'Less than or equal (≤)', key: '<=' }
+	];
 
 	if (typeof window !== 'undefined') {
 		(window as any).navigateToMember = (id: string) => {
-			goto(`/members/update/${id}`);
+			goto(`/members/view/${id}`);
 		};
 	}
 
+	function handleAmountInput(event: Event) {
+		const target = event.target as HTMLInputElement;
+		amountValue = target.value;
+
+		tableData = tableData.filter((t) => {
+			if (!amountOperator || !amountValue) return true;
+			const amount = parseFloat(amountValue);
+			switch (amountOperator) {
+				case '>':
+					return t.heesab > amount;
+				case '<':
+					return t.heesab < amount;
+				case '=':
+					return t.heesab === amount;
+				case '>=':
+					return t.heesab >= amount;
+				case '<=':
+					return t.heesab <= amount;
+				default:
+					return true;
+			}
+		});
+	}
+
 	// Table columns configuration
-	const columns = [
+	const columns = $derived([
 		{ key: 'memberId', label: 'Member Id' },
 		{
 			key: 'modifiedName',
@@ -96,6 +74,19 @@
 				return row.name;
 			},
 			tooltipPosition: 'right' as const
+		},
+		{
+			key: 'heesab',
+			label: 'Heesab',
+			sorting: (row: any) => {
+				sortType = sortType === '' ? 'desc' : sortType === 'desc' ? 'asc' : '';
+				if (sortType == 'asc' || sortType == 'desc') {
+					tableData = [...GenericSort(row, 'heesab', sortType)];
+				} else {
+					tableData = [...GenericSort(row, 'memberIdInNumber', 'asc')];
+				}
+			},
+			icon: sortType === 'asc' ? 'arrowUp' : sortType === 'desc' ? 'arrowDown' : 'rupee'
 		},
 		{ key: 'mobile', label: 'Mobile' },
 		// { key: 'email', label: 'Email' },
@@ -106,78 +97,87 @@
 			align: 'right' as const,
 			render: (_: any, row: any) => {
 				// const user = $memberListStore.members.find((u) => u._id === row._id);
-				const isDeceased = row.status === 'dead';
+				const isDeceased = false;
 				return `
-				<button class="px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-					isDeceased
-						? 'bg-white text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
-						: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
-				}"
-            ${isDeceased ? 'disabled' : ''}
-            onclick="window.navigateToMember('${row._id}')"
-        >
-            View/Edit
-        </button>
-    `;
+				<div class='flex justify-content-start'>
+					<button class="px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+						isDeceased
+							? 'bg-white text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
+							: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
+					}"
+				${isDeceased ? 'disabled' : ''}
+				onclick="window.navigateToMember('${row._id}')"
+			>
+				View/Edit
+			</button>
+			</div>
+		`;
 			}
 		}
-	];
+	]);
 
 	// Transform user data for table
-	const tableData = $derived(
-		$memberListStore.members
-			.filter((user) => {
-				// Status filter
-				if (filters.status && user.status !== filters.status) {
-					return false;
-				}
-
-				// Gender filter
-				if (filters.gender && user.gender !== filters.gender) {
-					return false;
-				}
-
-				// Marital Status filter (if user has profile data)
-				// if (filters.maritalStatus && user.marital_status !== filters.maritalStatus) {
-				// 	return false;
-				// }
-
-				// Gotra filter (if user has profile data)
-				// if (filters.gotra && user.profile?.gotra !== filters.gotra) {
-				// 	return false;
-				// }
-
-				// Search query filter
-				if (searchQuery) {
-					const searchLower = searchQuery.toLowerCase();
-					const fullName = `${user.first_name} ${user.surname}`.toLowerCase();
-					const mobile = user.mobile || '';
-					// const email = user.email || '';
-
-					const matchesSearch = fullName.includes(searchLower) || mobile.includes(searchLower);
-					// ||
-					// email.includes(searchLower);
-
-					if (!matchesSearch) {
+	let tableData = $derived(
+		GenericSort(
+			$memberListStore.members
+				.filter((user) => {
+					// Status filter
+					if (filters.status && user.status !== filters.status) {
 						return false;
 					}
-				}
 
-				return true;
-			})
-			.map((user) => ({
-				memberId: user.member_id,
-				_id: user._id,
-				name: `${user.first_name} ${user.surname}${user.status === 'dead' ? ' 🔴' : ''}`,
-				modifiedName:
-					truncateString(`${user.first_name} ${user.surname}`, 20) +
-					`${user.status === 'dead' ? ' 🔴' : ''}`,
-				mobile: user.mobile || '-',
-				// email: user.email || '-',
-				gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-',
-				status: user.status,
-				actions: ''
-			}))
+					// Gender filter
+					if (filters.gender && user.gender !== filters.gender) {
+						return false;
+					}
+
+					// Search query filter
+					if (searchQuery) {
+						const searchLower = searchQuery.toLowerCase();
+						const fullName = `${user.first_name} ${user.surname}`.toLowerCase();
+						const mobile = user.mobile || '';
+
+						const matchesSearch = fullName.includes(searchLower) || mobile.includes(searchLower);
+
+						if (!matchesSearch) {
+							return false;
+						}
+					}
+
+					if (!amountOperator || !amountValue) return true;
+					const amount = parseFloat(amountValue);
+					switch (amountOperator) {
+						case '>':
+							return user.outstanding_amount > amount;
+						case '<':
+							return user.outstanding_amount < amount;
+						case '=':
+							return user.outstanding_amount === amount;
+						case '>=':
+							return user.outstanding_amount >= amount;
+						case '<=':
+							return user.outstanding_amount <= amount;
+					}
+
+					return true;
+				})
+				.map((user) => ({
+					memberId: user.member_id,
+					memberIdInNumber: Number(user.member_id.replace('MSY_', '')),
+					_id: user._id,
+					name: `${user.first_name} ${user.surname}${user.status === 'dead' ? ' 🔴' : ''}`,
+					modifiedName:
+						truncateString(`${user.first_name} ${user.surname}`, 20) +
+						`${user.status === 'dead' ? ' 🔴' : ''}`,
+					mobile: user.mobile || '-',
+					gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-',
+					status: user.status,
+					actions: '',
+					heesab: user.outstanding_amount
+				})),
+			sortType == '' ? 'memberIdInNumber' : 'heesab',
+			sortType == '' ? 'asc' : sortType
+		)
 	);
 
 	// let searchQuery = $state('');
@@ -192,7 +192,8 @@
 	const statusOptions = [
 		{ key: '', label: 'All Status' },
 		{ key: 'active', label: 'Active' },
-		{ key: 'dead', label: 'Deceased' }
+		{ key: 'dead', label: 'Deceased' },
+		{ key: 'removed', label: 'Removed' }
 	];
 
 	const genderOptions = [
@@ -236,6 +237,8 @@
 			maritalStatus: '',
 			gotra: ''
 		};
+		amountOperator = '';
+		amountValue = '';
 	}
 
 	function applyFilters() {
@@ -337,6 +340,28 @@
 								{/each}
 							</select>
 						</div>
+
+						<!-- Amount Operator Filter -->
+						<div class="w-56">
+							<Select
+								id="amount-operator"
+								bind:value={amountOperator}
+								options={amountOperatorOptions}
+							/>
+						</div>
+
+						<!-- Amount Value Input -->
+						{#if amountOperator}
+							<div class="w-48">
+								<Input
+									id="amount-value"
+									type="number"
+									value={amountValue}
+									placeholder="Enter amount"
+									onChange={handleAmountInput}
+								/>
+							</div>
+						{/if}
 
 						<!-- Marital Status Filter -->
 						<!-- <div class="w-48">

@@ -27,6 +27,7 @@ export namespace User {
 		member_id: string;
 		middle_name: string;
 		mobile: string;
+		outstanding_amount: number;
 		password: string;
 		provider: string;
 		reference_member_1: string;
@@ -35,6 +36,7 @@ export namespace User {
 		role: string;
 		status: string;
 		surname: string;
+		total_payment: number;
 		updatedAt: string;
 		username: string;
 		_v: number;
@@ -64,6 +66,30 @@ export namespace User {
 		password: string;
 		reference_member_1: string;
 		reference_member_2: string;
+	};
+
+	export type Change_Status = Status_Active | Status_Dead | Status_Removed_Retired;
+
+	export type Status_Active = {
+		status: 'active';
+		userId: string;
+	};
+
+	export type Status_Dead = {
+		status: 'dead';
+		userId: string;
+		photo: string;
+		remarks: string;
+		date: string;
+		contribution_amount: number;
+	};
+
+	export type Status_Removed_Retired = {
+		status: 'removed' | 'voluntary-retired';
+		userId: string;
+		photo: string;
+		remarks: string;
+		date: string;
 	};
 
 	export type List = Array<Get>;

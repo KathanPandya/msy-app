@@ -9,7 +9,6 @@
 	let { outstandingTableData } = $props();
 	let searchQuery = $state('');
 
-	// Sample data
 	const totalAmount = outstandingTableData.outstandingAmount;
 	const amountPaid = outstandingTableData.totalPayment;
 	const remainingAmount = totalAmount - amountPaid;
@@ -41,10 +40,20 @@
 			...(outstandingTableData?.paymentRecords ?? []),
 			...(outstandingTableData?.deadMemberRecords ?? [])
 		])?.map((payment: any) => {
+			let date: any;
+			let type: string;
+			if (payment.date) {
+				date = payment.date;
+				type = 'credit';
+			} else {
+				date = payment?.deadMember?.date_of_death;
+				type = 'debit';
+			}
 			return {
 				_id: payment._id,
 				date: formatDate(payment.date ?? payment.deadMember.date_of_death) || '-',
-				amount: payment.amount || -100
+				amount: payment.amount || -100,
+				type: type
 			};
 		}) ?? []
 	);
@@ -94,12 +103,22 @@
 			];
 
 			tableData = sortRecords(mergedRecords).map((payment: any) => {
-				const date = payment.date || payment?.deadMember?.date_of_death;
+				let date: any;
+				let type: string;
+				if (payment.date) {
+					date = payment.date;
+					type = 'credit';
+				} else {
+					date = payment?.deadMember?.date_of_death;
+					type = 'debit';
+				}
+				// const date = payment.date || payment?.deadMember?.date_of_death;
 
 				return {
 					_id: payment._id,
 					date: date ? formatDate(date) : '-',
-					amount: payment.amount ?? -100
+					amount: payment.amount ?? -100,
+					type: type
 				};
 			});
 		}
@@ -116,6 +135,12 @@
 			return dateB - dateA;
 		});
 	}
+
+	function getRowBgColor(row: any) {
+		if (row.type === 'credit') return 'bg-green-100';
+		if (row.type === 'debit') return 'bg-red-50';
+		return '';
+	}
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -130,18 +155,23 @@
 
 				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div class="rounded-lg bg-white p-4 shadow-sm">
-						<p class="mb-1 text-sm text-gray-600">Total Amount Due</p>
+						<p class="mb-1 text-sm text-gray-600">લેવાના</p>
 						<p class="text-2xl font-bold text-gray-800">₹{totalAmount}</p>
 					</div>
 
 					<div class="rounded-lg bg-white p-4 shadow-sm">
-						<p class="mb-1 text-sm text-gray-600">Amount Paid</p>
-						<p class="text-2xl font-bold text-green-600">₹{amountPaid}</p>
+						<p class="mb-1 text-sm text-gray-600">આપેલા</p>
+						<p class="text-2xl font-bold text-blue-600">₹{amountPaid}</p>
 					</div>
 
 					<div class="rounded-lg bg-white p-4 shadow-sm">
-						<p class="mb-1 text-sm text-gray-600">Remaining Balance</p>
-						<p class="text-2xl font-bold text-red-600">₹{remainingAmount}</p>
+						<p class="mb-1 text-sm text-gray-600">Balance</p>
+						<p
+							class={`text-2xl font-bold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
+						>
+							₹{Math.abs(remainingAmount)}
+							{remainingAmount < 0 ? 'જમા' : 'બાકી'}
+						</p>
 					</div>
 				</div>
 
@@ -149,11 +179,13 @@
 				<div class="rounded-lg bg-white p-4 shadow-sm">
 					<p class="mb-2 text-sm font-medium text-gray-700">Calculation:</p>
 					<div class="flex items-center gap-2 text-sm text-gray-600">
-						<span class="font-medium">Total Due: ₹{totalAmount}</span>
+						<span class="font-medium">Collection: ₹{totalAmount}</span>
 						<span>−</span>
 						<span class="font-medium">Paid: ₹{amountPaid}</span>
 						<span>=</span>
-						<span class="font-semibold text-red-600">Balance: ₹{remainingAmount}</span>
+						<span class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
+							>Balance: ₹{remainingAmount}</span
+						>
 					</div>
 					<div class="mt-2 text-xs text-gray-500">
 						Payment completion: {completionPercentage}%
@@ -196,7 +228,7 @@
 
 				<Card title={`Payment History (${tableData.length})`}>
 					<div class="space-y-4">
-						<Table columns={tableColumns} data={tableData} />
+						<Table columns={tableColumns} data={tableData} {getRowBgColor} />
 					</div>
 				</Card>
 			</div>

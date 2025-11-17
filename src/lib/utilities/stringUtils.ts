@@ -6,7 +6,7 @@ export function capitalizeFirst(str: string | null | undefined): string {
 }
 
 export function formatString(
-	str: string,
+	str: string | undefined,
 	type: Array<
 		| 'capitalize-first'
 		| 'capitalize-words'

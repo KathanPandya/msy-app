@@ -1,6 +1,12 @@
-<!-- src/lib/components/ui/Table.svelte -->
 <script lang="ts">
+	import { ArrowDown, ArrowUp, Component, IndianRupee, type IconProps } from '@lucide/svelte';
 	import Tooltip from './Tooltip.svelte';
+
+	const iconMapping: Record<string, any> = {
+		rupee: IndianRupee,
+		arrowDown: ArrowDown,
+		arrowUp: ArrowUp
+	};
 
 	type Column = {
 		key: string;
@@ -9,15 +15,18 @@
 		render?: (value: any, row: any) => any;
 		tooltip?: boolean | ((value: any, row: any) => string);
 		tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
+		sorting?: (allRows: any) => any;
+		icon?: string;
 	};
 
 	type TableProps = {
 		columns: Column[];
 		data: any[];
 		onRowClick?: (row: any) => void;
+		getRowBgColor?: (row: any) => string; // NEW: Function to get background color
 	};
 
-	let { columns, data, onRowClick }: TableProps = $props();
+	let { columns, data, onRowClick, getRowBgColor }: TableProps = $props();
 
 	function getAlignClass(align?: string) {
 		if (align === 'right') return 'text-right';
@@ -25,7 +34,6 @@
 		return 'text-left';
 	}
 
-	// Get tooltip content
 	function getTooltip(column: Column, value: any, row: any): string | null {
 		if (!column.tooltip) return null;
 
@@ -33,8 +41,15 @@
 			return column.tooltip(value, row);
 		}
 
-		// Default: show the raw value as tooltip
 		return value?.toString() || '';
+	}
+
+	// NEW: Get row classes including background color
+	function getRowClasses(row: any): string {
+		const baseClasses = onRowClick ? 'cursor-pointer hover:bg-gray-50' : 'hover:bg-gray-50';
+		const bgColor = getRowBgColor ? getRowBgColor(row) : ''; // Call function if provided
+
+		return `${baseClasses} ${bgColor}`.trim();
 	}
 </script>
 
@@ -47,17 +62,27 @@
 						column.align
 					)} bg-gray-50 text-xs font-medium tracking-wider text-gray-500 uppercase"
 				>
-					{column.label}
+					<div class="flex align-middle">
+						{column.label}
+						{#if column.sorting}
+							<button
+								onclick={() => column?.sorting?.(data)}
+								style="background: 'none'; border: 'none'; cursor: 'pointer'"
+							>
+								{#if column.icon && iconMapping[column.icon]}
+									{@const Icon = iconMapping[column.icon]}
+									<Icon size={15} class='cursor-pointer'/>
+								{/if}
+							</button>
+						{/if}
+					</div>
 				</th>
 			{/each}
 		</tr>
 	</thead>
 	<tbody class="divide-y divide-gray-200 bg-white">
 		{#each data as row}
-			<tr
-				class={onRowClick ? 'cursor-pointer hover:bg-gray-50' : 'hover:bg-gray-50'}
-				onclick={() => onRowClick?.(row)}
-			>
+			<tr class={getRowClasses(row)} onclick={() => onRowClick?.(row)}>
 				{#each columns as column}
 					{@const tooltipText = getTooltip(column, row[column.key], row)}
 					<td

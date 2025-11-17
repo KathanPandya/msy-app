@@ -1,14 +1,21 @@
 <script lang="ts">
-	import { X, ZoomIn, Download } from '@lucide/svelte';
+	import { X, ZoomIn, Download, AlarmClockOff, CircleX } from '@lucide/svelte';
 
 	type ImageViewerProps = {
 		src: string;
 		alt?: string;
 		thumbnailSize?: 'small' | 'medium' | 'large';
 		rounded?: boolean;
+		removeImage?: () => void;
 	};
 
-	let { src, alt = 'Image', thumbnailSize = 'medium', rounded = true }: ImageViewerProps = $props();
+	let {
+		src,
+		alt = 'Image',
+		thumbnailSize = 'medium',
+		rounded = true,
+		removeImage
+	}: ImageViewerProps = $props();
 
 	let isOpen = $state(false);
 
@@ -53,22 +60,31 @@
 
 <!-- Thumbnail -->
 <div class="group relative inline-block">
-	<button
-		type="button"
-		onclick={openLightbox}
+	<div
 		class="relative overflow-hidden transition-all {sizeClasses[thumbnailSize]} {rounded
 			? 'rounded-lg'
 			: ''} focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 	>
 		<img {src} {alt} class="h-full w-full object-cover" />
 
-		<!-- Hover overlay -->
-		<div
-			class="bg-opacity-0 group-hover:bg-opacity-40 absolute inset-0 flex items-center justify-center  transition-all"
+		<!-- Main overlay for zoom (covers entire image) -->
+		<button
+			type="button"
+			onclick={openLightbox}
+			class="absolute inset-0 flex items-center justify-center bg-black/0 transition-all group-hover:bg-black/40"
 		>
-			<ZoomIn class="h-6 w-6 text-black opacity-0 transition-opacity group-hover:opacity-100" />
-		</div>
-	</button>
+			<ZoomIn class="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+		</button>
+
+		<!-- Close/Remove button (positioned in corner) -->
+		<button
+			type="button"
+			onclick={removeImage}
+			class="absolute top-2 left-2 z-20 opacity-0 transition-opacity group-hover:opacity-100"
+		>
+			<CircleX class="h-6 w-6 text-white transition-colors hover:text-red-500" />
+		</button>
+	</div>
 </div>
 
 <!-- Lightbox Modal -->

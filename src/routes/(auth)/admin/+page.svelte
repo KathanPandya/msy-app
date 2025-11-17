@@ -66,7 +66,7 @@
 			await authStore.login(formData.email, formData.password);
 
 			// Redirect to dashboard
-			goto('/members');
+			goto('/dashboard');
 		} catch (err: any) {
 			if (err.inner && Array.isArray(err.inner)) {
 				// Validation errors
