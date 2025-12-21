@@ -3,14 +3,18 @@
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import ImageViewer from '$lib/components/ui/ImageViewer.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import deadMemberApi from '$lib/endpoints/deadMemberApi';
 	import uploadApi from '$lib/endpoints/uploadApi';
-	// import deathClaimApi from '$lib/endpoints/deathClaimApi'; // Update with your actual API
+	import userApi from '$lib/endpoints/userApi';
 	import { memberListStore } from '$lib/stores/memberListStore';
+	import type { DeadMember } from '$lib/types/deadMember';
 	import type { User } from '$lib/types/user';
-	// import type { DeathClaim } from '$lib/types/deathClaim'; // Update with your actual type
+	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import { formatString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
@@ -36,7 +40,7 @@
 			otherwise: (s) => s.notRequired()
 		}),
 
-		contribution_amount: Yup.date().when('status', {
+		contribution_amount: Yup.number().when('status', {
 			is: 'dead',
 			then: (s) => s.required('Contribution Amount is required'),
 			otherwise: (s) => s.notRequired()
@@ -51,7 +55,7 @@
 	};
 
 	// Load members on mount
-	onMount(() => {
+	onMount(async () => {
 		if ($memberListStore.members.length === 0) {
 			memberListStore.fetchAllMembers();
 		}
@@ -60,12 +64,32 @@
 		if (member) {
 			currentMember = member as User.Get;
 			memberSearchQuery = `${currentMember.first_name} ${currentMember.surname}`;
-			formData.status = currentMember.status as User.Change_Status['status'];
+			formData.status = currentMember.status;
 			formData.userId = currentMember._id;
+			if (currentMember.status === 'removed' || currentMember.status === 'voluntary-retired') {
+				if (currentMember.status_details) {
+					formData.reason = currentMember.status_details.remarks;
+					formData.date = formatString(currentMember.status_details.date?.split('T')[0], ['trim']);
+					formData.photo = currentMember.status_details.photo_url;
+				}
+			}
+
+			if (currentMember.status === 'dead') {
+				const res = await deadMemberApi.getAllDeadMembers();
+				const deadMemberDetail = res.data.find((detail) => detail.userId === currentMember?._id);
+				if (deadMemberDetail) {
+					deadMemberId = deadMemberDetail._id;
+					formData.contribution_amount = String(deadMemberDetail.contribution_amount);
+					formData.reason = deadMemberDetail.remarks;
+					formData.date = formatString(deadMemberDetail.date_of_death?.split('T')[0], ['trim']);
+					formData.photo = deadMemberDetail.death_certificate;
+				}
+			}
 		}
 	});
 
 	let memberSearchQuery = $state('');
+	let deadMemberId = $state('');
 	let showMemberDropdown = $state(false);
 	let memberDropdownRef: HTMLDivElement;
 	let currentMember = $state<User.Get>();
@@ -74,11 +98,11 @@
 	let formData = $state({
 		userId: '',
 		memberName: '',
-		status: '' as User.Change_Status['status'],
+		status: '',
 		date: '',
 		contribution_amount: '100',
 		reason: '',
-		photo: null as File | null
+		photo: null as File | null | string
 	});
 
 	// Errors
@@ -124,6 +148,10 @@
 		if (memberDropdownRef && !memberDropdownRef.contains(event.target as Node)) {
 			showMemberDropdown = false;
 		}
+	}
+
+	function removeImage() {
+		formData.photo = '';
 	}
 
 	onMount(() => {
@@ -206,6 +234,11 @@
 
 	// Submit form
 	async function submitForm() {
+		if (!currentMember) {
+			errorMessage = 'Current Member Not Found';
+			return;
+		}
+
 		isLoading = true;
 		successMessage = '';
 		errorMessage = '';
@@ -233,51 +266,79 @@
 					return;
 				}
 
-				// Upload death certificate
-				const formDataToSend = new FormData();
-				formDataToSend.append('file', formData.photo);
+				if (typeof formData.photo === 'string') {
+					fileUrl = formData.photo;
+				} else {
+					// Upload
+					const formDataToSend = new FormData();
+					formDataToSend.append('file', formData.photo);
 
-				// const uploadResponse = await uploadApi.file({ file: formDataToSend });
-				// fileUrl = uploadResponse.data.fileUrl;
+					const uploadResponse = await uploadApi.file({ file: formDataToSend });
+					fileUrl = uploadResponse.data.fileUrl;
+				}
 			}
+			let apiRes;
 
-			let payload: User.Change_Status;
-
-			if (formData.status === 'active') {
-				payload = {
+			if (currentMember.status === 'dead') {
+				let payload: DeadMember.Create | DeadMember.Update = {
 					userId: formData.userId,
-					status: formData.status
-				};
-			} else if (formData.status === 'removed' || formData.status === 'voluntary-retired') {
-				payload = {
-					userId: formData.userId,
-					status: formData.status,
-					date: formData.date,
+					date_of_death: formData.date,
+					death_certificate: fileUrl,
 					remarks: formData.reason,
-					photo: fileUrl
-				};
-			} else {
-				payload = {
-					userId: formData.userId,
-					status: formData.status,
-					date: formData.date,
-					remarks: formData.reason,
-					photo: fileUrl,
 					contribution_amount: Number(formData.contribution_amount)
 				};
+
+				if (deadMemberId) {
+					payload = { ...payload, id: deadMemberId };
+					apiRes = await deadMemberApi.updateDeadMember({
+						payload: payload as DeadMember.Update
+					});
+				} else {
+					apiRes = await deadMemberApi.changeMemberStatusToDead({
+						payload: payload
+					});
+				}
+			} else {
+				const s_details =
+					formData.status === 'active'
+						? null
+						: {
+								date: formatToYYYYMMDD(formData.date),
+								photo_url: fileUrl,
+								remarks: formData.reason,
+								contribution_amount: null
+							};
+
+				apiRes = await userApi.updateUser({
+					userId: formData.userId,
+					payload: {
+						first_name: currentMember.first_name,
+						middle_name: currentMember.middle_name,
+						surname: currentMember.surname,
+						status: currentMember.status,
+						date_of_birth: formatToYYYYMMDD(currentMember.date_of_birth),
+						gender: currentMember.gender,
+						mobile: currentMember.mobile,
+						reference_member_1: currentMember.reference_member_1,
+						reference_member_2: currentMember.reference_member_2,
+						entry_date: formatToYYYYMMDD(currentMember.entry_date),
+						status_details: s_details
+					}
+				});
 			}
 
-			console.log('payload', payload);
-
-			// const response = await deathClaimApi.addDeathClaim({ payload });
-
-			successMessage = 'Member Status changed successfully! Redirecting...';
+			if (apiRes.success) {
+				successMessage = 'Member Status changed successfully! Redirecting...';
+			} else {
+				errorMessage = apiRes.message;
+				return;
+			}
 
 			// Reset form after delay
-			// setTimeout(() => {
-			// 	resetForm();
-			// 	goto('/death-claims'); // Update with your route
-			// }, 1500);
+			setTimeout(() => {
+				resetForm();
+				goto(`/members/view/${currentMember?._id}`);
+			}, 1500);
 		} catch (err: any) {
 			if (err.inner && Array.isArray(err.inner)) {
 				err.inner.forEach((e: any) => {
@@ -287,6 +348,13 @@
 				});
 			}
 			errorMessage = 'Please fix the errors above';
+
+			if (err.response) {
+				errorMessage = err.response.data?.message || 'Request failed';
+				return;
+			}
+
+			errorMessage = 'Something went wrong';
 
 			// Scroll to first error
 			setTimeout(() => {
@@ -306,7 +374,7 @@
 			formData = {
 				userId: currentMember._id,
 				memberName: `${currentMember.first_name} ${currentMember.surname}`,
-				status: currentMember.status as User.Change_Status['status'],
+				status: currentMember.status,
 				date: '',
 				contribution_amount: '',
 				photo: null,
@@ -332,7 +400,9 @@
 </script>
 
 <div class="mx-auto max-w-3xl p-6">
-	<Card title="Change User Status">
+	<Card
+		title={`Change User Status (${currentMember?.first_name} ${currentMember?.middle_name} ${currentMember?.surname})`}
+	>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<!-- Member Selection with Search -->
 			<div class="md:col-span-2">
@@ -393,7 +463,7 @@
 											{member.surname}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.mobile} • {member.email}
+											{member.member_id} • {member.mobile}
 										</div>
 									</button>
 								{/each}
@@ -460,7 +530,15 @@
 
 			<!-- Death Certificate Upload -->
 
-			{#if formData.status !== 'active'}
+			{#if typeof formData.photo === 'string' && formData.photo !== ''}
+				<div class="md:col-span-2">
+					<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
+						{formData.status === 'dead' ? 'Death Certificate' : 'Proof (Screenshot/Notice)'}
+						<span class="text-red-500">*</span>
+					</label>
+					<ImageViewer {removeImage} src={formData.photo} alt="Proof Pic" thumbnailSize="large" />
+				</div>
+			{:else if formData.status !== 'active'}
 				<div class="md:col-span-2">
 					<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
 						{formData.status === 'dead' ? 'Death Certificate' : 'Proof (Screenshot/Notice)'}
@@ -530,7 +608,7 @@
 
 		<!-- Actions -->
 		<div class="mt-6 flex justify-end gap-3">
-			<Button variant="secondary" onclick={resetForm} disabled={isLoading}>Reset</Button>
+			<!-- <Button variant="secondary" onclick={resetForm} disabled={isLoading}>Reset</Button> -->
 			<Button variant="success" onclick={submitForm} disabled={isLoading}>
 				{#if isLoading}
 					<div class="flex items-center gap-2">

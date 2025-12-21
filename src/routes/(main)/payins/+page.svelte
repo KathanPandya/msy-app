@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
+	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
@@ -9,6 +10,7 @@
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { Plus, Search } from '@lucide/svelte';
 	import { onMount } from 'svelte';
+	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 
 	// Convert to $state (Svelte 5)
 	let paymentList = $state<Payment.List>([]);
@@ -129,7 +131,7 @@
 				amount: payment.amount,
 				date: formatDate(payment.date),
 				paymentMode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-				paymentType: formatString(payment.payment_type, ['capitalize-first']),
+				paymentType: backendMapping[payment.payment_type],
 				actions: '' // Placeholder, actual rendering handled by column.render
 			};
 		})
@@ -163,10 +165,10 @@
 			</Button>
 		</div>
 
-		{#if !isLoading && $memberListStore.members.length > 0}
+		{#if !isLoading && tableData.length > 0}
 			<p class="mt-4 text-sm text-gray-700">
-				Showing <span class="font-medium">{$memberListStore.members.length}</span>
-				{$memberListStore.members.length === 1 ? 'member' : 'members'}
+				Showing <span class="font-medium">{tableData.length}</span>
+				{tableData.length === 1 ? 'payment record' : 'payment records'}
 			</p>
 		{/if}
 	</div>

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { dev } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -245,8 +244,9 @@
 				fileUrl = '';
 			}
 
-			const payload: Payment.Create = {
-				amount: formData.amount,
+			const payload: Payment.Update = {
+				id: paymentData._id,
+				amount: Number(formData.amount),
 				date: formatToYYYYMMDD(formData.paymentDate),
 				payment_reference: formData.paymentReference,
 				payment_mode: formData.paymentMode,
@@ -257,7 +257,7 @@
 				userId: paymentData.userId
 			};
 
-			const response = await paymentApi.addPayment({ payload });
+			const response = await paymentApi.updatePayment({ payload });
 
 			successMessage = response.message || 'Payment added successfully! Redirecting...';
 
@@ -383,7 +383,7 @@
 											{member.surname}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.mobile} • {member.email}
+											{member.member_id} • {member.mobile}
 										</div>
 									</button>
 								{/each}

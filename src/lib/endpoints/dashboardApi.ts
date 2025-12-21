@@ -2,7 +2,7 @@ import axios from '$lib/config/axios';
 
 class DashboardApi {
 	async getDashboardStats(): Promise<any> {
-		const response = await axios.get('api/user/get-dashboard-stats');
+		const response = await axios.get('api/admin/get-dashboard-stats');
 		return response.data;
 	}
 }

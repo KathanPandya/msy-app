@@ -172,6 +172,17 @@
 		}
 	}
 
+	function handlePaymentModeChange(e: any) {
+		const mode = e.target.value;
+
+		formData = {
+			...formData,
+			referenceNumber: mode === 'cash' ? 'N/A' : ''
+		};
+		validateField('paymentMode');
+		validateField('referenceNumber');
+	}
+
 	// Handle member search input
 	function handleMemberSearch(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -365,7 +376,7 @@
 											{member.surname}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.mobile} • {member.email}
+											{member.member_id} • {member.mobile}
 										</div>
 									</button>
 								{/each}
@@ -411,7 +422,7 @@
 				bind:value={formData.paymentMode}
 				options={paymentModes}
 				error={errors.paymentMode}
-				onchange={() => validateField('paymentMode')}
+				onchange={() => handlePaymentModeChange(event)}
 				required
 				disabled={isLoading}
 			/>
@@ -437,7 +448,7 @@
 				onblur={() => validateField('referenceNumber')}
 				placeholder="Transaction/Cheque number"
 				required
-				disabled={isLoading}
+				disabled={isLoading || formData.paymentMode === 'cash'}
 			/>
 
 			<Input

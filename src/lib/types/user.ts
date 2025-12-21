@@ -1,5 +1,4 @@
 import type { Address } from '$lib/types/address';
-import type { Payment } from '$lib/types/payment';
 import type { Profile } from '$lib/types/profile';
 
 export namespace User {
@@ -41,6 +40,7 @@ export namespace User {
 		username: string;
 		_v: number;
 		_id: string;
+		status_details: Status_Details;
 	};
 
 	export type Update = {
@@ -55,6 +55,8 @@ export namespace User {
 		// entry_date?: string;
 		reference_member_1: string;
 		reference_member_2: string;
+		status_details: Status_Details;
+		entry_date: string;
 	};
 
 	export type Create = {
@@ -68,29 +70,12 @@ export namespace User {
 		reference_member_2: string;
 	};
 
-	export type Change_Status = Status_Active | Status_Dead | Status_Removed_Retired;
-
-	export type Status_Active = {
-		status: 'active';
-		userId: string;
-	};
-
-	export type Status_Dead = {
-		status: 'dead';
-		userId: string;
-		photo: string;
-		remarks: string;
-		date: string;
-		contribution_amount: number;
-	};
-
-	export type Status_Removed_Retired = {
-		status: 'removed' | 'voluntary-retired';
-		userId: string;
-		photo: string;
-		remarks: string;
-		date: string;
-	};
-
 	export type List = Array<Get>;
+
+	export type Status_Details = null | {
+		date: string;
+		remarks: string;
+		photo_url: string;
+		contribution_amount: null | number;
+	};
 }

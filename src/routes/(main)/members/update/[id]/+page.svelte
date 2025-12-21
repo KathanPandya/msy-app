@@ -265,7 +265,9 @@
 						gender: formData.gender,
 						mobile: formData.mobileNumber,
 						reference_member_1: formData.refNum1,
-						reference_member_2: formData.refNum2
+						reference_member_2: formData.refNum2,
+						status_details: userInfo.user.status_details,
+						entry_date: formatToYYYYMMDD(userInfo.user.entry_date)
 					}
 				});
 
@@ -363,7 +365,7 @@
 		}
 	}
 	function checkDiff() {
-		console.log('value changes')
+		console.log('value changes');
 	}
 </script>
 
@@ -442,14 +444,14 @@
 						onchange={() => validateField('gender')}
 					/>
 
-					<Select
+					<!-- <Select
 						id="status"
 						label="Status"
 						bind:value={formData.status}
 						options={memberStatus}
 						error={errors.status}
 						onchange={() => validateField('status')}
-					/>
+					/> -->
 				</div>
 
 				{#if sectionErrors.general}

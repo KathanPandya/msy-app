@@ -58,7 +58,7 @@
 			const res = await paymentApi.getOutstandingPaymentOfMember(userId);
 			paymentsTableInfo = res.data;
 
-			userData.હિસાબ = paymentsTableInfo.outstandingAmount - paymentsTableInfo.totalPayment;
+			userData.હિસાબ = paymentsTableInfo.outstandingAmount;
 
 			let userInfo = await coreApi.fetchUserInfo({ userId });
 

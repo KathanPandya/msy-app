@@ -49,6 +49,15 @@ class PaymentApi {
 		return response.data;
 	}
 
+	async updatePayment({
+		payload
+	}: {
+		payload: Payment.Update;
+	}): Promise<{ address: Payment.Get; success: boolean; message: string }> {
+		const response = await axios.put(`/api/payment/update/${payload.id}`, payload);
+		return response.data;
+	}
+
 	async addPayout({
 		payload
 	}: {

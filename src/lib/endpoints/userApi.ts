@@ -41,16 +41,6 @@ class UserApi {
 		);
 		return response.data;
 	}
-
-	async changeMemberStatus({
-		payload
-	}: {
-		payload: User.Change_Status;
-	}): Promise<{ user: User.Get; token: string; success: boolean }> {
-		const response = await axios.post(`/api/dead-member/create`, payload);
-		memberListStore.clear();
-		return response.data;
-	}
 }
 
 const userApi = new UserApi();

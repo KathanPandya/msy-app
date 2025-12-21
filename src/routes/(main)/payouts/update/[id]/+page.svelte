@@ -406,7 +406,7 @@
 											{member.surname}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.mobile} • {member.email}
+											{member.member_id} • {member.mobile}
 										</div>
 									</button>
 								{/each}

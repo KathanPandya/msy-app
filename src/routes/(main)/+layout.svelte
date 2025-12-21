@@ -174,7 +174,9 @@
 				<!-- Left: Page Title or Breadcrumb -->
 
 				<div class="flex items-center space-x-3">
-					<h1 class="text-lg font-semibold text-gray-900">{pageTitle}</h1>
+					<h1 class="text-lg font-semibold text-gray-900">
+						{pageTitle}
+					</h1>
 				</div>
 
 				<!-- Right: User Actions -->

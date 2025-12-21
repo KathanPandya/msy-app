@@ -79,10 +79,15 @@ export const APP_CONSTANTS = {
 	],
 
 	PAYMENT_TYPES: [
-		{ key: '', label: 'Select payment tpe' },
+		{ key: '', label: 'Select payment type' },
 		{ key: 'deposit', label: 'Deposit' },
 		{ key: 'membership_fee', label: 'Membership Fee' },
 		{ key: 'donation', label: 'Donation' },
+		{ key: 'msy_contribution', label: 'Contribution' },
 		{ key: 'other', label: 'Other' }
-	]
+	],
+
+	BACKEND_MAPPING: {
+		msy_contribution: 'Contribution'
+	}
 };

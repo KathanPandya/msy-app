@@ -9,7 +9,7 @@
 	let { outstandingTableData } = $props();
 	let searchQuery = $state('');
 
-	const totalAmount = outstandingTableData.outstandingAmount;
+	const totalAmount = outstandingTableData.outstandingAmount + outstandingTableData.totalPayment;
 	const amountPaid = outstandingTableData.totalPayment;
 	const remainingAmount = totalAmount - amountPaid;
 	const completionPercentage =

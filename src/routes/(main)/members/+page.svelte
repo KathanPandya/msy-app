@@ -6,11 +6,11 @@
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
-	import dashboardApi from '$lib/endpoints/dashboardApi';
+	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import { memberListStore } from '$lib/stores/memberListStore';
-	import { GenericSort, StringSort } from '$lib/utilities/sortingUtil';
-	import { truncateString } from '$lib/utilities/stringUtils';
-	import { Filter, Plus, Search, X } from '@lucide/svelte';
+	import { GenericSort } from '$lib/utilities/sortingUtil';
+	import { formatString, truncateString } from '$lib/utilities/stringUtils';
+	import { Download, Filter, Plus, Search, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	// Load members on mount
@@ -243,6 +243,43 @@
 
 	function applyFilters() {
 		console.log('Applying filters:', filters);
+	}
+
+	function downloadTableData() {
+		const copyOfTableData = tableData.map((tD) => {
+			return {
+				MemberID: tD.memberId,
+				Name: tD.name,
+				Status: formatString(tD.status, ['capitalize-first']),
+				Heesab: tD.heesab,
+				Mobile: tD.mobile,
+				Gender: tD.gender
+			};
+		});
+
+		const titleKeys = Object.keys(copyOfTableData[0]);
+
+		const refinedData = [];
+		refinedData.push(titleKeys);
+
+		copyOfTableData.forEach((item) => {
+			refinedData.push(Object.values(item));
+		});
+
+		let csvContent = '';
+
+		refinedData.forEach((row) => {
+			csvContent += row.join(',') + '\n';
+		});
+
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8,' });
+		const objUrl = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.setAttribute('href', objUrl);
+		link.setAttribute('download', 'Member-List.csv');
+		link.textContent = 'Click to Download';
+
+		link.click();
 	}
 </script>
 
@@ -488,10 +525,22 @@
 		</div>
 
 		{#if !$memberListStore.isLoading && $memberListStore.members.length > 0}
-			<p class="mt-4 text-sm text-gray-700">
-				Showing <span class="font-medium">{tableData.length}</span>
-				{tableData.length === 1 ? 'member' : 'members'}
-			</p>
+			<div class="mt-4 flex w-full items-center justify-between">
+				<p class="text-sm text-gray-700">
+					Showing <span class="font-medium">{tableData.length}</span>
+					{tableData.length === 1 ? 'member' : 'members'}
+				</p>
+
+				<Tooltip text="Download" position={'left'}>
+					<span class="cursor-help">
+						<Download
+							size={'20px'}
+							onclick={downloadTableData}
+							class="cursor-pointer text-sm text-gray-700"
+						/>
+					</span>
+				</Tooltip>
+			</div>
 		{/if}
 	</div>
 

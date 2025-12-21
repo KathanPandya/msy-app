@@ -29,6 +29,19 @@ export namespace Payment {
 		userId: string;
 	};
 
+	export type Update = {
+		id: string;
+		userId: string;
+		amount: number;
+		date: string;
+		payment_reference: string;
+		payment_mode: string;
+		payment_type: string;
+		reciept_number: string;
+		photo: string;
+		remarks: string;
+	};
+
 	export type Payout_Create = {
 		userId: string;
 		deadMemberId: string;
