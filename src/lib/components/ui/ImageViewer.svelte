@@ -117,7 +117,7 @@
 		</button>
 
 		<!-- Image container -->
-		<div class="relative max-h-[90vh] max-w-7xl p-4">
+		<div class="flex h-full w-full items-center justify-center p-4">
 			<img
 				{src}
 				{alt}
