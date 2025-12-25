@@ -8,7 +8,7 @@ import type { AxiosInstance } from 'axios';
 import axios from 'axios';
 
 const instance: AxiosInstance = axios.create({
-	baseURL: 'http://localhost:3001/'
+	baseURL: import.meta.env.VITE_API_URL
 });
 
 // Request Interceptor
