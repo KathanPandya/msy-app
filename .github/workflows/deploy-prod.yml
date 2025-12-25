@@ -34,4 +34,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME_PROD }}
           password: ${{ secrets.FTP_PASSWORD_PROD }}
           local-dir: ./build/
-          server-dir: /home/u971344366/domains/bhattmewada.org/public_html/msy/
+          server-dir: /public_html/msy/
