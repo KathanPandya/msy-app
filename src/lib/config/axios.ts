@@ -8,7 +8,7 @@ import type { AxiosInstance } from 'axios';
 import axios from 'axios';
 
 const instance: AxiosInstance = axios.create({
-	baseURL: 'https://bhattmewada-server-q993n7jwv-ankits-projects-6f6c6180.vercel.app/'
+	baseURL: 'http://localhost:3001/'
 });
 
 // Request Interceptor
