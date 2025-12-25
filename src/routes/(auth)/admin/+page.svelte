@@ -192,7 +192,7 @@
 							<span>Signing in...</span>
 						</div>
 					{:else}
-						Signnnnnnnnnnnnnnnnnnnn in
+						Sign in
 					{/if}
 				</button>
 

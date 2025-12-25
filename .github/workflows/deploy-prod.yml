@@ -26,6 +26,8 @@ jobs:
 
       - name: Build Svelte app
         run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.PROD_API_URL }}
 
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
