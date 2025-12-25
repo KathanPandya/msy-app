@@ -115,7 +115,7 @@ function createAuthStore() {
 				error: null
 			});
 
-			goto('/login');
+			goto('/admin');
 		},
 
 		// Update user data
