@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20' # Use Node 20 for better compatibility
+          node-version: '20'
 
       - name: Install dependencies
         run: |
@@ -34,4 +34,4 @@ jobs:
           username: ${{ secrets.FTP_USERNAME_PROD }}
           password: ${{ secrets.FTP_PASSWORD_PROD }}
           local-dir: ./build/
-          server-dir: /public_html/
+          server-dir: /home/u971344366/domains/bhattmewada.org/public_html/msy/
