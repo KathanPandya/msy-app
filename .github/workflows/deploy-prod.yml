@@ -1,40 +1,36 @@
-name: Deploy to Production
+name: Deploy to Hostinger
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # This adds a manual trigger button
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18' # Adjust based on your project
           cache: 'npm'
-
+      
       - name: Install dependencies
-        run: npm install # Changed from npm ci to npm install
-
-      - name: Build with production environment
-        env:
-          VITE_BASE_URL: ${{ vars.PROD_BASE_URL }}
-          VITE_API_URL: ${{ vars.PROD_API_URL }}
+        run: npm ci
+      
+      - name: Build Svelte app
         run: npm run build
-
-      - name: Deploy to Hostinger Production via FTP
-        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+      
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME_PROD }}
           password: ${{ secrets.FTP_PASSWORD_PROD }}
-          local-dir: ./build/
-          server-dir: /public_html/
-          protocol: ftps
-          port: 21
-          security: loose
-          dangerous-clean-slate: true
+          local-dir: ./build/ # This is the default output dir for adapter-static
+          server-dir: /public_html/ # Adjust based on your Hostinger setup
