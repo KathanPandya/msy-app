@@ -29,7 +29,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if $authStore.isLoading}
+<!-- {#if $authStore.isLoading}
 	<div class="flex min-h-screen items-center justify-center bg-gray-50">
 		<div class="text-center">
 			<div
@@ -38,11 +38,11 @@
 			<p class="mt-4 text-gray-600">Loading...</p>
 		</div>
 	</div>
-{:else}
+{:else} -->
 	<div class="bg-whit flex h-screen flex-col overflow-hidden">
 		<main class="overflow-hiddens flex-1">
 			{@render children?.()}
 		</main>
 	</div>
 	<!-- <slot /> -->
-{/if}
+<!-- {/if} -->
