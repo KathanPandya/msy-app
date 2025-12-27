@@ -93,9 +93,12 @@
 			.filter((member) => {
 				const searchLower = memberSearchQuery.toLowerCase();
 				const fullName = `${member.first_name} ${member.surname}`.toLowerCase();
-				const mobile = member.mobile || '';
-				return fullName.includes(searchLower) || mobile.includes(searchLower);
+				const member_id = (member.member_id ?? '').toLowerCase();
+				return fullName.includes(searchLower) || member_id.includes(searchLower);
 			})
+			.sort(
+				(a, b) => Number(a.member_id.replace('MSY_', '')) - Number(b.member_id.replace('MSY_', ''))
+			)
 	);
 
 	// Filtered nominees

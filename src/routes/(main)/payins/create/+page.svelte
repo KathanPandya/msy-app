@@ -43,11 +43,11 @@
 		memberId: '',
 		memberName: '',
 		amount: '',
-		description: '',
-		paymentMode: '',
+		description: '-',
+		paymentMode: 'upi',
 		referenceNumber: '',
-		paymentDate: '',
-		paymentType: '',
+		paymentDate: formatToYYYYMMDD(Date().toString()),
+		paymentType: 'msy_contribution',
 		receiptNumber: '',
 		file: null as File | null
 	});
@@ -72,12 +72,21 @@
 
 	// Filtered members based on search
 	const filteredMembers = $derived(
-		$memberListStore.members.filter((member) => {
-			const searchLower = memberSearchQuery.toLowerCase();
-			const fullName = `${member.first_name} ${member.surname}`.toLowerCase();
-			const mobile = member.mobile || '';
-			return fullName.includes(searchLower) || mobile.includes(searchLower);
-		})
+		$memberListStore.members
+			.filter((member) => {
+				const searchLower = memberSearchQuery.toLowerCase();
+				const fullName = `${member.first_name} ${member.surname}`.toLowerCase();
+				// const mobile = member.mobile || '';
+				const member_id = (member.member_id ?? '').toLowerCase();
+				return (
+					fullName.includes(searchLower) ||
+					// mobile.includes(searchLower) ||
+					member_id.includes(searchLower)
+				);
+			})
+			.sort(
+				(a, b) => Number(a.member_id.replace('MSY_', '')) - Number(b.member_id.replace('MSY_', ''))
+			)
 	);
 
 	// Select member
@@ -224,11 +233,11 @@
 			// Check if file is uploaded
 			if (formData.file) {
 				console.log(formData.file);
-				const formDataToSend = new FormData();
+			const formDataToSend = new FormData();
 				formDataToSend.append('file', formData.file);
 
-				const uploadResponse = await uploadApi.file({ file: formDataToSend });
-				fileUrl = uploadResponse.data.fileUrl;
+			const uploadResponse = await uploadApi.file({ file: formDataToSend });
+			fileUrl = uploadResponse.data.fileUrl;
 				// errors.file = 'Payment receipt is required';
 				// errorMessage = 'Please upload a payment receipt';
 				// return;
