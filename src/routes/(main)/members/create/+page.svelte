@@ -183,7 +183,7 @@
 </script>
 
 <div class="mx-auto max-w-5xl">
-	<div class="space-y-6 p-6">
+	<div class="p-lg-6 space-y-6 p-2">
 		<Card title="General Info">
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 				<Input

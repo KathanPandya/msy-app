@@ -14,7 +14,7 @@
 		Users
 	} from '@lucide/svelte';
 
-	let isSidebarOpen = $state(true);
+	let isSidebarOpen = $state(false);
 	let isAuthorized = $state(false);
 
 	$effect(() => {
@@ -92,7 +92,7 @@
 		<!-- Sidebar -->
 		<aside
 			class={`
-    ${isSidebarOpen ? 'w-64' : 'w-16'}
+    ${isSidebarOpen ? 'w-64' : 'w-12 lg:w-16'}
     flex flex-col border-r border-gray-200 bg-white transition-all duration-300
   `}
 		>
@@ -218,7 +218,7 @@
 
 			<!-- Content (Scrollable) -->
 			<main class="flex-1 overflow-y-auto bg-gray-50">
-				<div class="h-full overflow-y-auto p-6">
+				<div class="h-full overflow-y-auto p-2 lg:p-6">
 					<!-- Add this wrapper -->
 					{@render children?.()}
 				</div>

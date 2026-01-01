@@ -10,7 +10,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
 	import { formatString, truncateString } from '$lib/utilities/stringUtils';
-	import { Download, Filter, Plus, Search, X } from '@lucide/svelte';
+	import { ChevronDown, ChevronUp, Download, Filter, Plus, Search, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	// Load members on mount
@@ -24,6 +24,7 @@
 	let amountOperator = $state('');
 	let amountValue = $state('');
 	let sortType = $state<'asc' | 'desc' | ''>('');
+	let showFilters = $state(false);
 
 	const amountOperatorOptions = [
 		{ label: 'Sort Outstanding Amount', key: '' },
@@ -245,6 +246,10 @@
 		console.log('Applying filters:', filters);
 	}
 
+	function toggleFilters() {
+		showFilters = !showFilters;
+	}
+
 	function downloadTableData() {
 		const copyOfTableData = tableData.map((tD) => {
 			return {
@@ -285,247 +290,194 @@
 
 <div class="flex h-full flex-col">
 	<!-- Fixed Header - stays at top -->
-	<div class="mb-4 flex-shrink-0">
-		<!-- <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"> -->
-		<!-- Search Input -->
-		<!-- <div class="relative max-w-md flex-1"> -->
-		<!-- <div class="relative max-w-md"> -->
-		<!-- <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"> -->
-		<!-- <Search class="h-5 w-5 text-gray-400" /> -->
-		<!-- </div> -->
-		<!-- <SearchInput -->
-		<!-- id="member-search" -->
-		<!-- bind:value={searchQuery} -->
-		<!-- oninput={handleInputChange} -->
-		<!-- placeholder="Search members..." -->
-		<!-- /> -->
-		<!-- </div> -->
-
-		<!-- Add Member Button -->
-		<!-- <Button variant="primary" onclick={() => goto('/members/create')}> -->
-		<!-- <div class="flex items-center gap-2"> -->
-		<!-- <Plus class="h-4 w-4" /> -->
-		<!-- <span>Add Member</span> -->
-		<!-- </div> -->
-		<!-- </Button> -->
-		<!-- </div> -->
-
-		<div class="space-y-4">
-			<!-- Search and Actions Row -->
-			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<!-- Search Input -->
-				<div class="relative max-w-md flex-1">
-					<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-						<Search class="h-5 w-5 text-gray-400" />
-					</div>
-					<SearchInput
-						id="member-search"
-						bind:value={searchQuery}
-						placeholder="Search members by name or mobile..."
-					/>
+	<div class="mb-4 flex-shrink-0 space-y-4">
+		<!-- Search and Actions Row -->
+		<div class="flex items-center gap-3">
+			<!-- Search Input -->
+			<div class="relative flex-1">
+				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+					<Search class="h-5 w-5 text-gray-400" />
 				</div>
-
-				<!-- Add Member Button -->
-				<Button variant="primary" onclick={() => goto('/members/create')}>
-					<div class="flex items-center gap-2">
-						<Plus class="h-4 w-4" />
-						<span>Add Member</span>
-					</div>
-				</Button>
+				<SearchInput id="member-search" bind:value={searchQuery} placeholder="Search members..." />
 			</div>
 
-			<!-- Filters Row -->
-			<div class="rounded-lg border border-gray-200 bg-white p-4">
-				<div class="flex flex-wrap items-center gap-3">
-					<!-- Filter Icon and Label -->
-					<div class="flex items-center gap-2 text-sm font-medium text-gray-700">
-						<Filter class="h-4 w-4" />
-						<span>Filters</span>
-						{#if activeFilterCount > 0}
-							<span
-								class="inline-flex items-center justify-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800"
-							>
-								{activeFilterCount}
-							</span>
-						{/if}
-					</div>
+			<!-- Add Member Button -->
+			<Button variant="primary" onclick={() => goto('/members/create')}>
+				<div class="flex items-center gap-2">
+					<Plus class="h-4 w-4" />
+					<span class="hidden sm:inline">Add Member</span>
+					<span class="sm:hidden">Add</span>
+				</div>
+			</Button>
+		</div>
 
-					<!-- Filter Dropdowns -->
-					<div class="flex flex-1 flex-wrap items-center gap-3">
-						<!-- Status Filter -->
-						<div class="w-40">
-							<select
-								bind:value={filters.status}
-								onchange={applyFilters}
-								class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-							>
-								{#each statusOptions as option}
-									<option value={option.key}>{option.label}</option>
-								{/each}
-							</select>
-						</div>
-
-						<!-- Gender Filter -->
-						<div class="w-40">
-							<select
-								bind:value={filters.gender}
-								onchange={applyFilters}
-								class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-							>
-								{#each genderOptions as option}
-									<option value={option.key}>{option.label}</option>
-								{/each}
-							</select>
-						</div>
-
-						<!-- Amount Operator Filter -->
-						<div class="w-56">
-							<Select
-								id="amount-operator"
-								bind:value={amountOperator}
-								options={amountOperatorOptions}
-							/>
-						</div>
-
-						<!-- Amount Value Input -->
-						{#if amountOperator}
-							<div class="w-48">
-								<Input
-									id="amount-value"
-									type="number"
-									value={amountValue}
-									placeholder="Enter amount"
-									onChange={handleAmountInput}
-								/>
-							</div>
-						{/if}
-
-						<!-- Marital Status Filter -->
-						<!-- <div class="w-48">
-							<select
-								bind:value={filters.maritalStatus}
-								onchange={applyFilters}
-								class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-							>
-								{#each maritalStatusOptions as option}
-									<option value={option.key}>{option.label}</option>
-								{/each}
-							</select>
-						</div> -->
-
-						<!-- Gotra Filter -->
-						<!-- <div class="w-40">
-							<select
-								bind:value={filters.gotra}
-								onchange={applyFilters}
-								class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-							>
-								{#each gotraOptions as option}
-									<option value={option.key}>{option.label}</option>
-								{/each}
-							</select>
-						</div> -->
-					</div>
-
-					<!-- Clear Filters Button -->
-					{#if hasActiveFilters}
-						<button
-							type="button"
-							onclick={clearAllFilters}
-							class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+		<!-- Filters Section -->
+		<div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+			<!-- Filter Header - Always Visible -->
+			<button
+				onclick={toggleFilters}
+				class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 lg:cursor-default lg:hover:bg-white"
+			>
+				<div class="flex items-center gap-2">
+					<Filter class="h-4 w-4 text-gray-700" />
+					<span class="text-sm font-medium text-gray-700">Filters</span>
+					{#if activeFilterCount > 0}
+						<span
+							class="inline-flex items-center justify-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800"
 						>
-							<X class="h-4 w-4" />
-							Clear
-						</button>
+							{activeFilterCount}
+						</span>
 					{/if}
 				</div>
 
-				<!-- Active Filter Tags (Optional - shows what's filtered) -->
-				{#if hasActiveFilters}
-					<div class="mt-3 border-t border-gray-200 pt-3">
-						<div class="flex flex-wrap items-center gap-2">
-							<span class="text-xs font-medium text-gray-500">Active:</span>
+				<!-- Toggle Icon - Only visible on mobile/tablet -->
+				<div class="lg:hidden">
+					{#if showFilters}
+						<ChevronUp class="h-5 w-5 text-gray-500" />
+					{:else}
+						<ChevronDown class="h-5 w-5 text-gray-500" />
+					{/if}
+				</div>
+			</button>
 
-							{#if filters.status}
-								<span
-									class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+			<!-- Collapsible Filter Content -->
+			<div class="lg:block {showFilters ? 'block' : 'hidden'}">
+				<div class="border-t border-gray-200 p-4">
+					<div class="flex flex-wrap items-center gap-3">
+						<!-- Filter Dropdowns -->
+						<div class="flex flex-1 flex-wrap items-center gap-3">
+							<!-- Status Filter -->
+							<div class="w-full sm:w-40">
+								<select
+									bind:value={filters.status}
+									onchange={applyFilters}
+									class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								>
-									Status: {statusOptions.find((o) => o.key === filters.status)?.label}
-									<button
-										type="button"
-										onclick={() => {
-											filters.status = '';
-											applyFilters();
-										}}
-										class="hover:text-blue-900"
-									>
-										<X class="h-3 w-3" />
-									</button>
-								</span>
-							{/if}
+									{#each statusOptions as option}
+										<option value={option.key}>{option.label}</option>
+									{/each}
+								</select>
+							</div>
 
-							{#if filters.gender}
-								<span
-									class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+							<!-- Gender Filter -->
+							<div class="w-full sm:w-40">
+								<select
+									bind:value={filters.gender}
+									onchange={applyFilters}
+									class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								>
-									Gender: {genderOptions.find((o) => o.key === filters.gender)?.label}
-									<button
-										type="button"
-										onclick={() => {
-											filters.gender = '';
-											applyFilters();
-										}}
-										class="hover:text-blue-900"
-									>
-										<X class="h-3 w-3" />
-									</button>
-								</span>
-							{/if}
+									{#each genderOptions as option}
+										<option value={option.key}>{option.label}</option>
+									{/each}
+								</select>
+							</div>
 
-							{#if filters.maritalStatus}
-								<span
-									class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
-								>
-									Marital: {maritalStatusOptions.find((o) => o.key === filters.maritalStatus)
-										?.label}
-									<button
-										type="button"
-										onclick={() => {
-											filters.maritalStatus = '';
-											applyFilters();
-										}}
-										class="hover:text-blue-900"
-									>
-										<X class="h-3 w-3" />
-									</button>
-								</span>
-							{/if}
+							<!-- Amount Operator Filter -->
+							<div class="w-full sm:w-56">
+								<Select
+									id="amount-operator"
+									bind:value={amountOperator}
+									options={amountOperatorOptions}
+								/>
+							</div>
 
-							{#if filters.gotra}
-								<span
-									class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
-								>
-									Gotra: {gotraOptions.find((o) => o.key === filters.gotra)?.label}
-									<button
-										type="button"
-										onclick={() => {
-											filters.gotra = '';
-											applyFilters();
-										}}
-										class="hover:text-blue-900"
-									>
-										<X class="h-3 w-3" />
-									</button>
-								</span>
+							<!-- Amount Value Input -->
+							{#if amountOperator}
+								<div class="w-full sm:w-48">
+									<Input
+										id="amount-value"
+										type="number"
+										bind:value={amountValue}
+										placeholder="Enter amount"
+									/>
+								</div>
 							{/if}
 						</div>
+
+						<!-- Clear Filters Button -->
+						{#if hasActiveFilters}
+							<button
+								type="button"
+								onclick={clearAllFilters}
+								class="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 sm:w-auto"
+							>
+								<X class="h-4 w-4" />
+								Clear
+							</button>
+						{/if}
 					</div>
-				{/if}
+
+					<!-- Active Filter Tags -->
+					{#if hasActiveFilters}
+						<div class="mt-3 border-t border-gray-200 pt-3">
+							<div class="flex flex-wrap items-center gap-2">
+								<span class="text-xs font-medium text-gray-500">Active:</span>
+
+								{#if filters.status}
+									<span
+										class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+									>
+										Status: {statusOptions.find((o) => o.key === filters.status)?.label}
+										<button
+											type="button"
+											onclick={() => {
+												filters.status = '';
+												applyFilters();
+											}}
+											class="hover:text-blue-900"
+										>
+											<X class="h-3 w-3" />
+										</button>
+									</span>
+								{/if}
+
+								{#if filters.gender}
+									<span
+										class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+									>
+										Gender: {genderOptions.find((o) => o.key === filters.gender)?.label}
+										<button
+											type="button"
+											onclick={() => {
+												filters.gender = '';
+												applyFilters();
+											}}
+											class="hover:text-blue-900"
+										>
+											<X class="h-3 w-3" />
+										</button>
+									</span>
+								{/if}
+
+								{#if amountOperator && amountValue}
+									<span
+										class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+									>
+										Amount: {amountOperator}
+										{amountValue}
+										<button
+											type="button"
+											onclick={() => {
+												amountOperator = '';
+												amountValue = '';
+												applyFilters();
+											}}
+											class="hover:text-blue-900"
+										>
+											<X class="h-3 w-3" />
+										</button>
+									</span>
+								{/if}
+							</div>
+						</div>
+					{/if}
+				</div>
 			</div>
 		</div>
 
+		<!-- Results Count and Download -->
 		{#if !$memberListStore.isLoading && $memberListStore.members.length > 0}
-			<div class="mt-4 flex w-full items-center justify-between">
+			<div class="flex w-full items-center justify-between">
 				<p class="text-sm text-gray-700">
 					Showing <span class="font-medium">{tableData.length}</span>
 					{tableData.length === 1 ? 'member' : 'members'}

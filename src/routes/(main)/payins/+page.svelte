@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import paymentApi from '$lib/endpoints/paymentApi';
@@ -8,7 +10,7 @@
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatString } from '$lib/utilities/stringUtils';
-	import { Plus, Search } from '@lucide/svelte';
+	import { Calendar, ChevronDown, ChevronUp, Filter, Plus } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 
@@ -16,6 +18,16 @@
 	let paymentList = $state<Payment.List>([]);
 	let isLoading = $state(true);
 	let searchQuery = $state('');
+	let showFilters = $state(false);
+	let errors = $state({ startDate: '', endDate: '' });
+	let errorMessage = $state('');
+
+	let today = new Date();
+	let yesterday = new Date(today);
+	yesterday.setDate(yesterday.getDate() - 1);
+
+	let startDate = $state(yesterday.toISOString().split('T')[0]);
+	let endDate = $state(today.toISOString().split('T')[0]);
 
 	async function fetchMemberAndPaymentList() {
 		isLoading = true;
@@ -27,19 +39,21 @@
 				promises.push(memberListStore.fetchAllMembers());
 			}
 
+			applyDateFilter();
+
 			// Always fetch payments
-			promises.push(
-				paymentApi.getAllPayments({
-					limit: 100,
-					page: 1
-				})
-			);
+			// promises.push(
+			// paymentApi.getAllPayments({
+			// 	limit: 100,
+			// 	page: 1
+			// })
+			// );
 
 			// Execute in parallel
-			const results = await Promise.all(promises);
+			// const results = await Promise.all(promises);
 
 			// Payments will be last item in results
-			paymentList = (results[results.length - 1] as { data: Payment.List; success: boolean }).data;
+			// paymentList = (results[results.length - 1] as { data: Payment.List; success: boolean }).data;
 		} catch (error) {
 			console.error('Error fetching user data:', error);
 			throw error;
@@ -73,6 +87,10 @@
 		fetchMemberAndPaymentList();
 	});
 
+	function toggleFilters() {
+		showFilters = !showFilters;
+	}
+
 	function goToUpdate(row: any) {
 		const matchedPayment = paymentList.find((payment) => payment._id == row._id);
 		// console.log('matchedPayment', matchedPayment);
@@ -88,6 +106,50 @@
 
 	if (typeof window !== 'undefined') {
 		(window as any).goToUpdate = goToUpdate;
+	}
+
+	function validateDates() {
+		errors = { startDate: '', endDate: '' };
+		let isValid = true;
+
+		if (!startDate) {
+			errors.startDate = 'Start date is required';
+			isValid = false;
+		}
+
+		if (!endDate) {
+			errors.endDate = 'End date is required';
+			isValid = false;
+		}
+
+		if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+			errors.endDate = 'End date must be after start date';
+			isValid = false;
+		}
+
+		return isValid;
+	}
+
+	async function applyDateFilter() {
+		if (!validateDates()) return;
+		errorMessage = '';
+		isLoading = true;
+		try {
+			const response = await paymentApi.getAllPayments({
+				startDate,
+				endDate
+			});
+
+			if (response.success) {
+				paymentList = response.data;
+			} else {
+			}
+		} catch (error: any) {
+			console.error('Error:', error);
+			errorMessage = error.response?.data?.message || 'Failed to fetch payments. Please try again.';
+		} finally {
+			isLoading = false;
+		}
 	}
 
 	// Table columns configuration
@@ -140,33 +202,193 @@
 
 <div class="flex h-full flex-col">
 	<!-- Fixed Header - stays at top -->
-	<div class="mb-4 flex-shrink-0">
-		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-			<!-- Search Input -->
-			<div class="relative max-w-md flex-1">
-				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-					<Search class="h-5 w-5 text-gray-400" />
-				</div>
-				<input
-					type="search"
-					oninput={handleInputChange}
-					value={searchQuery}
-					placeholder="Search members..."
-					class="w-full rounded-md border border-gray-300 py-2 pr-3 pl-10 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-				/>
+	<div class="mb-4 flex-shrink-0 space-y-4">
+		<!-- Mobile: Collapsible Filter + Add Button -->
+		<div class="lg:hidden">
+			<div class="flex gap-3">
+				<!-- Filter Toggle Button -->
+				<button
+					onclick={toggleFilters}
+					class="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+				>
+					<Filter class="h-4 w-4" />
+					<span>Filters</span>
+					{#if showFilters}
+						<ChevronUp class="h-4 w-4" />
+					{:else}
+						<ChevronDown class="h-4 w-4" />
+					{/if}
+				</button>
+
+				<!-- Add Payment Button -->
+				<button
+					onclick={() => goto('/payins/create')}
+					class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+				>
+					<Plus class="h-4 w-4" />
+					<span>Add</span>
+				</button>
 			</div>
 
-			<!-- Add Member Button -->
-			<Button variant="primary" onclick={() => goto('/payins/create')}>
-				<div class="flex items-center gap-2">
-					<Plus class="h-4 w-4" />
-					<span>Add Payment</span>
+			<!-- Collapsible Filter Content -->
+			{#if showFilters}
+				<div class="mt-3 space-y-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+					<!-- Start Date -->
+					<div>
+						<Input
+							id="startDate-mobile"
+							label="Start Date"
+							type="date"
+							bind:value={startDate}
+							error={errors.startDate}
+							placeholder="Select start date"
+							required
+							disabled={isLoading}
+						/>
+					</div>
+
+					<!-- End Date -->
+					<div>
+						<Input
+							id="endDate-mobile"
+							label="End Date"
+							type="date"
+							bind:value={endDate}
+							error={errors.endDate}
+							placeholder="Select end date"
+							required
+							disabled={isLoading}
+						/>
+					</div>
+
+					<!-- Apply Button -->
+					<Button variant="primary" onclick={applyDateFilter} disabled={isLoading}>
+						{#if isLoading}
+							<div class="flex items-center justify-center gap-2">
+								<div
+									class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+								></div>
+								<span>Loading...</span>
+							</div>
+						{:else}
+							<div class="flex items-center justify-center gap-2">
+								<Calendar class="h-4 w-4" />
+								<span>Apply Filter</span>
+							</div>
+						{/if}
+					</Button>
+
+					<!-- Selected Range Display -->
+					{#if startDate && endDate}
+						<div class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+							<p class="text-xs text-blue-800">
+								<span class="font-medium">Range:</span>
+								{new Date(startDate).toLocaleDateString('en-IN', {
+									day: 'numeric',
+									month: 'short'
+								})}
+								-
+								{new Date(endDate).toLocaleDateString('en-IN', {
+									day: 'numeric',
+									month: 'short',
+									year: 'numeric'
+								})}
+							</p>
+						</div>
+					{/if}
 				</div>
-			</Button>
+			{/if}
 		</div>
 
+		<!-- Desktop: Date Range Filter Card -->
+		<div class="hidden lg:block">
+			<Card title="Date Range Filter">
+				<div class="space-y-4">
+					<div class="flex flex-wrap items-end gap-4">
+						<!-- Start Date -->
+						<div class="w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
+							<Input
+								id="startDate"
+								label="Start Date"
+								type="date"
+								bind:value={startDate}
+								error={errors.startDate}
+								placeholder="Select start date"
+								required
+								disabled={isLoading}
+							/>
+						</div>
+
+						<!-- End Date -->
+						<div class="w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
+							<Input
+								id="endDate"
+								label="End Date"
+								type="date"
+								bind:value={endDate}
+								error={errors.endDate}
+								placeholder="Select end date"
+								required
+								disabled={isLoading}
+							/>
+						</div>
+
+						<!-- Apply Button -->
+						<div class="w-full sm:w-auto">
+							<Button variant="primary" onclick={applyDateFilter} disabled={isLoading}>
+								{#if isLoading}
+									<div class="flex items-center justify-center gap-2">
+										<div
+											class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+										></div>
+										<span>Loading...</span>
+									</div>
+								{:else}
+									<div class="flex items-center justify-center gap-2">
+										<Calendar class="h-4 w-4" />
+										<span>Apply Filter</span>
+									</div>
+								{/if}
+							</Button>
+						</div>
+
+						<!-- Add Payment Button -->
+						<div class="w-full sm:w-auto">
+							<Button variant="primary" onclick={() => goto('/payins/create')}>
+								<div class="flex items-center justify-center gap-2">
+									<Plus class="h-4 w-4" />
+									<span>Add Payment</span>
+								</div>
+							</Button>
+						</div>
+					</div>
+
+					<!-- Date Range Display -->
+					{#if startDate && endDate}
+						<div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+							<p class="text-sm text-blue-800">
+								<span class="font-medium">Selected Range:</span>
+								{new Date(startDate).toLocaleDateString('en-IN', {
+									day: 'numeric',
+									month: 'short',
+									year: 'numeric'
+								})}
+								to
+								{new Date(endDate).toLocaleDateString('en-IN', {
+									day: 'numeric',
+									month: 'short',
+									year: 'numeric'
+								})}
+							</p>
+						</div>
+					{/if}
+				</div>
+			</Card>
+		</div>
+
+		<!-- Results Count -->
 		{#if !isLoading && tableData.length > 0}
-			<p class="mt-4 text-sm text-gray-700">
+			<p class="px-1 text-sm text-gray-700">
 				Showing <span class="font-medium">{tableData.length}</span>
 				{tableData.length === 1 ? 'payment record' : 'payment records'}
 			</p>
@@ -183,38 +405,54 @@
 					<div
 						class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
 					></div>
-					<p class="mt-2 text-sm text-gray-600">Loading members...</p>
+					<p class="mt-2 text-sm text-gray-600">Loading payments...</p>
 				</div>
 			</div>
-		{:else if $memberListStore.members.length === 0}
+		{:else if tableData.length === 0}
 			<div
-				class="flex h-full flex-col items-center justify-center rounded-lg border border-gray-200 bg-white shadow-sm"
+				class="p-lg flex h-full flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
 			>
 				<svg class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
 						stroke-width="2"
-						d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+						d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
 					/>
 				</svg>
-				<h3 class="mt-2 text-sm font-medium text-gray-900">No members found</h3>
-				<p class="mt-1 text-sm text-gray-500">
-					{searchQuery ? 'Try a different search term' : 'Get started by adding a new member'}
+				<h3 class="mt-2 text-sm font-medium text-gray-900">No payments found</h3>
+				<p class="mt-1 text-center text-sm text-gray-500">
+					{startDate && endDate
+						? 'Try a different date range'
+						: 'Get started by adding a new payment'}
 				</p>
-				{#if !searchQuery}
+				{#if !startDate && !endDate}
 					<div class="mt-6">
-						<Button variant="primary" onclick={() => goto('/members/create')}>
+						<Button variant="primary" onclick={() => goto('/payins/create')}>
 							<Plus class="mr-2 h-4 w-4" />
-							Add Member
+							Add Payment
 						</Button>
+					</div>
+				{/if}
+				{#if errorMessage}
+					<div class="rounded-lg border border-red-200 bg-red-50 p-4">
+						<div class="flex items-start">
+							<svg class="mt-0.5 h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+							<p class="ml-3 text-sm text-red-800">{errorMessage}</p>
+						</div>
 					</div>
 				{/if}
 			</div>
 		{:else}
 			<!-- Table container with border, rounded corners, and scroll -->
 			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-				<div class="h-full overflow-y-auto">
+				<div class="h-full overflow-x-auto overflow-y-auto">
 					<Table {columns} data={tableData} />
 				</div>
 			</div>

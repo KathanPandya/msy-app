@@ -3,13 +3,13 @@ import type { Payment } from '$lib/types/payment';
 
 class PaymentApi {
 	async getAllPayments(queryParams: {
-		limit: number;
-		page: number;
+		startDate?: string;
+		endDate?: string;
 	}): Promise<{ data: Payment.List; success: boolean }> {
 		const response = await axios.get('api/payment', {
 			params: {
-				limit: queryParams.limit,
-				page: queryParams.page
+				startDate: queryParams.startDate,
+				endDate: queryParams.endDate
 			}
 		});
 		return response.data;
