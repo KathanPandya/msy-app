@@ -88,7 +88,7 @@
 		</div>
 	</div>
 {:else if isAuthorized}
-	<div class="flex h-screen w-screen overflow-hidden bg-white text-white">
+	<div class="flex h-screen w-screen overflow-hidden bg-white">
 		<!-- Sidebar -->
 		<aside
 			class={`
