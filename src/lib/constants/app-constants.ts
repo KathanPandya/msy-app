@@ -89,5 +89,36 @@ export const APP_CONSTANTS = {
 
 	BACKEND_MAPPING: {
 		msy_contribution: 'Contribution'
-	}
+	},
+
+	OPERATOR_MAPPING: {
+		'>': 'gt',
+		'<': 'lt',
+		'>=': 'gte',
+		'<=': 'lte',
+		'=': 'eq'
+	},
+
+	PAGINATION_OPTIONS: [
+		{
+			key: '10',
+			label: '10'
+		},
+		{
+			key: '30',
+			label: '30'
+		},
+		{
+			key: '50',
+			label: '50'
+		},
+		{
+			key: '100',
+			label: '100'
+		},
+		{
+			key: '250',
+			label: '250'
+		}
+	]
 };

@@ -7,7 +7,11 @@
 	import Select from '$lib/components/ui/Select.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
 	import Tooltip from '$lib/components/ui/Tooltip.svelte';
-	import { memberListStore } from '$lib/stores/memberListStore';
+	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import userApi from '$lib/endpoints/userApi';
+	// import { memberListStore } from '$lib/stores/memberListStore';
+	import type { User } from '$lib/types/user';
+	import { debounce } from '$lib/utilities/helperFunc';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
 	import { formatString, truncateString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, ChevronUp, Download, Filter, Plus, Search, X } from '@lucide/svelte';
@@ -15,16 +19,43 @@
 
 	// Load members on mount
 	onMount(() => {
-		if ($memberListStore.members.length === 0) {
-			memberListStore.fetchAllMembers();
-		}
+		// if ($memberListStore.members.length === 0) {
+		// 	memberListStore.fetchAllMembers();
+		// }
+
+		goNext(true);
 	});
 
 	let searchQuery = $state('');
 	let amountOperator = $state('');
-	let amountValue = $state('');
+	let amountValue = $state<any>(null);
 	let sortType = $state<'asc' | 'desc' | ''>('');
+	let sortBasedOn = $state<string>('member_id');
 	let showFilters = $state(false);
+	let errors = $state<null | string>(null);
+	let isLoading = $state(false);
+	let memberList = $state<User.List>([]);
+	let currentPage = $state(0);
+	let limitPerPage = $state(50);
+	let totalUsers = $state<number>(0);
+	const totalPages = $derived(Math.ceil(totalUsers / limitPerPage));
+	const canGoPrevious = $derived(currentPage > 1);
+	const canGoNext = $derived(currentPage < totalPages);
+
+	let paginationConfig = $state({
+		get limit() {
+			return String(limitPerPage);
+		},
+		set limit(val) {
+			limitPerPage = Number(val);
+		},
+		get canGoNext() {
+			return canGoNext;
+		},
+		get canGoPrevious() {
+			return canGoPrevious;
+		}
+	});
 
 	const amountOperatorOptions = [
 		{ label: 'Sort Outstanding Amount', key: '' },
@@ -41,28 +72,99 @@
 		};
 	}
 
-	function handleAmountInput(event: Event) {
-		const target = event.target as HTMLInputElement;
-		amountValue = target.value;
+	// async function handlePagination(type: 'next' | 'previous') {
+	// 	if (type === 'next') {
+	// 		isLoading = true;
+	// 		const skip = currentPage * limitPerPage;
+	// 		try {
+	// 			const res = await userApi.getAllUsers({
+	// 				limit: limitPerPage,
+	// 				skip: skip,
+	// 				query: searchQuery || undefined
+	// 			});
+	// 			memberList = [...memberList, ...res.users];
+	// 			totalUsers = res.total;
+	// 			currentPage = currentPage + 1;
+	// 			isLoading = false;
+	// 		} catch (err: any) {
+	// 			errors = err.message || 'Error while fetching members';
+	// 			isLoading = false;
+	// 		}
+	// 	} else {
+	// 		currentPage = currentPage - 1;
+	// 	}
 
-		tableData = tableData.filter((t) => {
-			if (!amountOperator || !amountValue) return true;
-			const amount = parseFloat(amountValue);
-			switch (amountOperator) {
-				case '>':
-					return t.heesab > amount;
-				case '<':
-					return t.heesab < amount;
-				case '=':
-					return t.heesab === amount;
-				case '>=':
-					return t.heesab >= amount;
-				case '<=':
-					return t.heesab <= amount;
-				default:
-					return true;
-			}
-		});
+	// 	if (currentPage === 1) {
+	// 		paginationConfig.previous.disabled = true;
+	// 	} else {
+	// 		paginationConfig.previous.disabled = false;
+	// 	}
+
+	// 	if (Math.ceil(totalUsers / limitPerPage) === currentPage) {
+	// 		paginationConfig.next.disabled = true;
+	// 	} else {
+	// 		paginationConfig.next.disabled = false;
+	// 	}
+	// }
+
+	function changeLimit(v: string) {
+		limitPerPage = Number(v);
+		currentPage = 0;
+		memberList = [];
+		goNext();
+	}
+
+	async function goNext(force: boolean = false) {
+		if (!force) {
+			if (isLoading || !canGoNext) return;
+		}
+
+		const res = await getMembers();
+
+		if (res) {
+			memberList = [...memberList, ...res.users];
+			totalUsers = res.total;
+			currentPage += 1;
+		}
+	}
+
+	async function refreshMemberList() {
+		currentPage = 0;
+		memberList = [];
+		const res = await getMembers();
+		if (res) {
+			memberList = res.users;
+			totalUsers = res.total;
+			currentPage = currentPage + 1;
+		}
+	}
+
+	function goPrevious() {
+		if (!canGoPrevious) return;
+		currentPage -= 1;
+	}
+
+	function handleAmountInput(event: Event) {
+		// const target = event.target as HTMLInputElement;
+		// amountValue = target.value;
+		// tableData = tableData.filter((t) => {
+		// 	if (!amountOperator || !amountValue) return true;
+		// 	const amount = parseFloat(amountValue);
+		// 	switch (amountOperator) {
+		// 		case '>':
+		// 			return t.heesab > amount;
+		// 		case '<':
+		// 			return t.heesab < amount;
+		// 		case '=':
+		// 			return t.heesab === amount;
+		// 		case '>=':
+		// 			return t.heesab >= amount;
+		// 		case '<=':
+		// 			return t.heesab <= amount;
+		// 		default:
+		// 			return true;
+		// 	}
+		// });
 	}
 
 	// Table columns configuration
@@ -82,9 +184,13 @@
 			sorting: (row: any) => {
 				sortType = sortType === '' ? 'desc' : sortType === 'desc' ? 'asc' : '';
 				if (sortType == 'asc' || sortType == 'desc') {
-					tableData = [...GenericSort(row, 'heesab', sortType)];
+					sortBasedOn = 'outstanding_amount';
+					refreshMemberList();
+					// tableData = [...GenericSort(row, 'heesab', sortType)];
 				} else {
-					tableData = [...GenericSort(row, 'memberIdInNumber', 'asc')];
+					sortBasedOn = 'member_id';
+					refreshMemberList();
+					// tableData = [...GenericSort(row, 'memberIdInNumber', 'asc')];
 				}
 			},
 			icon: sortType === 'asc' ? 'arrowUp' : sortType === 'desc' ? 'arrowDown' : 'rupee'
@@ -120,48 +226,51 @@
 	// Transform user data for table
 	let tableData = $derived(
 		GenericSort(
-			$memberListStore.members
-				.filter((user) => {
-					// Status filter
-					if (filters.status && user.status !== filters.status) {
-						return false;
-					}
+			// $memberListStore.members
+			// .filter((user) => {
+			// 	// Status filter
+			// 	if (filters.status && user.status !== filters.status) {
+			// 		return false;
+			// 	}
 
-					// Gender filter
-					if (filters.gender && user.gender !== filters.gender) {
-						return false;
-					}
+			// 	// Gender filter
+			// 	if (filters.gender && user.gender !== filters.gender) {
+			// 		return false;
+			// 	}
 
-					// Search query filter
-					if (searchQuery) {
-						const searchLower = searchQuery.toLowerCase();
-						const fullName = `${user.first_name} ${user.surname}`.toLowerCase();
-						const mobile = user.mobile || '';
+			// 	// Search query filter
+			// 	if (searchQuery) {
+			// 		const searchLower = searchQuery.toLowerCase();
+			// 		const fullName = `${user.first_name} ${user.surname}`.toLowerCase();
+			// 		const mobile = user.mobile || '';
 
-						const matchesSearch = fullName.includes(searchLower) || mobile.includes(searchLower);
+			// 		const matchesSearch = fullName.includes(searchLower) || mobile.includes(searchLower);
 
-						if (!matchesSearch) {
-							return false;
-						}
-					}
+			// 		if (!matchesSearch) {
+			// 			return false;
+			// 		}
+			// 	}
 
-					if (!amountOperator || !amountValue) return true;
-					const amount = parseFloat(amountValue);
-					switch (amountOperator) {
-						case '>':
-							return user.outstanding_amount > amount;
-						case '<':
-							return user.outstanding_amount < amount;
-						case '=':
-							return user.outstanding_amount === amount;
-						case '>=':
-							return user.outstanding_amount >= amount;
-						case '<=':
-							return user.outstanding_amount <= amount;
-					}
+			// 	if (!amountOperator || !amountValue) return true;
+			// 	const amount = parseFloat(amountValue);
+			// 	switch (amountOperator) {
+			// 		case '>':
+			// 			return user.outstanding_amount > amount;
+			// 		case '<':
+			// 			return user.outstanding_amount < amount;
+			// 		case '=':
+			// 			return user.outstanding_amount === amount;
+			// 		case '>=':
+			// 			return user.outstanding_amount >= amount;
+			// 		case '<=':
+			// 			return user.outstanding_amount <= amount;
+			// 	}
 
-					return true;
-				})
+			// 	return true;
+			// })
+
+			memberList
+				.slice((currentPage - 1) * limitPerPage, limitPerPage * currentPage)
 				.map((user) => ({
 					memberId: user.member_id,
 					memberIdInNumber: Number(user.member_id.replace('MSY_', '')),
@@ -240,10 +349,7 @@
 		};
 		amountOperator = '';
 		amountValue = '';
-	}
-
-	function applyFilters() {
-		console.log('Applying filters:', filters);
+		refreshMemberList();
 	}
 
 	function toggleFilters() {
@@ -286,6 +392,33 @@
 
 		link.click();
 	}
+
+	const debouncedSearch = debounce(refreshMemberList, 300);
+
+	async function getMembers() {
+		errors = '';
+		isLoading = true;
+		try {
+			const skip = currentPage * limitPerPage;
+			const opt = (APP_CONSTANTS.OPERATOR_MAPPING as any)[amountOperator];
+			const res = await userApi.getAllUsers({
+				limit: limitPerPage,
+				skip: skip,
+				query: searchQuery || undefined,
+				sortOnKey: sortBasedOn,
+				sortType: sortType ? sortType : undefined,
+				member_status: filters.status ? filters.status : undefined,
+				operation: opt,
+				amount: amountValue ? Number(amountValue) : undefined
+			});
+			return res;
+		} catch (err: any) {
+			errors = err?.message || 'Error while fetching members';
+			memberList = [];
+		} finally {
+			isLoading = false;
+		}
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -298,7 +431,12 @@
 				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 					<Search class="h-5 w-5 text-gray-400" />
 				</div>
-				<SearchInput id="member-search" bind:value={searchQuery} placeholder="Search members..." />
+				<SearchInput
+					id="member-search"
+					bind:value={searchQuery}
+					placeholder="Search members..."
+					oninput={() => debouncedSearch()}
+				/>
 			</div>
 
 			<!-- Add Member Button -->
@@ -350,7 +488,7 @@
 							<div class="w-full sm:w-40">
 								<select
 									bind:value={filters.status}
-									onchange={applyFilters}
+									onchange={refreshMemberList}
 									class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								>
 									{#each statusOptions as option}
@@ -363,7 +501,7 @@
 							<div class="w-full sm:w-40">
 								<select
 									bind:value={filters.gender}
-									onchange={applyFilters}
+									onchange={refreshMemberList}
 									class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								>
 									{#each genderOptions as option}
@@ -378,6 +516,11 @@
 									id="amount-operator"
 									bind:value={amountOperator}
 									options={amountOperatorOptions}
+									onchange={() => {
+										if (amountValue !== null) {
+											refreshMemberList();
+										}
+									}}
 								/>
 							</div>
 
@@ -389,6 +532,11 @@
 										type="number"
 										bind:value={amountValue}
 										placeholder="Enter amount"
+										onChange={() => {
+											if (amountValue !== null) {
+												debouncedSearch();
+											}
+										}}
 									/>
 								</div>
 							{/if}
@@ -422,7 +570,7 @@
 											type="button"
 											onclick={() => {
 												filters.status = '';
-												applyFilters();
+												refreshMemberList();
 											}}
 											class="hover:text-blue-900"
 										>
@@ -440,7 +588,7 @@
 											type="button"
 											onclick={() => {
 												filters.gender = '';
-												applyFilters();
+												refreshMemberList();
 											}}
 											class="hover:text-blue-900"
 										>
@@ -460,7 +608,7 @@
 											onclick={() => {
 												amountOperator = '';
 												amountValue = '';
-												applyFilters();
+												refreshMemberList();
 											}}
 											class="hover:text-blue-900"
 										>
@@ -476,7 +624,7 @@
 		</div>
 
 		<!-- Results Count and Download -->
-		{#if !$memberListStore.isLoading && $memberListStore.members.length > 0}
+		{#if !isLoading && memberList.length > 0}
 			<div class="flex w-full items-center justify-between">
 				<p class="text-sm text-gray-700">
 					Showing <span class="font-medium">{tableData.length}</span>
@@ -498,7 +646,7 @@
 
 	<!-- Scrollable Table Area - takes remaining space -->
 	<div class="min-h-0 flex-1">
-		{#if $memberListStore.isLoading}
+		{#if isLoading}
 			<div
 				class="flex h-full items-center justify-center rounded-lg border border-gray-200 bg-white shadow-sm"
 			>
@@ -509,7 +657,11 @@
 					<p class="mt-2 text-sm text-gray-600">Loading members...</p>
 				</div>
 			</div>
-		{:else if $memberListStore.members.length === 0}
+		{:else if errors}
+			<div class="mt-4 rounded-md bg-red-50 p-4">
+				<p class="text-sm text-red-800">{errors}</p>
+			</div>
+		{:else if memberList.length === 0}
 			<div
 				class="flex h-full flex-col items-center justify-center rounded-lg border border-gray-200 bg-white shadow-sm"
 			>
@@ -537,8 +689,15 @@
 		{:else}
 			<!-- Table container with border, rounded corners, and scroll -->
 			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-				<div class="h-full overflow-y-auto">
-					<Table {columns} data={tableData} />
+				<div class="h-full overflow-y-auto" id="tableContainer">
+					<Table
+						pagination={paginationConfig}
+						{columns}
+						data={tableData}
+						onNext={goNext}
+						onPrevious={goPrevious}
+						onLimitChange={changeLimit}
+					/>
 				</div>
 			</div>
 		{/if}

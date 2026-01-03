@@ -28,17 +28,38 @@ class UserApi {
 		return response.data;
 	}
 
-	async getAllUsers({ query }: { query?: string }): Promise<{ users: User.List; total: number }> {
-		const response = await axios.get(
-			'api/user',
-			query
-				? {
-						params: {
-							first_name: query
-						}
-					}
-				: {}
-		);
+	async getAllUsers({
+		query,
+		skip,
+		limit,
+		sortOnKey,
+		sortType,
+		member_status,
+		operation,
+		amount
+	}: {
+		query?: string;
+		skip?: number;
+		limit?: number;
+		sortOnKey?: string;
+		sortType?: 'asc' | 'desc';
+		member_status?: string;
+		operation?: string;
+		amount?: number | undefined;
+	}): Promise<{ users: User.List; total: number; success: boolean; message?: string }> {
+		const response = await axios.get('api/user', {
+			params: {
+				name: query,
+				member_id: query,
+				skip: skip,
+				limit: limit,
+				sortOnKey,
+				sortType,
+				member_status,
+				operation,
+				amount
+			}
+		});
 		return response.data;
 	}
 }

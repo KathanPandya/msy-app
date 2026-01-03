@@ -12,7 +12,7 @@
 		error?: string;
 		required?: boolean;
 		disabled?: boolean;
-		onchange?: () => void;
+		onchange?: (e?: any) => void;
 	};
 
 	let {
@@ -29,11 +29,7 @@
 	const selectClasses = $derived(
 		`w-full px-3 py-2 border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
 			error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-		} ${
-			disabled 
-				? 'bg-gray-100 cursor-not-allowed text-gray-500' 
-				: 'bg-white text-gray-900'
-		}`
+		} ${disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white text-gray-900'}`
 	);
 </script>
 
