@@ -27,8 +27,8 @@
 	});
 
 	let searchQuery = $state('');
-	let amountOperator = $state('');
-	let amountValue = $state<any>(null);
+	// let amountOperator = $state('');
+	// let amountValue = $state<any>(null);
 	let sortType = $state<'asc' | 'desc' | ''>('');
 	let sortBasedOn = $state<string>('member_id');
 	let showFilters = $state(false);
@@ -41,7 +41,6 @@
 	const totalPages = $derived(Math.ceil(totalUsers / limitPerPage));
 	const canGoPrevious = $derived(currentPage > 1);
 	const canGoNext = $derived(currentPage < totalPages);
-
 	let paginationConfig = $state({
 		get limit() {
 			return String(limitPerPage);
@@ -56,7 +55,6 @@
 			return canGoPrevious;
 		}
 	});
-
 	const amountOperatorOptions = [
 		{ label: 'Sort Outstanding Amount', key: '' },
 		{ label: 'Greater than (>)', key: '>' },
@@ -295,7 +293,9 @@
 		status: page.url.searchParams.get('filter') ?? '',
 		gender: '',
 		maritalStatus: '',
-		gotra: ''
+		gotra: '',
+		amountOperator: '',
+		amountValue: ''
 	});
 
 	// Filter options
@@ -303,7 +303,8 @@
 		{ key: '', label: 'All Status' },
 		{ key: 'active', label: 'Active' },
 		{ key: 'dead', label: 'Deceased' },
-		{ key: 'removed', label: 'Removed' }
+		{ key: 'removed', label: 'Removed' },
+		{ key: 'voluntary-retired', label: 'Voluntary Retired' }
 	];
 
 	const genderOptions = [
@@ -345,10 +346,10 @@
 			status: '',
 			gender: '',
 			maritalStatus: '',
-			gotra: ''
+			gotra: '',
+			amountOperator: '',
+			amountValue: ''
 		};
-		amountOperator = '';
-		amountValue = '';
 		refreshMemberList();
 	}
 
@@ -400,7 +401,7 @@
 		isLoading = true;
 		try {
 			const skip = currentPage * limitPerPage;
-			const opt = (APP_CONSTANTS.OPERATOR_MAPPING as any)[amountOperator];
+			const opt = (APP_CONSTANTS.OPERATOR_MAPPING as any)[filters.amountOperator];
 			const res = await userApi.getAllUsers({
 				limit: limitPerPage,
 				skip: skip,
@@ -409,7 +410,7 @@
 				sortType: sortType ? sortType : undefined,
 				member_status: filters.status ? filters.status : undefined,
 				operation: opt,
-				amount: amountValue ? Number(amountValue) : undefined
+				amount: filters.amountValue ? Number(filters.amountValue) : undefined
 			});
 			return res;
 		} catch (err: any) {
@@ -514,10 +515,11 @@
 							<div class="w-full sm:w-56">
 								<Select
 									id="amount-operator"
-									bind:value={amountOperator}
+									bind:value={filters.amountOperator}
 									options={amountOperatorOptions}
 									onchange={() => {
-										if (amountValue !== null) {
+										console.log('filters.amountValue', filters.amountValue);
+										if (filters.amountValue !== null && filters.amountValue !== '') {
 											refreshMemberList();
 										}
 									}}
@@ -525,15 +527,15 @@
 							</div>
 
 							<!-- Amount Value Input -->
-							{#if amountOperator}
+							{#if filters.amountOperator}
 								<div class="w-full sm:w-48">
 									<Input
 										id="amount-value"
 										type="number"
-										bind:value={amountValue}
+										bind:value={filters.amountValue}
 										placeholder="Enter amount"
 										onChange={() => {
-											if (amountValue !== null) {
+											if (filters.amountValue !== null && filters.amountValue !== '') {
 												debouncedSearch();
 											}
 										}}
@@ -597,17 +599,17 @@
 									</span>
 								{/if}
 
-								{#if amountOperator && amountValue}
+								{#if filters.amountOperator || filters.amountValue}
 									<span
 										class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
 									>
-										Amount: {amountOperator}
-										{amountValue}
+										Amount: {filters.amountOperator}
+										{filters.amountValue}
 										<button
 											type="button"
 											onclick={() => {
-												amountOperator = '';
-												amountValue = '';
+												filters.amountOperator = '';
+												filters.amountValue = '';
 												refreshMemberList();
 											}}
 											class="hover:text-blue-900"

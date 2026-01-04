@@ -129,21 +129,22 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50 p-6">
-	<div class="mx-auto max-w-5xl">
-		{#if !isLoading}
+{#if !isLoading}
+	<div class="min-h-screen bg-gray-50 p-2 lg:p-6">
+		<div class="mx-auto max-w-5xl">
 			<!-- Header with Action Buttons -->
-			<div class="mb-6 rounded-lg bg-white p-6 shadow-sm">
-				<div class="flex items-start justify-between">
+			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="flex-1">
-						<h1 class="text-3xl font-bold text-gray-900">
+						<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
 							{userData.firstName}
 							{userData.middleName}
 							{userData.surname}
 						</h1>
-						<div class="mt-3 flex items-center gap-4">
+						<div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
 							<span
-								class="rounded-full px-4 py-1.5 text-sm font-medium {userData.status === 'Active'
+								class="inline-flex w-fit rounded-full px-4 py-1.5 text-sm font-medium {userData.status ===
+								'Active'
 									? 'bg-green-100 text-green-800'
 									: userData.status === 'Inactive'
 										? 'bg-red-100 text-red-800'
@@ -170,10 +171,10 @@
 						</div>
 					</div>
 
-					<div class="flex gap-3">
+					<div class="flex gap-2 sm:gap-3">
 						<button
 							onclick={handleEditUser}
-							class="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+							class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-initial sm:px-6"
 						>
 							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
@@ -183,11 +184,12 @@
 									d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
 								/>
 							</svg>
-							Edit User
+							<span class="hidden sm:inline">Edit User</span>
+							<span class="sm:hidden">Edit</span>
 						</button>
 						<button
 							onclick={handleChangeStatus}
-							class="flex items-center gap-2 rounded-lg bg-gray-600 px-6 py-2.5 font-medium text-white shadow-sm transition-colors hover:bg-gray-700"
+							class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-700 sm:flex-initial sm:px-6"
 						>
 							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
@@ -197,7 +199,8 @@
 									d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
 								/>
 							</svg>
-							Change Status
+							<span class="hidden sm:inline">Change Status</span>
+							<span class="sm:hidden">Status</span>
 						</button>
 					</div>
 				</div>
@@ -385,6 +388,15 @@
 					</div>
 				</div>
 			</div>
-		{/if}
+		</div>
 	</div>
-</div>
+{:else}
+	<div class="flex min-h-[60vh] items-center justify-center">
+		<div class="text-center">
+			<div
+				class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
+			></div>
+			<p class="mt-4 text-gray-600">Loading member info...</p>
+		</div>
+	</div>
+{/if}

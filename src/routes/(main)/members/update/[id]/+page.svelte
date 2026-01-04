@@ -27,6 +27,7 @@
 	let userInfo = $state<User.AllInfo | null>(null);
 	let userAddress = $state<Address.Data | null>(null);
 	let paymentsTableInfo = $state<Payment.OutstandingData | null>(null);
+	let isLoading = $state<boolean>(true);
 	const genders = APP_CONSTANTS.GENDERS;
 	const gotras = APP_CONSTANTS.GOTRAS;
 	const maritalStatus = APP_CONSTANTS.MARITAL_STATUS;
@@ -95,6 +96,7 @@
     Load user data
   ****************/
 	onMount(async () => {
+		isLoading = true;
 		const userId = page.params.id;
 		if (userId) {
 			const res = await paymentApi.getOutstandingPaymentOfMember(userId);
@@ -142,9 +144,8 @@
 					formData.landmark = formatString(userAddress.landmark, ['trim']);
 				}
 			}
+			isLoading = false;
 		}
-
-		console.log('formData', formData);
 	});
 
 	/***************
@@ -369,82 +370,83 @@
 	}
 </script>
 
-<div class="mx-auto max-w-5xl">
-	<Tabs {tabs} bind:activeTab onTabChange={handleTabChange} />
-	<div class="space-y-6 p-6">
-		{#if activeTab === 'user-info'}
-			<Card title="General Info">
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<Input
-						id="firstName"
-						label="First name"
-						bind:value={formData.firstName}
-						error={errors.firstName}
-						onblur={() => validateField('firstName')}
-						placeholder="First name"
-						onChange={checkDiff}
-					/>
-
-					<Input
-						id="middleName"
-						label="Middle name"
-						bind:value={formData.middleName}
-						error={errors.middleName}
-						onblur={() => validateField('middleName')}
-						placeholder="Middle name"
-					/>
-
-					<Input
-						id="lastName"
-						label="Surname"
-						bind:value={formData.lastName}
-						error={errors.lastName}
-						onblur={() => validateField('lastName')}
-						placeholder="Surname"
-					/>
-
-					<Input
-						id="mobileNumber"
-						label="Mobile number"
-						bind:value={formData.mobileNumber}
-						error={errors.mobileNumber}
-						onblur={() => validateField('mobileNumber')}
-						placeholder="10 digit mobile"
-						inputmode="numeric"
-						maxlength={10}
-					/>
-
-					<div class="md:col-span-2">
+{#if !isLoading}
+	<div class="mx-auto max-w-5xl">
+		<Tabs {tabs} bind:activeTab onTabChange={handleTabChange} />
+		<div class="space-y-6 p-2 lg:p-6">
+			{#if activeTab === 'user-info'}
+				<Card title="General Info">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<Input
-							id="email"
-							label="Email"
-							type="email"
-							bind:value={formData.email}
-							error={errors.email}
-							onblur={() => validateField('email')}
-							placeholder="you@example.com"
+							id="firstName"
+							label="First name"
+							bind:value={formData.firstName}
+							error={errors.firstName}
+							onblur={() => validateField('firstName')}
+							placeholder="First name"
+							onChange={checkDiff}
 						/>
-					</div>
 
-					<Input
-						id="dob"
-						label="Date of birth"
-						type="date"
-						bind:value={formData.dob}
-						error={errors.dob}
-						onblur={() => validateField('dob')}
-					/>
+						<Input
+							id="middleName"
+							label="Middle name"
+							bind:value={formData.middleName}
+							error={errors.middleName}
+							onblur={() => validateField('middleName')}
+							placeholder="Middle name"
+						/>
 
-					<Select
-						id="gender"
-						label="Gender"
-						bind:value={formData.gender}
-						options={genders}
-						error={errors.gender}
-						onchange={() => validateField('gender')}
-					/>
+						<Input
+							id="lastName"
+							label="Surname"
+							bind:value={formData.lastName}
+							error={errors.lastName}
+							onblur={() => validateField('lastName')}
+							placeholder="Surname"
+						/>
 
-					<!-- <Select
+						<Input
+							id="mobileNumber"
+							label="Mobile number"
+							bind:value={formData.mobileNumber}
+							error={errors.mobileNumber}
+							onblur={() => validateField('mobileNumber')}
+							placeholder="10 digit mobile"
+							inputmode="numeric"
+							maxlength={10}
+						/>
+
+						<div class="md:col-span-2">
+							<Input
+								id="email"
+								label="Email"
+								type="email"
+								bind:value={formData.email}
+								error={errors.email}
+								onblur={() => validateField('email')}
+								placeholder="you@example.com"
+							/>
+						</div>
+
+						<Input
+							id="dob"
+							label="Date of birth"
+							type="date"
+							bind:value={formData.dob}
+							error={errors.dob}
+							onblur={() => validateField('dob')}
+						/>
+
+						<Select
+							id="gender"
+							label="Gender"
+							bind:value={formData.gender}
+							options={genders}
+							error={errors.gender}
+							onchange={() => validateField('gender')}
+						/>
+
+						<!-- <Select
 						id="status"
 						label="Status"
 						bind:value={formData.status}
@@ -452,301 +454,311 @@
 						error={errors.status}
 						onchange={() => validateField('status')}
 					/> -->
-				</div>
+					</div>
 
-				{#if sectionErrors.general}
-					<div class="mt-4 rounded-md bg-red-50 p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-red-800">{sectionErrors.general}</p>
+					{#if sectionErrors.general}
+						<div class="mt-4 rounded-md bg-red-50 p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-red-800">{sectionErrors.general}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
 
-				{#if sectionSuccess.general}
-					<div class="mt-4 rounded-md bg-green-50 p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-green-800">{sectionSuccess.general}</p>
-							</div>
-						</div>
-					</div>
-				{/if}
-
-				<div class="mt-6 flex justify-end">
-					<Button
-						variant="primary"
-						onclick={() => submitSection('general')}
-						disabled={loaderStatus.general}
-					>
-						{#if loaderStatus.general}
-							<div class="flex items-center gap-2">
-								<div
-									class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-								></div>
-								<span>Saving...</span>
-							</div>
-						{:else}
-							Save General Info
-						{/if}
-					</Button>
-				</div>
-
-				<!-- Messages -->
-			</Card>
-
-			<!-- Other Info -->
-			<Card title="Other Info">
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<Input
-						id="nativePlace"
-						label="Native Place"
-						bind:value={formData.nativePlace}
-						error={errors.nativePlace}
-						onblur={() => validateField('nativePlace')}
-						placeholder="Native Place"
-					/>
-
-					<Select
-						id="gotra"
-						label="Gotra"
-						bind:value={formData.gotra}
-						options={gotras}
-						error={errors.gotra}
-						onchange={() => validateField('gotra')}
-					/>
-
-					<Select
-						id="maritalStatus"
-						label="Marital Status"
-						bind:value={formData.maritalStatus}
-						options={maritalStatus}
-						error={errors.maritalStatus}
-						onchange={() => validateField('maritalStatus')}
-					/>
-				</div>
-
-				{#if sectionErrors.other}
-					<div class="mt-4 rounded-md bg-red-50 p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-red-800">{sectionErrors.other}</p>
+					{#if sectionSuccess.general}
+						<div class="mt-4 rounded-md bg-green-50 p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-green-800">{sectionSuccess.general}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
 
-				{#if sectionSuccess.other}
-					<div class="mt-4 rounded-md bg-green-50 p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-green-800">{sectionSuccess.other}</p>
+					<div class="mt-6 flex justify-end">
+						<Button
+							variant="primary"
+							onclick={() => submitSection('general')}
+							disabled={loaderStatus.general}
+						>
+							{#if loaderStatus.general}
+								<div class="flex items-center gap-2">
+									<div
+										class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+									></div>
+									<span>Saving...</span>
+								</div>
+							{:else}
+								Save General Info
+							{/if}
+						</Button>
+					</div>
+
+					<!-- Messages -->
+				</Card>
+
+				<!-- Other Info -->
+				<Card title="Other Info">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<Input
+							id="nativePlace"
+							label="Native Place"
+							bind:value={formData.nativePlace}
+							error={errors.nativePlace}
+							onblur={() => validateField('nativePlace')}
+							placeholder="Native Place"
+						/>
+
+						<Select
+							id="gotra"
+							label="Gotra"
+							bind:value={formData.gotra}
+							options={gotras}
+							error={errors.gotra}
+							onchange={() => validateField('gotra')}
+						/>
+
+						<Select
+							id="maritalStatus"
+							label="Marital Status"
+							bind:value={formData.maritalStatus}
+							options={maritalStatus}
+							error={errors.maritalStatus}
+							onchange={() => validateField('maritalStatus')}
+						/>
+					</div>
+
+					{#if sectionErrors.other}
+						<div class="mt-4 rounded-md bg-red-50 p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-red-800">{sectionErrors.other}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
 
-				<div class="mt-6 flex justify-end">
-					<Button
-						variant="primary"
-						onclick={() => submitSection('other')}
-						disabled={loaderStatus.other}
-					>
-						{#if loaderStatus.other}
-							<div class="flex items-center gap-2">
-								<div
-									class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-								></div>
-								<span>Saving...</span>
-							</div>
-						{:else}
-							Save Other Info
-						{/if}
-					</Button>
-				</div>
-			</Card>
-
-			<!-- Address -->
-			<Card title="Address">
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<Input
-						id="addressLine1"
-						label="Address Line 1"
-						bind:value={formData.addressLine1}
-						error={errors.addressLine1}
-						onblur={() => validateField('addressLine1')}
-						placeholder="House, building, street"
-					/>
-
-					<Input
-						id="addressLine2"
-						label="Address Line 2"
-						bind:value={formData.addressLine2}
-						error={errors.addressLine2}
-						onblur={() => validateField('addressLine2')}
-						placeholder="Area, locality"
-					/>
-
-					<Input
-						id="areaName"
-						label="Area Name"
-						bind:value={formData.areaName}
-						error={errors.areaName}
-						onblur={() => validateField('areaName')}
-						placeholder="Area"
-					/>
-
-					<Input
-						id="landmark"
-						label="Landmark"
-						bind:value={formData.landmark}
-						error={errors.landmark}
-						onblur={() => validateField('landmark')}
-						placeholder="Nearby landmark"
-					/>
-
-					<Input
-						id="city"
-						label="City"
-						bind:value={formData.city}
-						error={errors.city}
-						onblur={() => validateField('city')}
-						placeholder="City"
-					/>
-
-					<Input
-						id="pincode"
-						label="Pincode"
-						bind:value={formData.pincode}
-						error={errors.pincode}
-						onblur={() => validateField('pincode')}
-						placeholder="6 digit pincode"
-						inputmode="numeric"
-						maxlength={6}
-					/>
-
-					<Input
-						id="state"
-						label="State"
-						bind:value={formData.state}
-						error={errors.state}
-						onblur={() => validateField('state')}
-						placeholder="State"
-					/>
-
-					<Input
-						id="country"
-						label="Country"
-						bind:value={formData.country}
-						error={errors.country}
-						onblur={() => validateField('country')}
-						placeholder="Country"
-					/>
-				</div>
-
-				{#if sectionErrors.address}
-					<div class="mt-4 rounded-md bg-red-50 p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-red-800">{sectionErrors.address}</p>
+					{#if sectionSuccess.other}
+						<div class="mt-4 rounded-md bg-green-50 p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-green-800">{sectionSuccess.other}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
 
-				{#if sectionSuccess.address}
-					<div class="mt-4 rounded-md bg-green-50 p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										fill-rule="evenodd"
-										d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-green-800">{sectionSuccess.address}</p>
+					<div class="mt-6 flex justify-end">
+						<Button
+							variant="primary"
+							onclick={() => submitSection('other')}
+							disabled={loaderStatus.other}
+						>
+							{#if loaderStatus.other}
+								<div class="flex items-center gap-2">
+									<div
+										class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+									></div>
+									<span>Saving...</span>
+								</div>
+							{:else}
+								Save Other Info
+							{/if}
+						</Button>
+					</div>
+				</Card>
+
+				<!-- Address -->
+				<Card title="Address">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<Input
+							id="addressLine1"
+							label="Address Line 1"
+							bind:value={formData.addressLine1}
+							error={errors.addressLine1}
+							onblur={() => validateField('addressLine1')}
+							placeholder="House, building, street"
+						/>
+
+						<Input
+							id="addressLine2"
+							label="Address Line 2"
+							bind:value={formData.addressLine2}
+							error={errors.addressLine2}
+							onblur={() => validateField('addressLine2')}
+							placeholder="Area, locality"
+						/>
+
+						<Input
+							id="areaName"
+							label="Area Name"
+							bind:value={formData.areaName}
+							error={errors.areaName}
+							onblur={() => validateField('areaName')}
+							placeholder="Area"
+						/>
+
+						<Input
+							id="landmark"
+							label="Landmark"
+							bind:value={formData.landmark}
+							error={errors.landmark}
+							onblur={() => validateField('landmark')}
+							placeholder="Nearby landmark"
+						/>
+
+						<Input
+							id="city"
+							label="City"
+							bind:value={formData.city}
+							error={errors.city}
+							onblur={() => validateField('city')}
+							placeholder="City"
+						/>
+
+						<Input
+							id="pincode"
+							label="Pincode"
+							bind:value={formData.pincode}
+							error={errors.pincode}
+							onblur={() => validateField('pincode')}
+							placeholder="6 digit pincode"
+							inputmode="numeric"
+							maxlength={6}
+						/>
+
+						<Input
+							id="state"
+							label="State"
+							bind:value={formData.state}
+							error={errors.state}
+							onblur={() => validateField('state')}
+							placeholder="State"
+						/>
+
+						<Input
+							id="country"
+							label="Country"
+							bind:value={formData.country}
+							error={errors.country}
+							onblur={() => validateField('country')}
+							placeholder="Country"
+						/>
+					</div>
+
+					{#if sectionErrors.address}
+						<div class="mt-4 rounded-md bg-red-50 p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-red-800">{sectionErrors.address}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
 
-				<div class="mt-6 flex justify-end">
-					<Button
-						variant="primary"
-						onclick={() => submitSection('address')}
-						disabled={loaderStatus.address}
-					>
-						{#if loaderStatus.address}
-							<div class="flex items-center gap-2">
-								<div
-									class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-								></div>
-								<span>Saving...</span>
+					{#if sectionSuccess.address}
+						<div class="mt-4 rounded-md bg-green-50 p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-green-800">{sectionSuccess.address}</p>
+								</div>
 							</div>
-						{:else}
-							Save Address
-						{/if}
-					</Button>
-				</div>
-			</Card>
+						</div>
+					{/if}
 
-			<!-- Final Actions -->
-			<div class="flex justify-end gap-3">
-				<Button variant="secondary" onclick={resetForm}>Reset All</Button>
-				<Button variant="success" onclick={submitForm}>Save All Changes</Button>
-			</div>
-		{:else if activeTab === 'payments'}
-			<!-- Payments Content -->
-			<Payments outstandingTableData={paymentsTableInfo}></Payments>
-		{/if}
+					<div class="mt-6 flex justify-end">
+						<Button
+							variant="primary"
+							onclick={() => submitSection('address')}
+							disabled={loaderStatus.address}
+						>
+							{#if loaderStatus.address}
+								<div class="flex items-center gap-2">
+									<div
+										class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+									></div>
+									<span>Saving...</span>
+								</div>
+							{:else}
+								Save Address
+							{/if}
+						</Button>
+					</div>
+				</Card>
+
+				<!-- Final Actions -->
+				<div class="flex justify-end gap-3">
+					<Button variant="secondary" onclick={resetForm}>Reset All</Button>
+					<Button variant="success" onclick={submitForm}>Save All Changes</Button>
+				</div>
+			{:else if activeTab === 'payments'}
+				<!-- Payments Content -->
+				<Payments outstandingTableData={paymentsTableInfo}></Payments>
+			{/if}
+		</div>
 	</div>
-</div>
+{:else}
+	<div class="flex min-h-[60vh] items-center justify-center">
+		<div class="text-center">
+			<div
+				class="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
+			></div>
+			<p class="mt-4 text-gray-600">Loading member info...</p>
+		</div>
+	</div>
+{/if}

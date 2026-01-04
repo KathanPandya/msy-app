@@ -178,15 +178,40 @@
 				<!-- Calculation Breakdown -->
 				<div class="rounded-lg bg-white p-4 shadow-sm">
 					<p class="mb-2 text-sm font-medium text-gray-700">Calculation:</p>
-					<div class="flex items-center gap-2 text-sm text-gray-600">
+
+					<!-- Desktop View - Horizontal -->
+					<div class="hidden items-center gap-2 text-sm text-gray-600 sm:flex">
 						<span class="font-medium">Collection: ₹{totalAmount}</span>
 						<span>−</span>
 						<span class="font-medium">Paid: ₹{amountPaid}</span>
 						<span>=</span>
-						<span class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
-							>Balance: ₹{remainingAmount}</span
+						<span
+							class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
 						>
+							Balance: ₹{remainingAmount}
+						</span>
 					</div>
+
+					<!-- Mobile View - Vertical Stack -->
+					<div class="flex flex-col gap-2 text-sm sm:hidden">
+						<div class="flex items-center justify-between">
+							<span class="text-gray-600">Collection:</span>
+							<span class="font-medium text-gray-900">₹{totalAmount}</span>
+						</div>
+						<div class="flex items-center justify-between">
+							<span class="text-gray-600">Paid:</span>
+							<span class="font-medium text-gray-900">₹{amountPaid}</span>
+						</div>
+						<div class="flex items-center justify-between border-t border-gray-200 pt-2">
+							<span class="text-gray-600">Balance:</span>
+							<span
+								class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
+							>
+								₹{remainingAmount}
+							</span>
+						</div>
+					</div>
+
 					<div class="mt-2 text-xs text-gray-500">
 						Payment completion: {completionPercentage}%
 					</div>
