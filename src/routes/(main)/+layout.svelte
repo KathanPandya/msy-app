@@ -2,11 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { authStore } from '$lib/stores/authStore';
-	import { requireAdmin } from '$lib/utilities/authGuard';
+	import { requireAdmin, requireAuth } from '$lib/utilities/authGuard';
 	import {
 		ArrowDownRight,
 		Bell,
 		ChevronLeft,
+		Home,
 		IndianRupee,
 		LayoutDashboard,
 		LogOut,
@@ -21,16 +22,10 @@
 		if (!$authStore.isLoading) {
 			if (!$authStore.isAuthenticated) {
 				goto('/admin');
+			} else if ($authStore.authType === 'pin') {
+				goto('/me');
 			} else {
-				// const isAdmin = $authStore.userAllInfo?.user?.role === 'admin';
-
-				// if (!isAdmin) {
-				// 	goto('/unauthorized');
-				// } else {
-				// 	isAuthorized = true;
-				// }
-
-				isAuthorized = requireAdmin();
+				isAuthorized = requireAuth();
 			}
 		}
 	});
@@ -53,6 +48,7 @@
 	const navItems = [
 		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
 		{ href: '/members', icon: Users, label: 'Members' },
+		{ href: '/families', icon: Home, label: 'Families' },
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
 		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' }
 	];

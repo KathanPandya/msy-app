@@ -9,7 +9,11 @@
 	// Redirect if already logged in
 	onMount(() => {
 		if ($authStore.isAuthenticated) {
-			goto('/dashboard');
+			if ($authStore.authType === 'pin') {
+				goto('/me');
+			} else {
+				goto('/dashboard');
+			}
 		}
 	});
 

@@ -41,6 +41,13 @@ export namespace User {
 		_v: number;
 		_id: string;
 		status_details: Status_Details;
+		/** Login PIN present (not address pincode) */
+		has_pin?: boolean;
+		must_change_pin?: boolean;
+		locked?: boolean;
+		pin_attempts?: number;
+		dob_is_placeholder?: boolean;
+		club_id?: string | null;
 	};
 
 	export type Update = {

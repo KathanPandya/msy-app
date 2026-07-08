@@ -14,13 +14,26 @@
 
 	// Redirect to login if not authenticated (except for public routes)
 	$effect(() => {
-		const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/admin'];
+		const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/admin', '/unauthorized'];
 		const currentPath = page.url.pathname;
+		const isPublic =
+			publicRoutes.includes(currentPath) || publicRoutes.some((r) => currentPath === r);
 
 		if (!$authStore.isLoading && !$authStore.isAuthenticated) {
-			if (!publicRoutes.includes(currentPath)) {
-				goto('/admin');
+			if (!isPublic) {
+				// Send browsers hitting /me to member login; everything else to admin
+				goto(currentPath.startsWith('/me') ? '/login' : '/admin');
 			}
+		}
+
+		// After PIN login, don't leave members on admin shell landing by default
+		if (
+			!$authStore.isLoading &&
+			$authStore.isAuthenticated &&
+			$authStore.authType === 'pin' &&
+			(currentPath === '/' || currentPath === '/admin')
+		) {
+			goto('/me');
 		}
 	});
 </script>
