@@ -1,1 +1,0 @@
-import{a as e}from"./DhcSMTpN.js";import{g as t}from"./ab4lTHfT.js";import{g as a}from"./VKxtOaOk.js";function n(){return a(e).isAuthenticated?!0:(t("/login"),!1)}function s(){const r=a(e);return r.isAuthenticated?r.authType==="password"&&r.userAllInfo?.user.role==="admin"?(t("/dashboard"),!1):!0:(t("/login"),!1)}export{n as a,s as r};
