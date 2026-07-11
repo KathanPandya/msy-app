@@ -200,16 +200,27 @@
 					{/if}
 				</button>
 
-				<!-- Help Link -->
 				<div class="pt-4 text-center">
 					<p class="text-sm text-gray-600">
-						Need help?
-						<a href="/support" class="ml-1 font-semibold text-blue-600 hover:text-blue-700">
-							Contact Support
+						Member?
+						<a href="/login" class="ml-1 font-semibold text-blue-600 hover:text-blue-700">
+							Sign in here
 						</a>
 					</p>
 				</div>
 			</form>
+
+			<p class="mt-8 text-center text-xs text-gray-500">
+				Need help?
+				<a
+					href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal%20login"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-blue-600 hover:underline"
+				>
+					Contact Support
+				</a>
+			</p>
 		</div>
 	</div>
 </div>

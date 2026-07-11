@@ -22,7 +22,8 @@
 		if (!$authStore.isLoading && !$authStore.isAuthenticated) {
 			if (!isPublic) {
 				// Send browsers hitting /me to member login; everything else to admin
-				goto(currentPath.startsWith('/me') ? '/login' : '/admin');
+				// goto(currentPath.startsWith('/me') ? '/login' : '/admin');
+				goto('/login');
 			}
 		}
 

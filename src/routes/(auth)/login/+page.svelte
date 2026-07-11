@@ -335,5 +335,17 @@
 			Admin?
 			<a href="/admin" class="text-blue-600 hover:underline">Sign in here</a>
 		</p>
+
+		<p class="mt-3 text-center text-xs text-gray-500">
+			Need help?
+			<a
+				href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal%20login"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="text-blue-600 hover:underline"
+			>
+				Contact Support
+			</a>
+		</p>
 	</div>
 </div>
