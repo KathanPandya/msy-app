@@ -101,34 +101,21 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="flex min-h-screen bg-gray-50">
-	<!-- Right side - Login Form -->
-	<div class="flex flex-1 items-center justify-center p-8">
-		<div class="w-full max-w-md">
-			<!-- Mobile Logo -->
-			<div class="mb-8 flex justify-center lg:hidden">
-				<div class="flex items-center space-x-3">
-					<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600">
-						<span class="text-2xl font-bold text-white">M</span>
-					</div>
-					<span class="text-2xl font-bold text-gray-900">MSY Admin</span>
-				</div>
-			</div>
+<div class="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
+		<div class="mb-6 text-center">
+			<h1 class="text-2xl font-bold text-gray-900">Admin login</h1>
+			<p class="mt-2 text-sm text-gray-600">Enter your credentials to continue.</p>
+		</div>
 
-			<!-- Header -->
-			<!-- <div class="mb-8">
-				<h2 class="mb-2 text-3xl font-bold text-gray-900">Welcome back</h2>
-				<p class="text-gray-600">Please enter your credentials to continue</p>
-			</div> -->
-
-			<!-- Login Form -->
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					handleLogin();
-				}}
-				class="space-y-6"
-			>
+		<!-- Login Form -->
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleLogin();
+			}}
+			class="space-y-6"
+		>
 				<!-- Email -->
 				<Input
 					id="email"
@@ -209,18 +196,5 @@
 					</p>
 				</div>
 			</form>
-
-			<p class="mt-8 text-center text-xs text-gray-500">
-				Need help?
-				<a
-					href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal%20login"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-blue-600 hover:underline"
-				>
-					Contact Support
-				</a>
-			</p>
-		</div>
 	</div>
 </div>

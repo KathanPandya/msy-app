@@ -1,13 +1,46 @@
 <script lang="ts">
-	import Card from '$lib/components/ui/Card.svelte';
+	import { goto } from '$app/navigation';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { Search } from '@lucide/svelte';
 	import SearchInput from '../ui/SearchInput.svelte';
 	import Table from '../ui/Table.svelte';
 
-	let { outstandingTableData } = $props();
+	let { outstandingTableData, fitHeight = false } = $props();
 	let searchQuery = $state('');
+
+	// Which rows are actual payments (dead-member rows aren't).
+	const paymentIds = new Set((outstandingTableData?.paymentRecords ?? []).map((p: any) => p._id));
+
+	// The "View" button opens that payment's page (data passed via navigation state).
+	if (typeof window !== 'undefined') {
+		(window as any).viewPayment = (id: string) => {
+			const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === id);
+			if (!record) return;
+			goto(`/payins/update/${record._id}`, {
+				state: { paymentData: { ...record, memberId: record.userId } }
+			});
+		};
+	}
+
+	const actionsColumn = {
+		key: 'actions',
+		label: 'Actions',
+		align: 'right' as const,
+		render: (_: any, row: any) => {
+			if (!paymentIds.has(row._id)) return '';
+			return `
+				<div class='flex justify-end'>
+					<button
+						class="px-3 py-1.5 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+						onclick="window.viewPayment('${row._id}')"
+					>
+						View
+					</button>
+				</div>
+			`;
+		}
+	};
 
 	const totalAmount = outstandingTableData.outstandingAmount + outstandingTableData.totalPayment;
 	const amountPaid = outstandingTableData.totalPayment;
@@ -17,9 +50,11 @@
 			? 100
 			: ((amountPaid / totalAmount) * 100).toFixed(1);
 
-	let tableColumns = $state([
+	let tableColumns = $state<any[]>([
 		{ key: 'date', label: 'Date' },
-		{ key: 'amount', label: 'Amount' }
+		{ key: 'amount', label: 'Amount' },
+		{ key: 'remarks', label: 'Remarks' },
+		actionsColumn
 	]);
 
 	const statusOptions = [
@@ -53,6 +88,7 @@
 				_id: payment._id,
 				date: formatDate(payment.date ?? payment.deadMember.date_of_death) || '-',
 				amount: payment.amount || -100,
+					remarks: payment.remarks || '-',
 				type: type
 			};
 		}) ?? []
@@ -64,7 +100,9 @@
 				{ key: 'date', label: 'Date' },
 				{ key: 'amount', label: 'Amount' },
 				{ key: 'payment_mode', label: 'Payment Mode' },
-				{ key: 'payment_type', label: 'Payment Type' }
+				{ key: 'payment_type', label: 'Payment Type' },
+				{ key: 'remarks', label: 'Remarks' },
+				actionsColumn
 			];
 			tableData =
 				sortRecords(outstandingTableData?.paymentRecords)?.map((payment: any) => {
@@ -73,7 +111,8 @@
 						date: formatDate(payment.date) || '-',
 						amount: payment.amount || '-',
 						payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-						payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-'
+						payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-',
+						remarks: payment.remarks || '-'
 					};
 				}) ?? [];
 		} else if (filters.status === 'deadMembers') {
@@ -94,7 +133,9 @@
 		} else {
 			tableColumns = [
 				{ key: 'date', label: 'Date' },
-				{ key: 'amount', label: 'Amount' }
+				{ key: 'amount', label: 'Amount' },
+				{ key: 'remarks', label: 'Remarks' },
+				actionsColumn
 			];
 
 			const mergedRecords = [
@@ -118,6 +159,7 @@
 					_id: payment._id,
 					date: date ? formatDate(date) : '-',
 					amount: payment.amount ?? -100,
+					remarks: payment.remarks || '-',
 					type: type
 				};
 			});
@@ -143,137 +185,84 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50">
-	<div class="mx-auto max-w-6xl">
-		<!-- Content -->
-		<div class="rounded-b-lg bg-white p-6 shadow-sm">
-			<!-- Payment Summary Card -->
-			<div
-				class="mb-6 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-6"
-			>
-				<h3 class="mb-4 text-lg font-semibold text-gray-800">Payment Summary</h3>
+<div class={`bg-gray-50 ${fitHeight ? 'flex h-full flex-col' : ''}`}>
+	<div
+		class={`mx-auto w-full max-w-6xl p-3 lg:p-4 ${fitHeight ? 'flex min-h-0 flex-1 flex-col gap-3' : 'space-y-3'}`}
+	>
+		<!-- Payment Summary -->
+		<div
+			class="flex-shrink-0 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-3 lg:p-4"
+		>
+			<h3 class="mb-3 text-base font-semibold text-gray-800">Payment Summary</h3>
 
-				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-					<div class="rounded-lg bg-white p-4 shadow-sm">
-						<p class="mb-1 text-sm text-gray-600">લેવાના</p>
-						<p class="text-2xl font-bold text-gray-800">₹{totalAmount}</p>
-					</div>
-
-					<div class="rounded-lg bg-white p-4 shadow-sm">
-						<p class="mb-1 text-sm text-gray-600">આપેલા</p>
-						<p class="text-2xl font-bold text-blue-600">₹{amountPaid}</p>
-					</div>
-
-					<div class="rounded-lg bg-white p-4 shadow-sm">
-						<p class="mb-1 text-sm text-gray-600">Balance</p>
-						<p
-							class={`text-2xl font-bold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
-						>
-							₹{Math.abs(remainingAmount)}
-							{remainingAmount < 0 ? 'જમા' : 'બાકી'}
-						</p>
-					</div>
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+				<div class="rounded-lg bg-white p-3 shadow-sm">
+					<p class="mb-0.5 text-xs text-gray-600">લેવાના</p>
+					<p class="text-xl font-bold text-gray-800">₹{totalAmount}</p>
 				</div>
 
-				<!-- Calculation Breakdown -->
-				<div class="rounded-lg bg-white p-4 shadow-sm">
-					<p class="mb-2 text-sm font-medium text-gray-700">Calculation:</p>
+				<div class="rounded-lg bg-white p-3 shadow-sm">
+					<p class="mb-0.5 text-xs text-gray-600">આપેલા</p>
+					<p class="text-xl font-bold text-blue-600">₹{amountPaid}</p>
+				</div>
 
-					<!-- Desktop View - Horizontal -->
-					<div class="hidden items-center gap-2 text-sm text-gray-600 sm:flex">
-						<span class="font-medium">Collection: ₹{totalAmount}</span>
-						<span>−</span>
-						<span class="font-medium">Paid: ₹{amountPaid}</span>
-						<span>=</span>
-						<span
-							class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
-						>
-							Balance: ₹{remainingAmount}
-						</span>
-					</div>
-
-					<!-- Mobile View - Vertical Stack -->
-					<div class="flex flex-col gap-2 text-sm sm:hidden">
-						<div class="flex items-center justify-between">
-							<span class="text-gray-600">Collection:</span>
-							<span class="font-medium text-gray-900">₹{totalAmount}</span>
-						</div>
-						<div class="flex items-center justify-between">
-							<span class="text-gray-600">Paid:</span>
-							<span class="font-medium text-gray-900">₹{amountPaid}</span>
-						</div>
-						<div class="flex items-center justify-between border-t border-gray-200 pt-2">
-							<span class="text-gray-600">Balance:</span>
-							<span
-								class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
-							>
-								₹{remainingAmount}
-							</span>
-						</div>
-					</div>
-
-					<div class="mt-2 text-xs text-gray-500">
-						Payment completion: {completionPercentage}%
-					</div>
+				<div class="rounded-lg bg-white p-3 shadow-sm">
+					<p class="mb-0.5 text-xs text-gray-600">Balance</p>
+					<p class={`text-xl font-bold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}>
+						₹{Math.abs(remainingAmount)}
+						{remainingAmount < 0 ? 'જમા' : 'બાકી'}
+					</p>
 				</div>
 			</div>
 
-			<div class="animate-fadeIn">
-				<!-- <h2 class="mb-4 text-xl font-semibold text-gray-800"></h2> -->
+			<!-- Calculation -->
+			<div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
+				<span class="font-medium">Collection: ₹{totalAmount}</span>
+				<span>−</span>
+				<span class="font-medium">Paid: ₹{amountPaid}</span>
+				<span>=</span>
+				<span class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}>
+					Balance: {remainingAmount < 0 ? `+₹${Math.abs(remainingAmount)}` : `₹${remainingAmount}`}
+				</span>
+				<span class="text-gray-400">· {completionPercentage}% complete</span>
+			</div>
+		</div>
 
-				<!-- Search and Filter -->
-				<div class="mb-6 flex flex-col gap-4 sm:flex-row">
-					<div class="relative flex-1">
-						<div class="relative max-w-md flex-1">
-							<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-								<Search class="h-5 w-5 text-gray-400" />
-							</div>
-							<SearchInput
-								id="member-search"
-								bind:value={searchQuery}
-								placeholder="Search members by name or mobile..."
-							/>
-						</div>
-					</div>
-					<div class="flex flex-1 flex-wrap items-center gap-3">
-						<!-- Status Filter -->
-						<div class="w-40">
-							<select
-								bind:value={filters.status}
-								onchange={applyFilters}
-								class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-							>
-								{#each statusOptions as option}
-									<option value={option.key}>{option.label}</option>
-								{/each}
-							</select>
-						</div>
-					</div>
+		<!-- Search and Filter -->
+		<div class="flex flex-shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
+			<div class="relative max-w-md flex-1">
+				<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
+					<Search class="h-5 w-5 text-gray-400" />
 				</div>
+				<SearchInput
+					id="member-search"
+					bind:value={searchQuery}
+					placeholder="Search members by name or mobile..."
+				/>
+			</div>
+			<div class="w-40">
+				<select
+					bind:value={filters.status}
+					onchange={applyFilters}
+					class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				>
+					{#each statusOptions as option}
+						<option value={option.key}>{option.label}</option>
+					{/each}
+				</select>
+			</div>
+		</div>
 
-				<Card title={`Payment History (${tableData.length})`}>
-					<div class="space-y-4">
-						<Table columns={tableColumns} data={tableData} {getRowBgColor} />
-					</div>
-				</Card>
+		<!-- Payment History -->
+		<div
+			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : 'h-[60vh]'}`}
+		>
+			<div class="flex-shrink-0 border-b border-gray-200 px-4 py-3">
+				<h2 class="text-base font-semibold text-gray-900">Payment History ({tableData.length})</h2>
+			</div>
+			<div class="min-h-0 flex-1">
+				<Table columns={tableColumns} data={tableData} {getRowBgColor} />
 			</div>
 		</div>
 	</div>
 </div>
-
-<style>
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(-10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.animate-fadeIn {
-		animation: fadeIn 0.3s ease-out;
-	}
-</style>

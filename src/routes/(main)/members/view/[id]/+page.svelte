@@ -341,17 +341,35 @@
 				</div>
 			{/if}
 
+			<!-- Payments -->
+			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-800">Payments</h2>
+						<p class="mt-1 text-sm text-gray-600">
+							View this member's payment history and outstanding balance.
+						</p>
+					</div>
+					<a
+						href={`/members/view/${page.params.id}/payments`}
+						class="text-sm font-medium text-blue-600 hover:underline"
+					>
+						Show payments →
+					</a>
+				</div>
+			</div>
+
 			<!-- General Information -->
 			<div class="mb-6 rounded-lg bg-white p-6 shadow-sm">
 				<h2 class="mb-6 border-b pb-3 text-xl font-semibold text-gray-800">General Information</h2>
 
 				<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 					<div>
-						<p class="mb-1 text-sm font-medium text-gray-500">હિસાબ</p>
+						<p class="mb-1 text-sm font-medium text-gray-500">Balance</p>
 						<p
-							class={`text-base text-gray-900 ${userData.હિસાબ < 0 ? 'text-green-600' : 'text-red-600'}`}
+							class={`text-base font-medium ${userData.હિસાબ < 0 ? 'text-green-600' : userData.હિસાબ > 0 ? 'text-red-600' : 'text-gray-500'}`}
 						>
-							{`${Math.abs(userData.હિસાબ)} ${userData.હિસાબ < 0 ? 'જમા' : 'બાકી'}`}
+							{userData.હિસાબ < 0 ? `+${Math.abs(userData.હિસાબ)}` : `${userData.હિસાબ ?? 0}`}
 						</p>
 					</div>
 

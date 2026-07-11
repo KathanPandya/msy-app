@@ -2,8 +2,18 @@ import axios from '$lib/config/axios';
 import type { Family } from '$lib/types/family';
 
 class FamiliesApi {
-	async list(): Promise<{ success: boolean; families: Family.ListItem[] }> {
-		const response = await axios.get(`/api/families`);
+	async list(params?: {
+		search?: string;
+		skip?: number;
+		limit?: number;
+	}): Promise<{ success: boolean; families: Family.ListItem[]; total: number }> {
+		const response = await axios.get(`/api/families`, {
+			params: {
+				search: params?.search || undefined,
+				skip: params?.skip,
+				limit: params?.limit
+			}
+		});
 		return response.data;
 	}
 

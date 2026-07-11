@@ -38,9 +38,9 @@
 
 	function dueLabel(n: number | undefined) {
 		const amount = n ?? 0;
-		if (amount > 0) return `₹${amount} due`;
-		if (amount < 0) return `₹${Math.abs(amount)} credit`;
-		return 'settled';
+		if (amount > 0) return { text: `₹${amount} due`, color: 'text-red-700' };
+		if (amount < 0) return { text: `₹${Math.abs(amount)} credit`, color: 'text-green-700' };
+		return { text: 'settled', color: 'text-gray-800' };
 	}
 
 	const netDue = $derived(members.reduce((sum, m) => sum + (m.outstanding_amount ?? 0), 0));
@@ -86,13 +86,15 @@
 								{/if}
 							</p>
 						</div>
-						<span class="text-sm text-gray-600">{dueLabel(m.outstanding_amount)}</span>
+						<span class={`text-sm font-medium ${dueLabel(m.outstanding_amount).color}`}
+							>{dueLabel(m.outstanding_amount).text}</span
+						>
 					</button>
 				{/each}
 
 				<section class="rounded-xl bg-white p-4 shadow-sm">
 					<p class="text-sm text-gray-500">Family total</p>
-					<p class="text-lg font-semibold text-gray-900">{dueLabel(netDue)}</p>
+					<p class={`text-lg font-semibold ${dueLabel(netDue).color}`}>{dueLabel(netDue).text}</p>
 					<p class="mt-2 text-xs text-gray-500">Tap a name to see their details. View-only.</p>
 				</section>
 			{/if}

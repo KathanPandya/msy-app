@@ -201,16 +201,8 @@
 				</svg>
 				<h3 class="mt-2 text-sm font-medium text-gray-900">No members found</h3>
 				<p class="mt-1 text-sm text-gray-500">
-					{searchQuery ? 'Try a different search term' : 'Get started by adding a new member'}
+					{searchQuery ? 'Try a different search term' : 'No payouts to display'}
 				</p>
-				{#if !searchQuery}
-					<div class="mt-6">
-						<Button variant="primary" onclick={() => goto('/members/create')}>
-							<Plus class="mr-2 h-4 w-4" />
-							Add Member
-						</Button>
-					</div>
-				{/if}
 			</div>
 		{:else}
 			<!-- Table container with border, rounded corners, and scroll -->

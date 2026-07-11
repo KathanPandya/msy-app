@@ -162,7 +162,7 @@
 	const displayId = $derived(memberId ? formatMemberId(memberId) : '');
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+<div class="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
 	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
 		<div class="mb-6 text-center">
 			<h1 class="text-2xl font-bold text-gray-900">Member login</h1>
@@ -332,11 +332,6 @@
 		{/if}
 
 		<p class="mt-8 text-center text-xs text-gray-500">
-			Admin?
-			<a href="/admin" class="text-blue-600 hover:underline">Sign in here</a>
-		</p>
-
-		<p class="mt-3 text-center text-xs text-gray-500">
 			Need help?
 			<a
 				href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal%20login"
@@ -348,4 +343,11 @@
 			</a>
 		</p>
 	</div>
+
+	<a
+		href="/admin"
+		class="absolute bottom-3 right-3 text-[11px] text-gray-400 hover:text-gray-600 hover:underline"
+	>
+		Login to admin portal
+	</a>
 </div>

@@ -9,6 +9,7 @@ export namespace Family {
 		status: string;
 		outstanding_amount?: number;
 		mobile?: string;
+		address?: string;
 		club_id?: string | null;
 		has_pin?: boolean;
 		must_change_pin?: boolean;

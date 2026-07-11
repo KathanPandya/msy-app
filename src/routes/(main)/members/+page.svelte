@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
@@ -17,26 +17,65 @@
 	import { ChevronDown, ChevronUp, Download, Filter, Plus, Search, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
-	// Load members on mount
-	onMount(() => {
-		// if ($memberListStore.members.length === 0) {
-		// 	memberListStore.fetchAllMembers();
-		// }
+	const validLimits = APP_CONSTANTS.PAGINATION_OPTIONS.map((o) => Number(o.key));
 
-		goNext(true);
+	// Initial state is read from the URL (see the $state initializers below) so the
+	// controls render already in sync. On mount we only need to load the data.
+	onMount(() => {
+		loadInitial();
 	});
 
-	let searchQuery = $state('');
+	async function loadInitial() {
+		const targetPage = Math.max(1, Number(page.url.searchParams.get('page')) || 1);
+
+		// Reconstruct every page up to targetPage in one request so the paginated
+		// window (and Prev/Next) behaves as if the user had paged there manually.
+		currentPage = 0;
+		memberList = [];
+		const res = await getMembers(0, targetPage * limitPerPage);
+		if (res) {
+			memberList = res.users;
+			totalUsers = res.total;
+			currentPage = targetPage;
+		}
+	}
+
+	function syncUrl() {
+		const p = new URLSearchParams();
+		if (searchQuery) p.set('q', searchQuery);
+		if (filters.status) p.set('filter', filters.status);
+		if (filters.gender) p.set('gender', filters.gender);
+		if (filters.balanceType) p.set('balance', filters.balanceType);
+		if (filters.amountOperator) p.set('op', filters.amountOperator);
+		if (filters.amountValue !== '' && filters.amountValue != null)
+			p.set('amt', String(filters.amountValue));
+		if (sortType) p.set('sort', sortType);
+		if (currentPage > 1) p.set('page', String(currentPage));
+		if (limitPerPage !== 50) p.set('limit', String(limitPerPage));
+
+		const qs = p.toString();
+		if (qs === page.url.searchParams.toString()) return;
+		replaceState(qs ? `${page.url.pathname}?${qs}` : page.url.pathname, {});
+	}
+
+	const initialSort = page.url.searchParams.get('sort');
+	const initialLimit = Number(page.url.searchParams.get('limit'));
+
+	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
 	// let amountOperator = $state('');
 	// let amountValue = $state<any>(null);
-	let sortType = $state<'asc' | 'desc' | ''>('');
-	let sortBasedOn = $state<string>('member_id');
+	let sortType = $state<'asc' | 'desc' | ''>(
+		initialSort === 'asc' || initialSort === 'desc' ? initialSort : ''
+	);
+	let sortBasedOn = $state<string>(
+		initialSort === 'asc' || initialSort === 'desc' ? 'outstanding_amount' : 'member_id'
+	);
 	let showFilters = $state(false);
 	let errors = $state<null | string>(null);
 	let isLoading = $state(false);
 	let memberList = $state<User.List>([]);
 	let currentPage = $state(0);
-	let limitPerPage = $state(50);
+	let limitPerPage = $state(validLimits.includes(initialLimit) ? initialLimit : 50);
 	let totalUsers = $state<number>(0);
 	const totalPages = $derived(Math.ceil(totalUsers / limitPerPage));
 	const canGoPrevious = $derived(currentPage > 1);
@@ -59,9 +98,7 @@
 		{ label: 'Sort Outstanding Amount', key: '' },
 		{ label: 'Greater than (>)', key: '>' },
 		{ label: 'Less than (<)', key: '<' },
-		{ label: 'Equal to (=)', key: '=' },
-		{ label: 'Greater than or equal (≥)', key: '>=' },
-		{ label: 'Less than or equal (≤)', key: '<=' }
+		{ label: 'Equal to (=)', key: '=' }
 	];
 
 	if (typeof window !== 'undefined') {
@@ -123,6 +160,7 @@
 			memberList = [...memberList, ...res.users];
 			totalUsers = res.total;
 			currentPage += 1;
+			syncUrl();
 		}
 	}
 
@@ -135,11 +173,13 @@
 			totalUsers = res.total;
 			currentPage = currentPage + 1;
 		}
+		syncUrl();
 	}
 
 	function goPrevious() {
 		if (!canGoPrevious) return;
 		currentPage -= 1;
+		syncUrl();
 	}
 
 	function handleAmountInput(event: Event) {
@@ -178,7 +218,14 @@
 		},
 		{
 			key: 'heesab',
-			label: 'Heesab',
+			label: 'Balance',
+			render: (value: any) => {
+				const n = Number(value) || 0;
+				// Negative outstanding = credit (surplus) → show +amount; positive = debit (owes) → plain number.
+				if (n < 0) return `<span class="font-medium text-green-600">+${Math.abs(n)}</span>`;
+				if (n > 0) return `<span class="font-medium text-red-600">${n}</span>`;
+				return `<span class="text-gray-500">0</span>`;
+			},
 			sorting: (row: any) => {
 				sortType = sortType === '' ? 'desc' : sortType === 'desc' ? 'asc' : '';
 				if (sortType == 'asc' || sortType == 'desc') {
@@ -291,12 +338,20 @@
 	// let searchQuery = $state('');
 	let filters = $state({
 		status: page.url.searchParams.get('filter') ?? '',
-		gender: '',
+		gender: page.url.searchParams.get('gender') ?? '',
 		maritalStatus: '',
 		gotra: '',
-		amountOperator: '',
-		amountValue: ''
+		balanceType: page.url.searchParams.get('balance') ?? '',
+		amountOperator: page.url.searchParams.get('op') ?? '',
+		amountValue: page.url.searchParams.get('amt') ?? ''
 	});
+
+	// Balance filter: debit = owes money (outstanding > 0), credit = surplus (outstanding < 0)
+	const balanceTypeOptions = [
+		{ key: '', label: 'Any balance' },
+		{ key: 'debit', label: 'In debit' },
+		{ key: 'credit', label: 'In credit' }
+	];
 
 	// Filter options
 	const statusOptions = [
@@ -347,6 +402,7 @@
 			gender: '',
 			maritalStatus: '',
 			gotra: '',
+			balanceType: '',
 			amountOperator: '',
 			amountValue: ''
 		};
@@ -363,7 +419,7 @@
 				MemberID: tD.memberId,
 				Name: tD.name,
 				Status: formatString(tD.status, ['capitalize-first']),
-				Heesab: tD.heesab,
+				Balance: tD.heesab < 0 ? `+${Math.abs(tD.heesab)}` : `${tD.heesab ?? 0}`,
 				Mobile: tD.mobile,
 				Gender: tD.gender
 			};
@@ -396,21 +452,40 @@
 
 	const debouncedSearch = debounce(refreshMemberList, 300);
 
-	async function getMembers() {
+	async function getMembers(skipOverride?: number, limitOverride?: number) {
 		errors = '';
 		isLoading = true;
 		try {
-			const skip = currentPage * limitPerPage;
-			const opt = (APP_CONSTANTS.OPERATOR_MAPPING as any)[filters.amountOperator];
+			const skip = skipOverride ?? currentPage * limitPerPage;
+			const limit = limitOverride ?? limitPerPage;
+
+			// Manual amount filter (operation + amount). Don't treat 0 as "empty" —
+			// an explicit 0 is a valid amount to filter on.
+			const operation = (APP_CONSTANTS.OPERATOR_MAPPING as any)[filters.amountOperator];
+			const rawAmount = filters.amountValue;
+			const hasAmount =
+				rawAmount !== '' &&
+				rawAmount !== null &&
+				rawAmount !== undefined &&
+				!Number.isNaN(Number(rawAmount));
+			const amount = hasAmount ? Number(rawAmount) : undefined;
+
+			// Balance dropdown: backend handles debit (> 0) / credit (< 0) via balance_type.
+			const balanceType =
+				filters.balanceType === 'debit' || filters.balanceType === 'credit'
+					? filters.balanceType
+					: undefined;
+
 			const res = await userApi.getAllUsers({
-				limit: limitPerPage,
+				limit: limit,
 				skip: skip,
 				query: searchQuery || undefined,
 				sortOnKey: sortBasedOn,
 				sortType: sortType ? sortType : undefined,
 				member_status: filters.status ? filters.status : undefined,
-				operation: opt,
-				amount: filters.amountValue ? Number(filters.amountValue) : undefined
+				operation: operation,
+				amount: amount,
+				balance_type: balanceType
 			});
 			return res;
 		} catch (err: any) {
@@ -511,6 +586,19 @@
 								</select>
 							</div>
 
+							<!-- Balance Filter -->
+							<div class="w-full sm:w-40">
+								<select
+									bind:value={filters.balanceType}
+									onchange={refreshMemberList}
+									class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								>
+									{#each balanceTypeOptions as option}
+										<option value={option.key}>{option.label}</option>
+									{/each}
+								</select>
+							</div>
+
 							<!-- Amount Operator Filter -->
 							<div class="w-full sm:w-56">
 								<Select
@@ -599,6 +687,24 @@
 									</span>
 								{/if}
 
+								{#if filters.balanceType}
+									<span
+										class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+									>
+										Balance: {balanceTypeOptions.find((o) => o.key === filters.balanceType)?.label}
+										<button
+											type="button"
+											onclick={() => {
+												filters.balanceType = '';
+												refreshMemberList();
+											}}
+											class="hover:text-blue-900"
+										>
+											<X class="h-3 w-3" />
+										</button>
+									</span>
+								{/if}
+
 								{#if filters.amountOperator || filters.amountValue}
 									<span
 										class="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
@@ -629,8 +735,14 @@
 		{#if !isLoading && memberList.length > 0}
 			<div class="flex w-full items-center justify-between">
 				<p class="text-sm text-gray-700">
-					Showing <span class="font-medium">{tableData.length}</span>
-					{tableData.length === 1 ? 'member' : 'members'}
+					Showing
+					<span class="font-medium">
+						{tableData.length ? (currentPage - 1) * limitPerPage + 1 : 0}–{(currentPage - 1) *
+							limitPerPage +
+							tableData.length}
+					</span>
+					of <span class="font-medium">{totalUsers}</span>
+					{totalUsers === 1 ? 'member' : 'members'}
 				</p>
 
 				<Tooltip text="Download" position={'left'}>
@@ -676,17 +788,7 @@
 					/>
 				</svg>
 				<h3 class="mt-2 text-sm font-medium text-gray-900">No members found</h3>
-				<p class="mt-1 text-sm text-gray-500">
-					{searchQuery ? 'Try a different search term' : 'Get started by adding a new member'}
-				</p>
-				{#if !searchQuery}
-					<div class="mt-6">
-						<Button variant="primary" onclick={() => goto('/members/create')}>
-							<Plus class="mr-2 h-4 w-4" />
-							Add Member
-						</Button>
-					</div>
-				{/if}
+				<p class="mt-1 text-sm text-gray-500">Try changing your search or filters</p>
 			</div>
 		{:else}
 			<!-- Table container with border, rounded corners, and scroll -->
