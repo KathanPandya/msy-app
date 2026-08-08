@@ -36,6 +36,7 @@
 		onNext?: () => void;
 		onPrevious?: () => void;
 		onLimitChange?: (v: string) => void;
+		density?: 'comfortable' | 'compact';
 	};
 
 	let {
@@ -46,8 +47,17 @@
 		pagination,
 		onNext,
 		onPrevious,
-		onLimitChange
+		onLimitChange,
+		density = 'comfortable'
 	}: TableProps = $props();
+
+	const headerPaddingClass = $derived(
+		density === 'compact' ? 'px-2.5 py-2 sm:px-3 sm:py-2' : 'px-3 py-2.5 sm:px-6 sm:py-3'
+	);
+	const cellPaddingClass = $derived(
+		density === 'compact' ? 'px-2.5 py-1.5 sm:px-3 sm:py-2' : 'px-3 py-2.5 sm:px-6 sm:py-4'
+	);
+	const cellTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
 
 	function getAlignClass(align?: string) {
 		if (align === 'right') return 'text-right';
@@ -82,7 +92,7 @@
 				<tr>
 					{#each columns as column}
 						<th
-							class="px-6 py-3 {getAlignClass(
+							class="{headerPaddingClass} {getAlignClass(
 								column.align
 							)} bg-gray-50 text-xs font-medium tracking-wider text-gray-500 uppercase"
 						>
@@ -110,7 +120,7 @@
 						{#each columns as column}
 							{@const tooltipText = getTooltip(column, row[column.key], row)}
 							<td
-								class="px-6 py-4 text-sm whitespace-nowrap text-gray-900 {getAlignClass(
+								class="{cellPaddingClass} {cellTextClass} whitespace-nowrap text-gray-900 {getAlignClass(
 									column.align
 								)}"
 							>

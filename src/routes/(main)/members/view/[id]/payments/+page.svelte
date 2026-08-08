@@ -4,6 +4,7 @@
 	import Payments from '$lib/components/other/Payments.svelte';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import type { Payment } from '$lib/types/payment';
+	import { ArrowLeft } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let data = $state<Payment.OutstandingData | null>(null);
@@ -25,13 +26,15 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<div class="flex-shrink-0 px-3 pt-3 lg:px-4">
+	<div class="flex-shrink-0 pb-1.5">
 		<button
 			type="button"
 			onclick={() => goto(`/members/view/${page.params.id}`)}
-			class="text-sm font-medium text-blue-600 hover:underline"
+			title="Back to member"
+			class="inline-flex items-center gap-1 rounded-md p-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
 		>
-			← Back to member
+			<ArrowLeft class="h-3.5 w-3.5" />
+			Back to member
 		</button>
 	</div>
 

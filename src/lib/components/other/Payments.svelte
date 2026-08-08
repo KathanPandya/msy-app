@@ -2,12 +2,31 @@
 	import { goto } from '$app/navigation';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatString } from '$lib/utilities/stringUtils';
-	import { Search } from '@lucide/svelte';
+	import { ChevronDown, LayoutGrid, Rows3, Search } from '@lucide/svelte';
 	import SearchInput from '../ui/SearchInput.svelte';
 	import Table from '../ui/Table.svelte';
 
 	let { outstandingTableData, fitHeight = false } = $props();
 	let searchQuery = $state('');
+
+	let isSummaryOpen = $state(
+		typeof localStorage !== 'undefined' ? localStorage.getItem('payments_summary_open') !== '0' : true
+	);
+	let density = $state<'comfortable' | 'compact'>(
+		(typeof localStorage !== 'undefined' &&
+			(localStorage.getItem('payments_table_density') as 'comfortable' | 'compact')) ||
+			'comfortable'
+	);
+
+	function toggleSummary() {
+		isSummaryOpen = !isSummaryOpen;
+		localStorage.setItem('payments_summary_open', isSummaryOpen ? '1' : '0');
+	}
+
+	function toggleDensity() {
+		density = density === 'comfortable' ? 'compact' : 'comfortable';
+		localStorage.setItem('payments_table_density', density);
+	}
 
 	// Which rows are actual payments (dead-member rows aren't).
 	const paymentIds = new Set((outstandingTableData?.paymentRecords ?? []).map((p: any) => p._id));
@@ -187,50 +206,97 @@
 
 <div class={`bg-gray-50 ${fitHeight ? 'flex h-full flex-col' : ''}`}>
 	<div
-		class={`mx-auto w-full max-w-6xl p-3 lg:p-4 ${fitHeight ? 'flex min-h-0 flex-1 flex-col gap-3' : 'space-y-3'}`}
+		class={`w-full max-w-none ${fitHeight ? 'flex min-h-0 flex-1 flex-col gap-1.5 sm:gap-2' : 'space-y-1.5 sm:space-y-2'}`}
 	>
-		<!-- Payment Summary -->
-		<div
-			class="flex-shrink-0 rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-3 lg:p-4"
-		>
-			<h3 class="mb-3 text-base font-semibold text-gray-800">Payment Summary</h3>
+		<!-- Summary + Search + Filter -->
+		<div class="flex w-full flex-shrink-0 flex-wrap items-start justify-start gap-2 sm:flex-nowrap sm:gap-3">
+			<!-- Payment Summary -->
+			<div
+				class="w-full min-w-0 flex-none rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 sm:max-w-[400px] sm:shrink sm:basis-[400px] sm:grow-0"
+			>
+				<button
+					type="button"
+					onclick={toggleSummary}
+					class="flex w-full items-center justify-between gap-2 px-3 py-2 lg:px-4"
+				>
+					<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">Payment Summary</h3>
+					{#if !isSummaryOpen}
+						<span class="min-w-0 flex-1 truncate text-right text-xs text-gray-500">
+							₹{totalAmount} · Paid ₹{amountPaid} ·
+							<span class={remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}>
+								Bal ₹{Math.abs(remainingAmount)}
+							</span>
+						</span>
+					{/if}
+					<ChevronDown
+						class={`h-4 w-4 flex-shrink-0 text-gray-500 transition-transform ${isSummaryOpen ? 'rotate-180' : ''}`}
+					/>
+				</button>
 
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-				<div class="rounded-lg bg-white p-3 shadow-sm">
-					<p class="mb-0.5 text-xs text-gray-600">લેવાના</p>
-					<p class="text-xl font-bold text-gray-800">₹{totalAmount}</p>
-				</div>
+				{#if isSummaryOpen}
+					<div class="px-3 pb-2 lg:px-4 lg:pb-3">
+						<div class="grid grid-cols-3 gap-1.5 sm:gap-2">
+							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
+								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">લેવાના</p>
+								<p class="text-sm font-bold text-gray-800 sm:text-lg">₹{totalAmount}</p>
+							</div>
 
-				<div class="rounded-lg bg-white p-3 shadow-sm">
-					<p class="mb-0.5 text-xs text-gray-600">આપેલા</p>
-					<p class="text-xl font-bold text-blue-600">₹{amountPaid}</p>
-				</div>
+							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
+								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">આપેલા</p>
+								<p class="text-sm font-bold text-blue-600 sm:text-lg">₹{amountPaid}</p>
+							</div>
 
-				<div class="rounded-lg bg-white p-3 shadow-sm">
-					<p class="mb-0.5 text-xs text-gray-600">Balance</p>
-					<p class={`text-xl font-bold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}>
-						₹{Math.abs(remainingAmount)}
-						{remainingAmount < 0 ? 'જમા' : 'બાકી'}
-					</p>
-				</div>
+							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
+								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">Balance</p>
+								<p
+									class={`text-sm font-bold sm:text-lg ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
+								>
+									₹{Math.abs(remainingAmount)}
+									{remainingAmount < 0 ? 'જમા' : 'બાકી'}
+								</p>
+							</div>
+						</div>
+
+						<!-- Calculation -->
+						<div
+							class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 sm:mt-2"
+						>
+							<span class="font-medium">Collection: ₹{totalAmount}</span>
+							<span>−</span>
+							<span class="font-medium">Paid: ₹{amountPaid}</span>
+							<span>=</span>
+							<span
+								class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
+							>
+								Balance: {remainingAmount < 0
+									? `+₹${Math.abs(remainingAmount)}`
+									: `₹${remainingAmount}`}
+							</span>
+							<span class="text-gray-400">· {completionPercentage}% complete</span>
+						</div>
+					</div>
+				{/if}
 			</div>
 
-			<!-- Calculation -->
-			<div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
-				<span class="font-medium">Collection: ₹{totalAmount}</span>
-				<span>−</span>
-				<span class="font-medium">Paid: ₹{amountPaid}</span>
-				<span>=</span>
-				<span class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}>
-					Balance: {remainingAmount < 0 ? `+₹${Math.abs(remainingAmount)}` : `₹${remainingAmount}`}
-				</span>
-				<span class="text-gray-400">· {completionPercentage}% complete</span>
+			<!-- Filter -->
+			<div
+				class="w-28 min-w-0 flex-shrink-0 sm:max-w-[160px] sm:shrink sm:basis-[160px] sm:grow-0"
+			>
+				<select
+					bind:value={filters.status}
+					onchange={applyFilters}
+					class="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:px-3"
+				>
+					{#each statusOptions as option}
+						<option value={option.key}>{option.label}</option>
+					{/each}
+				</select>
 			</div>
-		</div>
 
-		<!-- Search and Filter -->
-		<div class="flex flex-shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
-			<div class="relative max-w-md flex-1">
+			<!-- Search -->
+			<div
+				class="relative min-w-0 flex-1 sm:ml-auto sm:max-w-[315px] sm:shrink sm:basis-[315px] sm:grow-0"
+			>
 				<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
 					<Search class="h-5 w-5 text-gray-400" />
 				</div>
@@ -240,28 +306,33 @@
 					placeholder="Search members by name or mobile..."
 				/>
 			</div>
-			<div class="w-40">
-				<select
-					bind:value={filters.status}
-					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
-				>
-					{#each statusOptions as option}
-						<option value={option.key}>{option.label}</option>
-					{/each}
-				</select>
-			</div>
 		</div>
 
 		<!-- Payment History -->
 		<div
 			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : 'h-[60vh]'}`}
 		>
-			<div class="flex-shrink-0 border-b border-gray-200 px-4 py-3">
-				<h2 class="text-base font-semibold text-gray-900">Payment History ({tableData.length})</h2>
+			<div class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 px-3 py-1.5 sm:px-4 sm:py-2">
+				<h2 class="text-xs font-semibold text-gray-900 sm:text-sm">
+					Payment History ({tableData.length})
+				</h2>
+				<button
+					type="button"
+					onclick={toggleDensity}
+					title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
+					class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+				>
+					{#if density === 'comfortable'}
+						<Rows3 class="h-3.5 w-3.5" />
+						<span class="hidden sm:inline">Compact</span>
+					{:else}
+						<LayoutGrid class="h-3.5 w-3.5" />
+						<span class="hidden sm:inline">Comfortable</span>
+					{/if}
+				</button>
 			</div>
 			<div class="min-h-0 flex-1">
-				<Table columns={tableColumns} data={tableData} {getRowBgColor} />
+				<Table columns={tableColumns} data={tableData} {getRowBgColor} {density} />
 			</div>
 		</div>
 	</div>
