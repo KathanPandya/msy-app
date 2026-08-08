@@ -4,7 +4,7 @@
 	import { authStore } from '$lib/stores/authStore';
 	import type { Family } from '$lib/types/family';
 	import { requireMember } from '$lib/utilities/authGuard';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { onMount } from 'svelte';
 
 	let isAuthorized = $state(false);
@@ -75,16 +75,15 @@
 					>
 						<div>
 							<p class="font-semibold text-gray-900">
-								{m.name}{m.id === myId ? ' (you)' : ''}
+								{formatMemberDisplay(m.name, m.member_id)}{m.id === myId ? ' (you)' : ''}
 							</p>
-							<p class="text-sm text-gray-500">
-								{formatMemberId(m.member_id)}
-								{#if m.status !== 'active'}
-									<span class="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800"
+							{#if m.status !== 'active'}
+								<p class="text-sm text-gray-500">
+									<span class="rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800"
 										>{m.status}</span
 									>
-								{/if}
-							</p>
+								</p>
+							{/if}
 						</div>
 						<span class={`text-sm font-medium ${dueLabel(m.outstanding_amount).color}`}
 							>{dueLabel(m.outstanding_amount).text}</span
