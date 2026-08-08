@@ -58,6 +58,14 @@
 		density === 'compact' ? 'px-2.5 py-1.5 sm:px-3 sm:py-2' : 'px-3 py-2.5 sm:px-6 sm:py-4'
 	);
 	const cellTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
+	const paginationWrapClass = $derived(
+		density === 'compact' ? 'mt-1.5 gap-2 p-1.5' : 'mt-4 gap-3 p-2 lg:p-4'
+	);
+	const paginationBtnClass = $derived(
+		density === 'compact' ? 'gap-1 px-2 py-1 text-xs' : 'gap-1 px-2 py-1.5 text-sm sm:gap-1.5 sm:px-3 sm:py-2'
+	);
+	const paginationLimitTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
+	const paginationSelectWidthClass = $derived(density === 'compact' ? 'w-16 sm:w-20' : 'w-20 sm:w-24');
 
 	function getAlignClass(align?: string) {
 		if (align === 'right') return 'text-right';
@@ -156,13 +164,13 @@
 	<!-- Sticky Pagination Controls - Bottom -->
 	{#if pagination?.limit || onNext || onPrevious}
 		<div
-			class="sticky bottom-0 z-10 mt-4 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-2 shadow-lg lg:p-4"
+			class="{paginationWrapClass} sticky bottom-0 z-10 flex items-center justify-between rounded-lg border border-gray-200 bg-white shadow-lg"
 		>
 			<!-- Rows per page -->
 			{#if onLimitChange && pagination?.limit}
 				<div class="flex items-center gap-2">
-					<span class="hidden text-sm text-gray-700 md:inline">Show</span>
-					<div class="w-20 sm:w-24">
+					<span class="hidden {paginationLimitTextClass} text-gray-700 md:inline">Show</span>
+					<div class="{paginationSelectWidthClass} {density === 'compact' ? 'pagination-select-compact' : ''}">
 						<Select
 							options={APP_CONSTANTS.PAGINATION_OPTIONS}
 							id="pagination"
@@ -171,7 +179,7 @@
 							onchange={(e: any) => onLimitChange(e.target.value)}
 						/>
 					</div>
-					<span class="hidden text-sm text-gray-700 md:inline">entries</span>
+					<span class="hidden {paginationLimitTextClass} text-gray-700 md:inline">entries</span>
 				</div>
 			{/if}
 
@@ -182,7 +190,7 @@
 						<button
 							disabled={!pagination?.canGoPrevious}
 							onclick={onPrevious}
-							class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:gap-1.5 sm:px-3 sm:py-2"
+							class="{paginationBtnClass} inline-flex items-center rounded-md border border-gray-300 bg-white font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
 						>
 							<ChevronLeft class="h-4 w-4" />
 							<span class="hidden sm:inline">Previous</span>
@@ -192,7 +200,7 @@
 						<button
 							disabled={!pagination?.canGoNext}
 							onclick={onNext}
-							class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:gap-1.5 sm:px-3 sm:py-2"
+							class="{paginationBtnClass} inline-flex items-center rounded-md border border-gray-300 bg-white font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
 						>
 							<span class="hidden sm:inline">Next</span>
 							<ChevronRight class="h-4 w-4" />
@@ -203,3 +211,11 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.pagination-select-compact :global(select) {
+		padding-block: 0.25rem;
+		padding-inline: 0.5rem;
+		font-size: 0.75rem;
+	}
+</style>

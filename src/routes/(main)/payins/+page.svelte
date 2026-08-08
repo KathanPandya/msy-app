@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
-	import Card from '$lib/components/ui/Card.svelte';
+	import ImageViewer from '$lib/components/ui/ImageViewer.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import paymentApi from '$lib/endpoints/paymentApi';
@@ -10,7 +12,7 @@
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatString } from '$lib/utilities/stringUtils';
-	import { Calendar, ChevronDown, ChevronUp, Filter, Plus } from '@lucide/svelte';
+	import { Calendar, ChevronDown, ChevronUp, LayoutGrid, Plus, Rows3 } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 
@@ -21,13 +23,42 @@
 	let showFilters = $state(false);
 	let errors = $state({ startDate: '', endDate: '' });
 	let errorMessage = $state('');
+	let density = $state<'comfortable' | 'compact'>(
+		(typeof localStorage !== 'undefined' &&
+			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
+			'comfortable'
+	);
+
+	function toggleDensity() {
+		density = density === 'comfortable' ? 'compact' : 'comfortable';
+		localStorage.setItem('app_table_density', density);
+	}
 
 	let today = new Date();
-	let yesterday = new Date(today);
-	yesterday.setDate(yesterday.getDate() - 1);
+	let weekAgo = new Date(today);
+	weekAgo.setDate(weekAgo.getDate() - 7);
 
-	let startDate = $state(yesterday.toISOString().split('T')[0]);
-	let endDate = $state(today.toISOString().split('T')[0]);
+	let startDate = $state(
+		page.url.searchParams.get('start') || weekAgo.toISOString().split('T')[0]
+	);
+	let endDate = $state(page.url.searchParams.get('end') || today.toISOString().split('T')[0]);
+
+	// Keep the date filter in the URL so it survives navigating away (e.g. to
+	// View/Edit a payment) and coming back — without this the filter silently
+	// resets to the default yesterday/today range.
+	function syncUrl() {
+		const p = new URLSearchParams(page.url.searchParams);
+		p.set('start', startDate);
+		p.set('end', endDate);
+
+		const qs = p.toString();
+		if (qs === page.url.searchParams.toString()) return;
+		goto(`${page.url.pathname}?${qs}`, {
+			replaceState: true,
+			keepFocus: true,
+			noScroll: true
+		});
+	}
 
 	async function fetchMemberAndPaymentList() {
 		isLoading = true;
@@ -104,8 +135,31 @@
 		});
 	}
 
+	// View modal: shows the payment's details, with an Edit button that
+	// navigates to the update page (reuses goToUpdate's row+payment merge).
+	let viewingRow = $state<any | null>(null);
+	const viewingDetails = $derived.by(() => {
+		if (!viewingRow) return null;
+		const matchedPayment = paymentList.find((payment) => payment._id == viewingRow._id);
+		return { ...viewingRow, ...matchedPayment };
+	});
+
+	function openView(row: any) {
+		viewingRow = row;
+	}
+
+	function closeView() {
+		viewingRow = null;
+	}
+
+	function editFromView() {
+		if (!viewingRow) return;
+		goToUpdate(viewingRow);
+		closeView();
+	}
+
 	if (typeof window !== 'undefined') {
-		(window as any).goToUpdate = goToUpdate;
+		(window as any).openPaymentView = openView;
 	}
 
 	function validateDates() {
@@ -142,11 +196,15 @@
 
 			if (response.success) {
 				paymentList = response.data;
+				syncUrl();
 			} else {
 			}
 		} catch (error: any) {
 			console.error('Error:', error);
-			errorMessage = error.response?.data?.message || 'Failed to fetch payments. Please try again.';
+			const rawMessage: string = error.response?.data?.message || '';
+			errorMessage = /cast to date|invalid date/i.test(rawMessage)
+				? 'Please enter a valid start and end date.'
+				: rawMessage || 'Failed to fetch payments. Please try again.';
 		} finally {
 			isLoading = false;
 		}
@@ -168,12 +226,12 @@
 
 				return `
 				<div class='flex justify-content-start'>
-		<button 
-			class="px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
+		<button
+			class="px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
 				bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500"
-			onclick="window.goToUpdate(JSON.parse(decodeURIComponent('${rowDataJson}')))"
+			onclick="window.openPaymentView(JSON.parse(decodeURIComponent('${rowDataJson}')))"
 		>
-			View/Edit
+			View
 		</button>
 		</div>
 	`;
@@ -202,114 +260,44 @@
 
 <div class="flex h-full flex-col">
 	<!-- Fixed Header - stays at top -->
-	<div class="mb-4 flex-shrink-0 space-y-4">
-		<!-- Mobile: Collapsible Filter + Add Button -->
-		<div class="lg:hidden">
-			<div class="flex gap-3">
-				<!-- Filter Toggle Button -->
+	<div class="mb-1.5 flex-shrink-0 space-y-1.5">
+		<!-- Below 576px: Collapsible Filter + Add Button -->
+		<div class="min-[576px]:hidden">
+			<div class="flex items-center gap-3">
+				<!-- Filter Toggle Button — shows the selected date range, sized to content -->
 				<button
 					onclick={toggleFilters}
-					class="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+					class="flex w-auto shrink-0 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
 				>
-					<Filter class="h-4 w-4" />
-					<span>Filters</span>
+					<span>{formatDate(startDate)} – {formatDate(endDate)}</span>
 					{#if showFilters}
-						<ChevronUp class="h-4 w-4" />
+						<ChevronUp class="h-3.5 w-3.5 flex-shrink-0" />
 					{:else}
-						<ChevronDown class="h-4 w-4" />
+						<ChevronDown class="h-3.5 w-3.5 flex-shrink-0" />
 					{/if}
 				</button>
 
-				<!-- Add Payment Button -->
-				<button
-					onclick={() => goto('/payins/create')}
-					class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
-				>
-					<Plus class="h-4 w-4" />
-					<span>Add</span>
-				</button>
+				<!-- Add Payment Button (right-aligned) -->
+				<div class="ml-auto">
+					<Button variant="primary" size="sm" onclick={() => goto('/payins/create')}>
+						<div class="flex items-center justify-center gap-1.5">
+							<Plus class="h-3.5 w-3.5" />
+							<span>Add</span>
+						</div>
+					</Button>
+				</div>
 			</div>
 
 			<!-- Collapsible Filter Content -->
 			{#if showFilters}
-				<div class="mt-3 space-y-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-					<!-- Start Date -->
-					<div>
-						<Input
-							id="startDate-mobile"
-							label="Start Date"
-							type="date"
-							bind:value={startDate}
-							error={errors.startDate}
-							placeholder="Select start date"
-							required
-							disabled={isLoading}
-						/>
-					</div>
-
-					<!-- End Date -->
-					<div>
-						<Input
-							id="endDate-mobile"
-							label="End Date"
-							type="date"
-							bind:value={endDate}
-							error={errors.endDate}
-							placeholder="Select end date"
-							required
-							disabled={isLoading}
-						/>
-					</div>
-
-					<!-- Apply Button -->
-					<Button variant="primary" onclick={applyDateFilter} disabled={isLoading}>
-						{#if isLoading}
-							<div class="flex items-center justify-center gap-2">
-								<div
-									class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-								></div>
-								<span>Loading...</span>
-							</div>
-						{:else}
-							<div class="flex items-center justify-center gap-2">
-								<Calendar class="h-4 w-4" />
-								<span>Apply Filter</span>
-							</div>
-						{/if}
-					</Button>
-
-					<!-- Selected Range Display -->
-					{#if startDate && endDate}
-						<div class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-							<p class="text-xs text-blue-800">
-								<span class="font-medium">Range:</span>
-								{new Date(startDate).toLocaleDateString('en-IN', {
-									day: 'numeric',
-									month: 'short'
-								})}
-								-
-								{new Date(endDate).toLocaleDateString('en-IN', {
-									day: 'numeric',
-									month: 'short',
-									year: 'numeric'
-								})}
-							</p>
-						</div>
-					{/if}
-				</div>
-			{/if}
-		</div>
-
-		<!-- Desktop: Date Range Filter Card -->
-		<div class="hidden lg:block">
-			<Card title="Date Range Filter">
-				<div class="space-y-4">
-					<div class="flex flex-wrap items-end gap-4">
-						<!-- Start Date -->
-						<div class="w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
+				<div class="mt-1.5 space-y-1.5 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+					<!-- Start Date + End Date (test: same row, revert to stacked if it doesn't work) -->
+					<div class="flex gap-1.5">
+						<div class="min-w-0 flex-1">
 							<Input
-								id="startDate"
+								id="startDate-mobile"
 								label="Start Date"
+								labelStyle="border"
 								type="date"
 								bind:value={startDate}
 								error={errors.startDate}
@@ -319,11 +307,11 @@
 							/>
 						</div>
 
-						<!-- End Date -->
-						<div class="w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
+						<div class="min-w-0 flex-1">
 							<Input
-								id="endDate"
+								id="endDate-mobile"
 								label="End Date"
+								labelStyle="border"
 								type="date"
 								bind:value={endDate}
 								error={errors.endDate}
@@ -332,66 +320,112 @@
 								disabled={isLoading}
 							/>
 						</div>
-
-						<!-- Apply Button -->
-						<div class="w-full sm:w-auto">
-							<Button variant="primary" onclick={applyDateFilter} disabled={isLoading}>
-								{#if isLoading}
-									<div class="flex items-center justify-center gap-2">
-										<div
-											class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-										></div>
-										<span>Loading...</span>
-									</div>
-								{:else}
-									<div class="flex items-center justify-center gap-2">
-										<Calendar class="h-4 w-4" />
-										<span>Apply Filter</span>
-									</div>
-								{/if}
-							</Button>
-						</div>
-
-						<!-- Add Payment Button -->
-						<div class="w-full sm:w-auto">
-							<Button variant="primary" onclick={() => goto('/payins/create')}>
-								<div class="flex items-center justify-center gap-2">
-									<Plus class="h-4 w-4" />
-									<span>Add Payment</span>
-								</div>
-							</Button>
-						</div>
 					</div>
 
-					<!-- Date Range Display -->
-					{#if startDate && endDate}
-						<div class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
-							<p class="text-sm text-blue-800">
-								<span class="font-medium">Selected Range:</span>
-								{new Date(startDate).toLocaleDateString('en-IN', {
-									day: 'numeric',
-									month: 'short',
-									year: 'numeric'
-								})}
-								to
-								{new Date(endDate).toLocaleDateString('en-IN', {
-									day: 'numeric',
-									month: 'short',
-									year: 'numeric'
-								})}
-							</p>
+					<!-- Apply Button -->
+					<Button variant="primary" size="sm" onclick={applyDateFilter} disabled={isLoading}>
+						{#if isLoading}
+							<div class="flex items-center justify-center gap-1.5">
+								<div
+									class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+								></div>
+								<span>Loading...</span>
+							</div>
+						{:else}
+							<div class="flex items-center justify-center gap-1.5">
+								<Calendar class="h-3.5 w-3.5" />
+								<span>Apply</span>
+							</div>
+						{/if}
+					</Button>
+				</div>
+			{/if}
+		</div>
+
+		<!-- 576px and up: Date Range Filter -->
+		<div class="hidden w-full flex-nowrap items-center gap-3 min-[576px]:flex">
+			<!-- Start Date -->
+			<div class="min-w-0 max-w-[215px] shrink grow-0 basis-[215px]">
+				<Input
+					id="startDate"
+					label="Start Date"
+					labelStyle="border"
+					type="date"
+					bind:value={startDate}
+					error={errors.startDate}
+					placeholder="Select start date"
+					required
+					disabled={isLoading}
+				/>
+			</div>
+
+			<!-- End Date -->
+			<div class="min-w-0 max-w-[215px] shrink grow-0 basis-[215px]">
+				<Input
+					id="endDate"
+					label="End Date"
+					labelStyle="border"
+					type="date"
+					bind:value={endDate}
+					error={errors.endDate}
+					placeholder="Select end date"
+					required
+					disabled={isLoading}
+				/>
+			</div>
+
+			<!-- Apply Button -->
+			<div class="shrink-0 grow-0">
+				<Button variant="primary" size="sm" onclick={applyDateFilter} disabled={isLoading}>
+					{#if isLoading}
+						<div class="flex items-center justify-center gap-1.5">
+							<div
+								class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+							></div>
+							<span>Loading...</span>
+						</div>
+					{:else}
+						<div class="flex items-center justify-center gap-1.5">
+							<Calendar class="h-3.5 w-3.5" />
+							<span>Apply</span>
 						</div>
 					{/if}
-				</div>
-			</Card>
+				</Button>
+			</div>
+
+			<!-- Add Payment Button (right-aligned) -->
+			<div class="ml-auto shrink-0 grow-0">
+				<Button variant="primary" size="sm" onclick={() => goto('/payins/create')}>
+					<div class="flex items-center justify-center gap-1.5">
+						<Plus class="h-3.5 w-3.5" />
+						<span>Add Payment</span>
+					</div>
+				</Button>
+			</div>
 		</div>
 
 		<!-- Results Count -->
 		{#if !isLoading && tableData.length > 0}
-			<p class="px-1 text-sm text-gray-700">
-				Showing <span class="font-medium">{tableData.length}</span>
-				{tableData.length === 1 ? 'payment record' : 'payment records'}
-			</p>
+			<div class="flex items-center justify-between px-1">
+				<p class="text-sm text-gray-700">
+					Showing <span class="font-medium">{tableData.length}</span>
+					{tableData.length === 1 ? 'payment record' : 'payment records'}
+				</p>
+				<button
+					type="button"
+					onclick={toggleDensity}
+					title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
+					class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+				>
+					{#if density === 'comfortable'}
+						<Rows3 class="h-3.5 w-3.5" />
+						<span class="hidden sm:inline">Compact</span>
+					{:else}
+						<LayoutGrid class="h-3.5 w-3.5" />
+						<span class="hidden sm:inline">Comfortable</span>
+					{/if}
+				</button>
+			</div>
 		{/if}
 	</div>
 
@@ -453,9 +487,69 @@
 			<!-- Table container with border, rounded corners, and scroll -->
 			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
 				<div class="h-full overflow-x-auto overflow-y-auto">
-					<Table {columns} data={tableData} />
+					<Table {columns} data={tableData} {density} />
 				</div>
 			</div>
 		{/if}
 	</div>
 </div>
+
+<!-- Payment Details Modal -->
+<Modal open={!!viewingRow} onClose={closeView} title="Payment Details">
+	{#if viewingDetails}
+		<div class="space-y-4 text-sm">
+			<div class="grid grid-cols-2 gap-3">
+				<div>
+					<p class="text-xs text-gray-500">Member</p>
+					<p class="font-medium text-gray-900">{viewingDetails.memberName}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Amount</p>
+					<p class="font-medium text-gray-900">₹{viewingDetails.amount}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Date</p>
+					<p class="font-medium text-gray-900">{formatDate(viewingDetails.date)}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Payment Mode</p>
+					<p class="font-medium text-gray-900">
+						{formatString(viewingDetails.payment_mode, ['capitalize-first']) || '-'}
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Payment Type</p>
+					<p class="font-medium text-gray-900">
+						{backendMapping[viewingDetails.payment_type] || '-'}
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Reference Number</p>
+					<p class="font-medium text-gray-900">{viewingDetails.payment_reference || '-'}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Receipt Number</p>
+					<p class="font-medium text-gray-900">{viewingDetails.reciept_number || '-'}</p>
+				</div>
+			</div>
+
+			{#if viewingDetails.remarks}
+				<div>
+					<p class="text-xs text-gray-500">Description</p>
+					<p class="font-medium text-gray-900">{viewingDetails.remarks}</p>
+				</div>
+			{/if}
+
+			{#if viewingDetails.photo}
+				<div>
+					<p class="mb-1 text-xs text-gray-500">Receipt</p>
+					<ImageViewer src={viewingDetails.photo} alt="Payment Receipt" thumbnailSize="medium" />
+				</div>
+			{/if}
+		</div>
+
+		<div class="mt-4 flex justify-end border-t border-gray-200 pt-3">
+			<Button variant="primary" size="sm" onclick={editFromView}>Edit</Button>
+		</div>
+	{/if}
+</Modal>

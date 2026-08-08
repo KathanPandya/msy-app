@@ -14,7 +14,7 @@
 	);
 	let density = $state<'comfortable' | 'compact'>(
 		(typeof localStorage !== 'undefined' &&
-			(localStorage.getItem('payments_table_density') as 'comfortable' | 'compact')) ||
+			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
 			'comfortable'
 	);
 
@@ -25,7 +25,7 @@
 
 	function toggleDensity() {
 		density = density === 'comfortable' ? 'compact' : 'comfortable';
-		localStorage.setItem('payments_table_density', density);
+		localStorage.setItem('app_table_density', density);
 	}
 
 	// Which rows are actual payments (dead-member rows aren't).

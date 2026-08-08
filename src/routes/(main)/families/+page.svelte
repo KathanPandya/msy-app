@@ -1,14 +1,55 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
 	import { familyListStore } from '$lib/stores/familyListStore';
 	import type { Family } from '$lib/types/family';
 	import { debounce } from '$lib/utilities/helperFunc';
+	import { LayoutGrid, Rows3 } from '@lucide/svelte';
 	import { get } from 'svelte/store';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 
-	let searchQuery = $state(get(familyListStore).search);
+	let searchQuery = $state(page.url.searchParams.get('search') ?? '');
+	let density = $state<'comfortable' | 'compact'>(
+		(typeof localStorage !== 'undefined' &&
+			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
+			'comfortable'
+	);
+
+	function toggleDensity() {
+		density = density === 'comfortable' ? 'compact' : 'comfortable';
+		localStorage.setItem('app_table_density', density);
+	}
+
+	// The URL is the source of truth for the active search — same pattern as
+	// /members. Keeps the query in the address bar so returning from a family
+	// view (or a direct link with ?search=…) restores/applies the right list.
+	let lastLoadedSearch: string | null = null;
+	$effect(() => {
+		const search = page.url.searchParams.get('search') ?? ''; // the only tracked dependency
+		untrack(() => {
+			if (search === lastLoadedSearch) return;
+			lastLoadedSearch = search;
+			searchQuery = search;
+			if (search !== get(familyListStore).search) {
+				familyListStore.setSearch(search);
+			} else {
+				// Uses the cached list if we already have one (e.g. returning from a family view).
+				familyListStore.init();
+			}
+		});
+	});
+
+	function syncUrl(search: string) {
+		const target = search ? `/families?search=${encodeURIComponent(search)}` : '/families';
+		const current = `${page.url.pathname}${page.url.search}`;
+		if (target === current) return;
+		// Record what we're about to write so the URL effect above doesn't
+		// re-fetch for our own change (setSearch already fetched it).
+		lastLoadedSearch = search;
+		goto(target, { replaceState: true, keepFocus: true, noScroll: true });
+	}
 
 	const families = $derived($familyListStore.families);
 	const totalFamilies = $derived($familyListStore.total);
@@ -32,11 +73,6 @@
 		}
 	});
 
-	onMount(() => {
-		// Uses the cached list if we already have one (e.g. returning from a family view).
-		familyListStore.init();
-	});
-
 	function goNext() {
 		familyListStore.next();
 	}
@@ -49,7 +85,11 @@
 		familyListStore.setLimit(Number(v));
 	}
 
-	const debouncedSearch = debounce(() => familyListStore.setSearch(searchQuery.trim()), 300);
+	const debouncedSearch = debounce(() => {
+		const trimmed = searchQuery.trim();
+		familyListStore.setSearch(trimmed);
+		syncUrl(trimmed);
+	}, 300);
 
 	function headOf(f: Family.ListItem) {
 		return f.members.find((m) => m.id === f.managerId) || f.members[0];
@@ -81,7 +121,7 @@
 			align: 'right' as const,
 			render: (_: any, row: any) => `
 				<div class='flex justify-end'>
-					<button class="px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500"
+					<button class="px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500"
 						onclick="window.navigateToFamily('${row.clubId}')"
 					>
 						View
@@ -109,28 +149,50 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<div class="mb-4 flex-shrink-0 space-y-4">
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-		<div>
-			<h2 class="text-xl font-semibold text-gray-900">Families</h2>
-			<p class="text-sm text-gray-500">{totalFamilies} total families</p>
+	<div class="mb-1.5 flex-shrink-0 space-y-1.5">
+	<div class="flex items-center gap-3">
+		<input
+			type="search"
+			bind:value={searchQuery}
+			oninput={() => debouncedSearch()}
+			placeholder="Search families by member name or MSY id…"
+			class="w-full min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:max-w-md"
+		/>
+		<div class="ml-auto shrink-0">
+			<Button variant="primary" size="sm" onclick={() => goto('/families/create')}>
+				<span class="sm:hidden">＋ Add</span>
+				<span class="hidden sm:inline">＋ Add Family</span>
+			</Button>
 		</div>
-		<Button variant="primary" onclick={() => goto('/families/create')}>＋ New family</Button>
 	</div>
 
 	{#if $familyListStore.error}
 		<div class="rounded-md bg-red-50 p-4 text-sm text-red-800">{$familyListStore.error}</div>
 	{/if}
 
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-		<input
-			type="search"
-			bind:value={searchQuery}
-			oninput={() => debouncedSearch()}
-			placeholder="Search families by member name or MSY id…"
-			class="w-full max-w-md rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-		/>
-	</div>
+	{#if !$familyListStore.isLoading && families.length > 0}
+		<div class="flex items-center justify-between">
+			<span class="text-xs whitespace-nowrap text-gray-500">
+				{tableData.length ? (currentPage - 1) * limitPerPage + 1 : 0}–{(currentPage - 1) *
+					limitPerPage +
+					tableData.length} of {totalFamilies.toLocaleString()}
+			</span>
+			<button
+				type="button"
+				onclick={toggleDensity}
+				title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
+				class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+			>
+				{#if density === 'comfortable'}
+					<Rows3 class="h-3.5 w-3.5" />
+					<span class="hidden sm:inline">Compact</span>
+				{:else}
+					<LayoutGrid class="h-3.5 w-3.5" />
+					<span class="hidden sm:inline">Comfortable</span>
+				{/if}
+			</button>
+		</div>
+	{/if}
 	</div>
 
 	<div class="min-h-0 flex-1">
@@ -147,6 +209,7 @@
 						onNext={goNext}
 						onPrevious={goPrevious}
 						onLimitChange={changeLimit}
+						{density}
 					/>
 				</div>
 			</div>

@@ -330,11 +330,11 @@
 	}
 </script>
 
-<div class="mx-auto max-w-3xl p-6">
+<div class="mx-auto max-w-5xl p-4">
 	<Card title="Update Payment">
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 			<!-- Member Selection with Search -->
-			<div class="md:col-span-2">
+			<div class="md:col-span-2 lg:col-span-3">
 				<label for="" class="mb-1 block text-sm font-medium text-gray-700">
 					Member
 					<span class="text-red-500">*</span>
@@ -479,7 +479,7 @@
 			/>
 
 			<!-- Description -->
-			<div class="md:col-span-2">
+			<div class="md:col-span-2 lg:col-span-3">
 				<Input
 					id="description"
 					label="Description"
@@ -493,7 +493,7 @@
 			</div>
 
 			<!-- File Upload -->
-			<div class="md:col-span-2">
+			<div class="md:col-span-2 lg:col-span-3">
 				<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
 					Payment Receipt
 					<!-- <span class="text-red-500">*</span> -->
@@ -555,13 +555,13 @@
 
 		<!-- Messages -->
 		{#if errorMessage}
-			<div class="mt-4 rounded-md bg-red-50 p-4">
+			<div class="mt-4 rounded-md bg-red-50 p-3">
 				<p class="text-sm text-red-800">{errorMessage}</p>
 			</div>
 		{/if}
 
 		{#if successMessage}
-			<div class="mt-4 rounded-md bg-green-50 p-4">
+			<div class="mt-4 rounded-md bg-green-50 p-3">
 				<p class="text-sm text-green-800">{successMessage}</p>
 			</div>
 		{/if}

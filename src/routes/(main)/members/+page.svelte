@@ -12,7 +12,16 @@
 	import { debounce } from '$lib/utilities/helperFunc';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
 	import { formatString, truncateString } from '$lib/utilities/stringUtils';
-	import { ChevronDown, ChevronUp, Download, Filter, Plus, X } from '@lucide/svelte';
+	import {
+		ChevronDown,
+		ChevronUp,
+		Download,
+		Filter,
+		LayoutGrid,
+		Plus,
+		Rows3,
+		X
+	} from '@lucide/svelte';
 	import { untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
 
@@ -122,6 +131,11 @@
 		initialSort === 'asc' || initialSort === 'desc' ? 'outstanding_amount' : 'member_id'
 	);
 	let showFilters = $state(false);
+	let density = $state<'comfortable' | 'compact'>(
+		(typeof localStorage !== 'undefined' &&
+			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
+			'comfortable'
+	);
 	let errors = $state<null | string>(null);
 	let isLoading = $state(false);
 	let memberList = $state<User.List>([]);
@@ -308,7 +322,7 @@
 				const isDeceased = false;
 				return `
 				<div class='flex justify-content-start'>
-					<button class="px-4 py-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+					<button class="px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
 						isDeceased
 							? 'bg-white text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
 							: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
@@ -466,6 +480,11 @@
 		showFilters = !showFilters;
 	}
 
+	function toggleDensity() {
+		density = density === 'comfortable' ? 'compact' : 'comfortable';
+		localStorage.setItem('app_table_density', density);
+	}
+
 	function downloadTableData() {
 		const copyOfTableData = tableData.map((tD) => {
 			return {
@@ -552,11 +571,11 @@
 
 <div class="members-page flex h-full flex-col">
 	<!-- Compact toolbar - stays at top -->
-	<div class="mb-3 flex-shrink-0 space-y-2">
+	<div class="mb-1.5 flex-shrink-0 space-y-1.5">
 		<!-- Single toolbar row: search + count + filters + download + add -->
-		<div class="flex flex-wrap items-center gap-2 sm:gap-3">
+		<div class="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3">
 			<!-- Search (SearchInput ships its own icon — no duplicate needed) -->
-			<div class="min-w-0 flex-1">
+			<div class="min-w-0 flex-1 sm:max-w-[315px] sm:shrink sm:basis-[315px] sm:grow-0">
 				<SearchInput
 					id="member-search"
 					bind:value={searchQuery}
@@ -580,7 +599,7 @@
 				{/if}
 			</button>
 
-			<!-- Add Member Button -->
+			<!-- Add Member Button
 			<Button variant="primary" onclick={() => goto('/members/create')}>
 				<div class="flex items-center gap-2">
 					<Plus class="h-4 w-4" />
@@ -588,11 +607,12 @@
 					<span class="sm:hidden">Add</span>
 				</div>
 			</Button>
+			-->
 		</div>
 
 		<!-- Collapsible filters — horizontal row -->
 		{#if showFilters}
-			<div class="flex flex-wrap items-center gap-2" transition:slide={{ duration: 150 }}>
+			<div class="flex flex-wrap items-center gap-1.5" transition:slide={{ duration: 150 }}>
 				<select bind:value={filters.status} onchange={refreshMemberList} class="field field-sm">
 					{#each statusOptions as option}
 						<option value={option.key}>{option.label}</option>
@@ -652,7 +672,7 @@
 
 		<!-- Active filter tags (only when filters are applied) -->
 		{#if hasActiveFilters}
-			<div class="flex flex-wrap items-center gap-2">
+			<div class="flex flex-wrap items-center gap-1.5">
 				{#if filters.status}
 					<span class="chip inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium">
 						Status: {statusOptions.find((o) => o.key === filters.status)?.label}
@@ -722,16 +742,32 @@
 						limitPerPage +
 						tableData.length} of {totalUsers.toLocaleString()}
 				</span>
-				<!-- Web-platform tooltip (native title) instead of a JS tooltip script -->
-				<button
-					type="button"
-					class="btn-ghost inline-flex items-center rounded-md p-2"
-					title="Download CSV"
-					aria-label="Download"
-					onclick={downloadTableData}
-				>
-					<Download class="h-4 w-4" />
-				</button>
+				<div class="flex items-center gap-2">
+					<button
+						type="button"
+						onclick={toggleDensity}
+						title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
+						class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+					>
+						{#if density === 'comfortable'}
+							<Rows3 class="h-3.5 w-3.5" />
+							<span class="hidden sm:inline">Compact</span>
+						{:else}
+							<LayoutGrid class="h-3.5 w-3.5" />
+							<span class="hidden sm:inline">Comfortable</span>
+						{/if}
+					</button>
+					<!-- Web-platform tooltip (native title) instead of a JS tooltip script -->
+					<button
+						type="button"
+						class="btn-ghost inline-flex items-center rounded-md p-2"
+						title="Download CSV"
+						aria-label="Download"
+						onclick={downloadTableData}
+					>
+						<Download class="h-4 w-4" />
+					</button>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -777,6 +813,7 @@
 						onNext={goNext}
 						onPrevious={goPrevious}
 						onLimitChange={changeLimit}
+						{density}
 					/>
 				</div>
 			</div>
