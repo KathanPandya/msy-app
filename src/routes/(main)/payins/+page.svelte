@@ -6,117 +6,246 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
-	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import { APP_CONSTANTS, MAX_PAGE_SIZE } from '$lib/constants/app-constants';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import { getCachedPayments, setCachedPayments } from '$lib/utilities/paymentsCache';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { Calendar, ChevronDown, ChevronUp, LayoutGrid, Plus, Rows3 } from '@lucide/svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
+	const validLimits = APP_CONSTANTS.PAGINATION_OPTIONS.map((o) => Number(o.key));
+
+	let today = new Date();
+	let weekAgo = new Date(today);
+	weekAgo.setDate(weekAgo.getDate() - 7);
+	const defaultStartDate = weekAgo.toISOString().split('T')[0];
+	const defaultEndDate = today.toISOString().split('T')[0];
 
 	// Convert to $state (Svelte 5)
 	let paymentList = $state<Payment.List>([]);
 	let isLoading = $state(true);
-	let searchQuery = $state('');
 	let showFilters = $state(false);
 	let errors = $state({ startDate: '', endDate: '' });
 	let errorMessage = $state('');
 	let density = $state<'comfortable' | 'compact'>(
 		(typeof localStorage !== 'undefined' &&
 			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
-			'comfortable'
+			'compact'
 	);
+
+	let startDate = $state(page.url.searchParams.get('start') || defaultStartDate);
+	let endDate = $state(page.url.searchParams.get('end') || defaultEndDate);
+
+	const initialLimit = Number(page.url.searchParams.get('limit'));
+	let currentPage = $state(0);
+	let limitPerPage = $state(validLimits.includes(initialLimit) ? initialLimit : 50);
+	let totalPayments = $state(0);
+	const totalPages = $derived(Math.ceil(totalPayments / limitPerPage));
+	// totalPayments can be Infinity when the backend doesn't report a count
+	// (see resolveTotal) — show "50+" rather than "∞".
+	const totalDisplay = $derived(
+		Number.isFinite(totalPayments) ? totalPayments.toLocaleString() : `${((currentPage || 1) * limitPerPage).toLocaleString()}+`
+	);
+	const canGoPrevious = $derived(currentPage > 1);
+	const canGoNext = $derived(currentPage < totalPages);
+	let paginationConfig = $state({
+		get limit() {
+			return String(limitPerPage);
+		},
+		set limit(val) {
+			limitPerPage = Number(val);
+		},
+		get canGoNext() {
+			return canGoNext;
+		},
+		get canGoPrevious() {
+			return canGoPrevious;
+		}
+	});
 
 	function toggleDensity() {
 		density = density === 'comfortable' ? 'compact' : 'comfortable';
 		localStorage.setItem('app_table_density', density);
 	}
 
-	let today = new Date();
-	let weekAgo = new Date(today);
-	weekAgo.setDate(weekAgo.getDate() - 7);
+	// The single source of truth for loading is the URL — same pattern as the
+	// members list. Tracks page.url so mount / popstate (browser back/forward)
+	// both reload correctly. lastLoadedSearch de-dupes our own syncUrl() writes.
+	let lastLoadedSearch: string | null = null;
+	$effect(() => {
+		const search = page.url.searchParams.toString();
+		untrack(() => {
+			if (search === lastLoadedSearch) return;
+			lastLoadedSearch = search;
+			applyStateFromUrl(page.url);
+			loadInitial(page.url);
+		});
+	});
 
-	let startDate = $state(
-		page.url.searchParams.get('start') || weekAgo.toISOString().split('T')[0]
-	);
-	let endDate = $state(page.url.searchParams.get('end') || today.toISOString().split('T')[0]);
+	function applyStateFromUrl(url: URL) {
+		const sp = url.searchParams;
+		startDate = sp.get('start') || defaultStartDate;
+		endDate = sp.get('end') || defaultEndDate;
+		const lim = Number(sp.get('limit'));
+		limitPerPage = validLimits.includes(lim) ? lim : 50;
+	}
 
-	// Keep the date filter in the URL so it survives navigating away (e.g. to
-	// View/Edit a payment) and coming back — without this the filter silently
-	// resets to the default yesterday/today range.
+	async function loadInitial(url: URL = page.url) {
+		if (!validateDates()) return;
+
+		const targetPage = Math.max(1, Number(url.searchParams.get('page')) || 1);
+
+		// Reconstruct every page up to targetPage so the paginated window
+		// (and Prev/Next) behaves as if the user had paged there manually.
+		// Fetched in chunks capped at MAX_PAGE_SIZE — never ask the API for
+		// more rows than the largest step size the UI itself offers.
+		currentPage = 0;
+		paymentList = [];
+		const rowsNeeded = targetPage * limitPerPage;
+
+		isLoading = true;
+		let skip = 0;
+		let total = 0;
+		let ok = true;
+		try {
+			while (skip < rowsNeeded) {
+				const chunkLimit = Math.min(MAX_PAGE_SIZE, rowsNeeded - skip);
+				const res = await getPayments(skip, chunkLimit);
+				if (!res) {
+					ok = false;
+					break;
+				}
+				paymentList = [...paymentList, ...res.data];
+				total = resolveTotal(res, skip, chunkLimit);
+				skip += chunkLimit;
+				if (res.data.length < chunkLimit) break; // ran out of data early
+			}
+			if (ok) {
+				totalPayments = total;
+				currentPage = targetPage;
+			}
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Keep the date range + pagination state in the URL so it survives
+	// navigating away (e.g. to View/Edit a payment) and coming back, and so
+	// browser back/forward moves through pages correctly.
 	function syncUrl() {
-		const p = new URLSearchParams(page.url.searchParams);
-		p.set('start', startDate);
-		p.set('end', endDate);
+		const p = new URLSearchParams();
+		if (startDate) p.set('start', startDate);
+		if (endDate) p.set('end', endDate);
+		if (currentPage > 1) p.set('page', String(currentPage));
+		if (limitPerPage !== 50) p.set('limit', String(limitPerPage));
 
 		const qs = p.toString();
 		if (qs === page.url.searchParams.toString()) return;
-		goto(`${page.url.pathname}?${qs}`, {
+		lastLoadedSearch = qs;
+		goto(qs ? `${page.url.pathname}?${qs}` : page.url.pathname, {
 			replaceState: true,
 			keepFocus: true,
 			noScroll: true
 		});
 	}
 
-	async function fetchMemberAndPaymentList() {
-		isLoading = true;
+	// Some backends don't send a `total` count for this endpoint. Fall back
+	// defensively: if the last chunk came back short, we've hit the end and
+	// know the exact count; otherwise assume there may be more (Infinity —
+	// renders as "∞"/"…+" rather than crashing on undefined).
+	function resolveTotal(res: { data: unknown[]; total?: number }, skip: number, limit: number) {
+		if (typeof res.total === 'number') return res.total;
+		return res.data.length < limit ? skip + res.data.length : Infinity;
+	}
+
+	async function getPayments(skipOverride?: number, limitOverride?: number) {
+		errorMessage = '';
 		try {
-			const promises = [];
+			const skip = skipOverride ?? currentPage * limitPerPage;
+			// Never ask the API for more rows than the largest step size the
+			// pagination UI itself offers, regardless of what the caller passed.
+			const limit = Math.min(limitOverride ?? limitPerPage, MAX_PAGE_SIZE);
+			const params = { startDate, endDate, skip, limit };
 
-			// Only fetch members if not already loaded
-			if ($memberListStore.members.length === 0) {
-				promises.push(memberListStore.fetchAllMembers());
-			}
+			// Query-keyed cache: same params (e.g. paging back to a page we've
+			// already fetched) return the cached result instead of hitting the API.
+			const cacheKey = JSON.stringify(params);
+			const cached = getCachedPayments(cacheKey);
+			if (cached) return cached;
 
-			applyDateFilter();
-
-			// Always fetch payments
-			// promises.push(
-			// paymentApi.getAllPayments({
-			// 	limit: 100,
-			// 	page: 1
-			// })
-			// );
-
-			// Execute in parallel
-			// const results = await Promise.all(promises);
-
-			// Payments will be last item in results
-			// paymentList = (results[results.length - 1] as { data: Payment.List; success: boolean }).data;
-		} catch (error) {
-			console.error('Error fetching user data:', error);
-			throw error;
+			isLoading = true;
+			const res = await paymentApi.getAllPayments(params);
+			setCachedPayments(cacheKey, res);
+			return res;
+		} catch (err: any) {
+			const rawMessage: string = err.response?.data?.message || '';
+			errorMessage = /cast to date|invalid date/i.test(rawMessage)
+				? 'Please enter a valid start and end date.'
+				: rawMessage || 'Failed to fetch payments. Please try again.';
+			paymentList = [];
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	function handleInputChange(event: Event) {
-		const target = event.target as HTMLInputElement;
-		searchQuery = target.value;
-		// debouncedSearchHandler(searchQuery);
+	async function goNext(force: boolean = false) {
+		if (!force) {
+			if (isLoading || !canGoNext) return;
+		}
+
+		// We already hold this page's rows from an earlier fetch (e.g. the user
+		// paged forward, then back, then forward again) — just slide the window
+		// instead of refetching/re-appending it.
+		if (!force && paymentList.length >= (currentPage + 1) * limitPerPage) {
+			currentPage += 1;
+			syncUrl();
+			return;
+		}
+
+		const skip = currentPage * limitPerPage;
+		const res = await getPayments(skip, limitPerPage);
+		if (res) {
+			paymentList = [...paymentList, ...res.data];
+			totalPayments = resolveTotal(res, skip, limitPerPage);
+			currentPage += 1;
+			syncUrl();
+		}
 	}
 
-	// const debouncedSearchHandler = debounce(fetchMemberList, 500);
+	function goPrevious() {
+		if (!canGoPrevious) return;
+		currentPage -= 1;
+		syncUrl();
+	}
 
-	function debounce<T extends (...args: any[]) => any>(
-		callbackFunc: T,
-		delay: number
-	): (...args: Parameters<T>) => void {
-		let timer: ReturnType<typeof setTimeout>;
-		return (...args: Parameters<T>) => {
-			clearTimeout(timer);
-			timer = setTimeout(() => {
-				callbackFunc(...args);
-			}, delay);
-		};
+	function changeLimit(v: string) {
+		limitPerPage = Number(v);
+		currentPage = 0;
+		paymentList = [];
+		goNext(true);
+	}
+
+	async function applyDateFilter() {
+		if (!validateDates()) return;
+		currentPage = 0;
+		paymentList = [];
+		const res = await getPayments(0, limitPerPage);
+		if (res) {
+			paymentList = res.data;
+			totalPayments = resolveTotal(res, 0, limitPerPage);
+			currentPage = 1;
+		}
+		syncUrl();
 	}
 
 	onMount(() => {
-		fetchMemberAndPaymentList();
+		if ($memberListStore.members.length === 0) {
+			memberListStore.fetchAllMembers();
+		}
 	});
 
 	function toggleFilters() {
@@ -185,32 +314,6 @@
 		return isValid;
 	}
 
-	async function applyDateFilter() {
-		if (!validateDates()) return;
-		errorMessage = '';
-		isLoading = true;
-		try {
-			const response = await paymentApi.getAllPayments({
-				startDate,
-				endDate
-			});
-
-			if (response.success) {
-				paymentList = response.data;
-				syncUrl();
-			} else {
-			}
-		} catch (error: any) {
-			console.error('Error:', error);
-			const rawMessage: string = error.response?.data?.message || '';
-			errorMessage = /cast to date|invalid date/i.test(rawMessage)
-				? 'Please enter a valid start and end date.'
-				: rawMessage || 'Failed to fetch payments. Please try again.';
-		} finally {
-			isLoading = false;
-		}
-	}
-
 	// Table columns configuration
 	const columns = [
 		{ key: 'memberName', label: 'Member Name' },
@@ -240,9 +343,11 @@
 		}
 	];
 
-	// Transform user data for table
+	// Transform user data for table — sliced to the current page's window,
+	// same as the members list (paymentList accumulates every page fetched
+	// so Prev/Next don't need to refetch already-loaded pages).
 	const tableData = $derived(
-		paymentList.map((payment) => {
+		paymentList.slice((currentPage - 1) * limitPerPage, limitPerPage * currentPage).map((payment) => {
 			const member = $memberListStore.members.find((user) => user._id === payment.userId);
 			return {
 				userId: member?._id,
@@ -408,11 +513,12 @@
 		</div>
 
 		<!-- Results Count -->
-		{#if !isLoading && tableData.length > 0}
+		{#if !isLoading && paymentList.length > 0}
 			<div class="flex items-center justify-between px-1">
 				<p class="text-sm text-gray-700">
-					Showing <span class="font-medium">{tableData.length}</span>
-					{tableData.length === 1 ? 'payment record' : 'payment records'}
+					{tableData.length ? (currentPage - 1) * limitPerPage + 1 : 0}–{(currentPage - 1) *
+						limitPerPage +
+						tableData.length} of {totalDisplay}
 				</p>
 				<button
 					type="button"
@@ -490,7 +596,15 @@
 			<!-- Table container with border, rounded corners, and scroll -->
 			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
 				<div class="h-full overflow-x-auto overflow-y-auto">
-					<Table {columns} data={tableData} {density} />
+					<Table
+						pagination={paginationConfig}
+						{columns}
+						data={tableData}
+						onNext={goNext}
+						onPrevious={goPrevious}
+						onLimitChange={changeLimit}
+						{density}
+					/>
 				</div>
 			</div>
 		{/if}

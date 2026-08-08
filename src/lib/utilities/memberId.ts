@@ -1,8 +1,8 @@
-/** Display form used in this DB: MSY_42 (also accepts MSY42 / 42). */
+/** Display form used in this DB: MSY-42 (also accepts MSY_42 / MSY42 / 42). */
 export function formatMemberId(id: number | string): string {
 	const n = typeof id === 'number' ? id : parseMemberId(String(id));
 	if (n == null) return String(id ?? '');
-	return `MSY_${n}`;
+	return `MSY-${n}`;
 }
 
 /** Accepts "MSY_42", "MSY42", "msy42", or "42" → 42. Returns null if invalid. */
@@ -21,7 +21,7 @@ export function memberIdDigits(memberId: string | number | null | undefined): nu
 	return parseMemberId(memberId);
 }
 
-/** Standard display form across the app: "Full Name (MSY_42)". Falls back gracefully if either part is missing. */
+/** Standard display form across the app: "Full Name (MSY-42)". Falls back gracefully if either part is missing. */
 export function formatMemberDisplay(
 	name: string | null | undefined,
 	id: number | string | null | undefined

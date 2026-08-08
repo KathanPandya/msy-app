@@ -10,7 +10,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
-	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
@@ -86,7 +86,7 @@
 				);
 			})
 			.sort(
-				(a, b) => Number(a.member_id.replace('MSY_', '')) - Number(b.member_id.replace('MSY_', ''))
+				(a, b) => (memberIdDigits(a.member_id) ?? 0) - (memberIdDigits(b.member_id) ?? 0)
 			)
 	);
 

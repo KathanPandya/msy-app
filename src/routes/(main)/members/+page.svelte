@@ -3,14 +3,16 @@
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
-	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import { APP_CONSTANTS, MAX_PAGE_SIZE } from '$lib/constants/app-constants';
 	import userApi from '$lib/endpoints/userApi';
 	// import { memberListStore } from '$lib/stores/memberListStore';
 	import type { User } from '$lib/types/user';
 	import { debounce } from '$lib/utilities/helperFunc';
-	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
+	import { getCachedMembers, setCachedMembers } from '$lib/utilities/membersCache';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
 	import { formatString, truncateString } from '$lib/utilities/stringUtils';
 	import {
@@ -74,14 +76,32 @@
 	async function loadInitial(url: URL = page.url) {
 		const targetPage = Math.max(1, Number(url.searchParams.get('page')) || 1);
 
-		// Reconstruct every page up to targetPage in one request so the paginated
-		// window (and Prev/Next) behaves as if the user had paged there manually.
+		// Reconstruct every page up to targetPage so the paginated window
+		// (and Prev/Next) behaves as if the user had paged there manually.
+		// Fetched in chunks capped at MAX_PAGE_SIZE — never ask the API for
+		// more rows than the largest step size the UI itself offers, even if
+		// that means several requests for a deep-linked page.
 		currentPage = 0;
 		memberList = [];
-		const res = await getMembers(0, targetPage * limitPerPage);
-		if (res) {
-			memberList = res.users;
-			totalUsers = res.total;
+		const rowsNeeded = targetPage * limitPerPage;
+
+		let skip = 0;
+		let total = 0;
+		let ok = true;
+		while (skip < rowsNeeded) {
+			const chunkLimit = Math.min(MAX_PAGE_SIZE, rowsNeeded - skip);
+			const res = await getMembers(skip, chunkLimit);
+			if (!res) {
+				ok = false;
+				break;
+			}
+			memberList = [...memberList, ...res.users];
+			total = res.total;
+			skip += chunkLimit;
+			if (res.users.length < chunkLimit) break; // ran out of data early
+		}
+		if (ok) {
+			totalUsers = total;
 			currentPage = targetPage;
 		}
 	}
@@ -135,7 +155,7 @@
 	let density = $state<'comfortable' | 'compact'>(
 		(typeof localStorage !== 'undefined' &&
 			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
-			'comfortable'
+			'compact'
 	);
 	let errors = $state<null | string>(null);
 	let isLoading = $state(false);
@@ -166,12 +186,6 @@
 		{ label: 'Less than (<)', key: '<' },
 		{ label: 'Equal to (=)', key: '=' }
 	];
-
-	if (typeof window !== 'undefined') {
-		(window as any).navigateToMember = (id: string) => {
-			goto(`/members/view/${id}`);
-		};
-	}
 
 	// async function handlePagination(type: 'next' | 'previous') {
 	// 	if (type === 'next') {
@@ -218,6 +232,15 @@
 	async function goNext(force: boolean = false) {
 		if (!force) {
 			if (isLoading || !canGoNext) return;
+		}
+
+		// We already hold this page's rows from an earlier fetch (e.g. the user
+		// paged forward, then back, then forward again) — just slide the window
+		// instead of refetching/re-appending it.
+		if (!force && memberList.length >= (currentPage + 1) * limitPerPage) {
+			currentPage += 1;
+			syncUrl();
+			return;
 		}
 
 		const res = await getMembers();
@@ -293,7 +316,7 @@
 				if (n < 0)
 					return `<span style="${pill}color:oklch(45% 0.13 150);background:oklch(95% 0.05 150)">+${Math.abs(n)}</span>`;
 				if (n > 0)
-					return `<span style="${pill}color:oklch(50% 0.2 27);background:oklch(95% 0.045 27)">${n}</span>`;
+					return `<span style="${pill}color:oklch(50% 0.2 27);background:oklch(95% 0.045 27)">-${n}</span>`;
 				return `<span style="color:oklch(65% 0.01 264)">—</span>`;
 			},
 			sorting: (row: any) => {
@@ -312,30 +335,7 @@
 		},
 		{ key: 'mobile', label: 'Mobile' },
 		// { key: 'email', label: 'Email' },
-		{ key: 'gender', label: 'Gender' },
-		{
-			key: 'actions',
-			label: 'Actions',
-			align: 'right' as const,
-			render: (_: any, row: any) => {
-				// const user = $memberListStore.members.find((u) => u._id === row._id);
-				const isDeceased = false;
-				return `
-				<div class='flex justify-content-start'>
-					<button class="px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-						isDeceased
-							? 'bg-white text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
-							: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500'
-					}"
-				${isDeceased ? 'disabled' : ''}
-				onclick="window.navigateToMember('${row._id}')"
-			>
-				View/Edit
-			</button>
-			</div>
-		`;
-			}
-		}
+		{ key: 'gender', label: 'Gender' }
 	]);
 
 	// Transform user data for table
@@ -388,7 +388,7 @@
 				.slice((currentPage - 1) * limitPerPage, limitPerPage * currentPage)
 				.map((user) => ({
 					memberId: user.member_id,
-					memberIdInNumber: Number(user.member_id.replace('MSY_', '')),
+					memberIdInNumber: memberIdDigits(user.member_id) ?? 0,
 					_id: user._id,
 					name: `${formatMemberDisplay(`${user.first_name} ${user.surname}`, user.member_id)}${user.status === 'dead' ? ' 🔴' : ''}`,
 					modifiedName:
@@ -399,7 +399,7 @@
 					mobile: user.mobile || '-',
 					gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-',
 					status: user.status,
-					actions: '',
+					clubId: user.club_id,
 					heesab: user.outstanding_amount
 				})),
 			sortType == '' ? 'memberIdInNumber' : 'heesab',
@@ -482,55 +482,163 @@
 		showFilters = !showFilters;
 	}
 
+	function getRowMenuActions(row: any) {
+		return [
+			{ label: 'View', onclick: () => goto(`/members/view/${row._id}`) },
+			{ label: 'Edit', onclick: () => goto(`/members/update/${row._id}`) },
+			{ label: 'Payments', onclick: () => goto(`/members/view/${row._id}/payments`) },
+			{
+				label: 'Family',
+				disabled: !row.clubId,
+				onclick: () => goto(`/families/${row.clubId}`)
+			},
+			{ label: 'Change Status', onclick: () => goto(`/members/status/${row._id}`) }
+		];
+	}
+
 	function toggleDensity() {
 		density = density === 'comfortable' ? 'compact' : 'comfortable';
 		localStorage.setItem('app_table_density', density);
 	}
 
-	function downloadTableData() {
-		const copyOfTableData = tableData.map((tD) => {
-			return {
-				Member: tD.name,
-				Status: formatString(tD.status, ['capitalize-first']),
-				Balance: tD.heesab < 0 ? `+${Math.abs(tD.heesab)}` : `${tD.heesab ?? 0}`,
-				Mobile: tD.mobile,
-				Gender: tD.gender
-			};
-		});
+	// --- CSV export (all matching members, not just the current page) ---
 
-		const titleKeys = Object.keys(copyOfTableData[0]);
+	let showDownloadModal = $state(false);
+	let downloadFileName = $state('');
+	let fileNameError = $state('');
+	let isDownloading = $state(false);
+	let downloadStage = $state('');
 
-		const refinedData = [];
-		refinedData.push(titleKeys);
+	function defaultCsvFileName() {
+		const today = new Date();
+		const dd = String(today.getDate()).padStart(2, '0');
+		const mm = String(today.getMonth() + 1).padStart(2, '0');
+		const yyyy = today.getFullYear();
+		return `Member-List_${dd}-${mm}-${yyyy}`;
+	}
 
-		copyOfTableData.forEach((item) => {
-			refinedData.push(Object.values(item));
-		});
+	// Windows/macOS/Linux-safe filename check: no reserved characters, no
+	// trailing dot/space (rejected on Windows), not empty, not a reserved
+	// device name (Windows: CON, PRN, AUX, NUL, COM1-9, LPT1-9).
+	const RESERVED_DEVICE_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/i;
+	function validateFileName(name: string): string {
+		const trimmed = name.trim();
+		if (!trimmed) return 'File name is required';
+		if (trimmed.length > 150) return 'File name is too long';
+		if (/[<>:"/\\|?*\x00-\x1f]/.test(trimmed)) {
+			return 'File name cannot contain: < > : " / \\ | ? *';
+		}
+		if (/[. ]$/.test(name)) return 'File name cannot end with a space or a dot';
+		if (RESERVED_DEVICE_NAMES.test(trimmed)) return 'That file name is reserved by the system';
+		return '';
+	}
 
-		let csvContent = '';
+	function openDownloadModal() {
+		downloadFileName = defaultCsvFileName();
+		fileNameError = '';
+		isDownloading = false;
+		downloadStage = '';
+		showDownloadModal = true;
+	}
 
-		refinedData.forEach((row) => {
-			csvContent += row.join(',') + '\n';
-		});
+	function closeDownloadModal() {
+		if (isDownloading) return; // don't allow closing mid-export
+		showDownloadModal = false;
+	}
 
-		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8,' });
-		const objUrl = URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.setAttribute('href', objUrl);
-		link.setAttribute('download', 'Member-List.csv');
-		link.textContent = 'Click to Download';
+	function handleFileNameChange() {
+		fileNameError = validateFileName(downloadFileName);
+	}
 
-		link.click();
+	function csvEscape(value: unknown): string {
+		const str = String(value ?? '');
+		return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+	}
+
+	// Excel/Sheets auto-detect numeric-looking cells and re-format them as
+	// numbers on open — a leading "+" gets silently dropped (general number
+	// format never shows it), even though the CSV text has it. Wrapping in
+	// ="..." forces the cell to stay literal text, so the sign survives.
+	function csvForceText(value: string): string {
+		return `="${value}"`;
+	}
+
+	// Pulls every member matching the current filters/search/sort from the
+	// backend, chunked at MAX_PAGE_SIZE per request (same cap as loadInitial).
+	async function fetchAllMembersForExport(): Promise<User.List> {
+		const rows: User.List = [];
+		let skip = 0;
+		let total = Infinity;
+		while (skip < total) {
+			const chunkLimit = Math.min(MAX_PAGE_SIZE, total === Infinity ? MAX_PAGE_SIZE : total - skip);
+			const res = await getMembers(skip, chunkLimit);
+			if (!res) break;
+			rows.push(...res.users);
+			total = res.total;
+			skip += chunkLimit;
+			if (res.users.length < chunkLimit) break;
+		}
+		return rows;
+	}
+
+	async function confirmDownload() {
+		fileNameError = validateFileName(downloadFileName);
+		if (fileNameError) return;
+
+		isDownloading = true;
+		try {
+			downloadStage = 'Downloading data…';
+			const allMembers = await fetchAllMembersForExport();
+
+			downloadStage = 'Generating CSV…';
+			const rows = allMembers.map((user) => ({
+				Member: `${user.first_name} ${user.surname}`,
+				Status: formatString(user.status, ['capitalize-first']),
+				// Mirrors the table pill: negative outstanding = credit (green, "+"),
+				// positive = debit (red, "-"), zero stays plain. Forced to text so
+				// spreadsheet apps don't silently drop the "+" on open.
+				Balance: csvForceText(
+					(Number(user.outstanding_amount) || 0) < 0
+						? `+${Math.abs(user.outstanding_amount)}`
+						: (Number(user.outstanding_amount) || 0) > 0
+							? `-${user.outstanding_amount}`
+							: '0'
+				),
+				Mobile: user.mobile || '-',
+				Gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-'
+			}));
+
+			const titleKeys = rows.length ? Object.keys(rows[0]) : ['Member', 'Status', 'Balance', 'Mobile', 'Gender'];
+			const csvLines = [titleKeys, ...rows.map((r) => Object.values(r))].map((row) =>
+				row.map(csvEscape).join(',')
+			);
+
+			const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8,' });
+			const objUrl = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = objUrl;
+			link.download = `${downloadFileName.trim()}.csv`;
+			link.click();
+			URL.revokeObjectURL(objUrl);
+
+			showDownloadModal = false;
+		} catch (err: any) {
+			fileNameError = err?.message || 'Failed to generate CSV';
+		} finally {
+			isDownloading = false;
+			downloadStage = '';
+		}
 	}
 
 	const debouncedSearch = debounce(refreshMemberList, 300);
 
 	async function getMembers(skipOverride?: number, limitOverride?: number) {
 		errors = '';
-		isLoading = true;
 		try {
 			const skip = skipOverride ?? currentPage * limitPerPage;
-			const limit = limitOverride ?? limitPerPage;
+			// Never ask the API for more rows than the largest step size the
+			// pagination UI itself offers, regardless of what the caller passed.
+			const limit = Math.min(limitOverride ?? limitPerPage, MAX_PAGE_SIZE);
 
 			// Manual amount filter (operation + amount). Don't treat 0 as "empty" —
 			// an explicit 0 is a valid amount to filter on.
@@ -544,12 +652,12 @@
 			const amount = hasAmount ? Number(rawAmount) : undefined;
 
 			// Balance dropdown: backend handles debit (> 0) / credit (< 0) via balance_type.
-			const balanceType =
+			const balanceType: 'debit' | 'credit' | undefined =
 				filters.balanceType === 'debit' || filters.balanceType === 'credit'
 					? filters.balanceType
 					: undefined;
 
-			const res = await userApi.getAllUsers({
+			const params = {
 				limit: limit,
 				skip: skip,
 				query: searchQuery || undefined,
@@ -559,7 +667,17 @@
 				operation: operation,
 				amount: amount,
 				balance_type: balanceType
-			});
+			};
+
+			// Query-keyed cache: same params (e.g. paging back to a page we've
+			// already fetched) return the cached result instead of hitting the API.
+			const cacheKey = JSON.stringify(params);
+			const cached = getCachedMembers(cacheKey);
+			if (cached) return cached;
+
+			isLoading = true;
+			const res = await userApi.getAllUsers(params);
+			setCachedMembers(cacheKey, res);
 			return res;
 		} catch (err: any) {
 			errors = err?.message || 'Error while fetching members';
@@ -764,7 +882,7 @@
 						class="btn-ghost inline-flex items-center rounded-md p-2"
 						title="Download CSV"
 						aria-label="Download"
-						onclick={downloadTableData}
+						onclick={openDownloadModal}
 					>
 						<Download class="h-4 w-4" />
 					</button>
@@ -811,6 +929,8 @@
 						pagination={paginationConfig}
 						{columns}
 						data={tableData}
+						onRowClick={(row) => goto(`/members/view/${row._id}`)}
+						rowMenu={getRowMenuActions}
 						onNext={goNext}
 						onPrevious={goPrevious}
 						onLimitChange={changeLimit}
@@ -821,6 +941,44 @@
 		{/if}
 	</div>
 </div>
+
+<Modal open={showDownloadModal} onClose={closeDownloadModal} title="Download Members CSV">
+	<div class="flex flex-col gap-3">
+		<Input
+			id="csv-file-name"
+			label="File name"
+			bind:value={downloadFileName}
+			onChange={handleFileNameChange}
+			onblur={handleFileNameChange}
+			disabled={isDownloading}
+			error={fileNameError}
+			placeholder="Member-List_08-08-2026"
+		/>
+		<p class="t-muted text-xs">.csv will be added automatically</p>
+
+		{#if isDownloading}
+			<div class="flex items-center gap-2 text-sm text-gray-600">
+				<div
+					class="spinner inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid motion-reduce:animate-none"
+				></div>
+				<span>{downloadStage || 'Working…'}</span>
+			</div>
+		{/if}
+
+		<div class="mt-1 flex justify-end gap-2">
+			<Button variant="secondary" onclick={closeDownloadModal} disabled={isDownloading}>
+				Cancel
+			</Button>
+			<Button
+				variant="primary"
+				onclick={confirmDownload}
+				disabled={isDownloading || !downloadFileName.trim() || !!fileNameError}
+			>
+				{isDownloading ? 'Downloading…' : 'Download'}
+			</Button>
+		</div>
+	</div>
+</Modal>
 
 <style>
 	/*

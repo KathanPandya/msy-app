@@ -2,6 +2,7 @@
 	import Select from '$lib/components/ui/Select.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, IndianRupee } from '@lucide/svelte';
+	import RowActionsMenu from './RowActionsMenu.svelte';
 	import Tooltip from './Tooltip.svelte';
 
 	const iconMapping: Record<string, any> = {
@@ -27,6 +28,13 @@
 		canGoPrevious: boolean;
 	};
 
+	type RowMenuAction = {
+		label: string;
+		onclick: () => void;
+		disabled?: boolean;
+		danger?: boolean;
+	};
+
 	type TableProps = {
 		columns: Column[];
 		data: any[];
@@ -37,6 +45,7 @@
 		onPrevious?: () => void;
 		onLimitChange?: (v: string) => void;
 		density?: 'comfortable' | 'compact';
+		rowMenu?: (row: any) => RowMenuAction[];
 	};
 
 	let {
@@ -48,14 +57,15 @@
 		onNext,
 		onPrevious,
 		onLimitChange,
-		density = 'comfortable'
+		density = 'compact',
+		rowMenu
 	}: TableProps = $props();
 
 	const headerPaddingClass = $derived(
-		density === 'compact' ? 'px-2.5 py-2 sm:px-3 sm:py-2' : 'px-3 py-2.5 sm:px-6 sm:py-3'
+		density === 'compact' ? 'px-2.5 py-1 sm:px-3 sm:py-1' : 'px-3 py-2.5 sm:px-6 sm:py-3'
 	);
 	const cellPaddingClass = $derived(
-		density === 'compact' ? 'px-2.5 py-1.5 sm:px-3 sm:py-2' : 'px-3 py-2.5 sm:px-6 sm:py-4'
+		density === 'compact' ? 'px-2.5 py-0.5 sm:px-3 sm:py-1' : 'px-3 py-2.5 sm:px-6 sm:py-4'
 	);
 	const cellTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
 	const paginationWrapClass = $derived(
@@ -66,6 +76,9 @@
 	);
 	const paginationLimitTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
 	const paginationSelectWidthClass = $derived(density === 'compact' ? 'w-16 sm:w-20' : 'w-20 sm:w-24');
+
+	// Only one row's actions menu can be open at a time — tracked by row index.
+	let openMenuIndex = $state<number | null>(null);
 
 	function getAlignClass(align?: string) {
 		if (align === 'right') return 'text-right';
@@ -98,6 +111,9 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="sticky top-0 z-10 bg-gray-50">
 				<tr>
+					{#if rowMenu}
+						<th class="{headerPaddingClass} w-7 bg-gray-50"></th>
+					{/if}
 					{#each columns as column}
 						<th
 							class="{headerPaddingClass} {getAlignClass(
@@ -123,8 +139,22 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
-				{#each data as row}
+				{#each data as row, rowIndex}
 					<tr class={getRowClasses(row)} onclick={() => onRowClick?.(row)}>
+						{#if rowMenu}
+							{@const actions = rowMenu(row)}
+							<td class="{cellPaddingClass} whitespace-nowrap" onclick={(e) => e.stopPropagation()}>
+								{#if actions.length > 0}
+									<RowActionsMenu
+										{actions}
+										open={openMenuIndex === rowIndex}
+										onToggle={() =>
+											(openMenuIndex = openMenuIndex === rowIndex ? null : rowIndex)}
+										onClose={() => (openMenuIndex = null)}
+									/>
+								{/if}
+							</td>
+						{/if}
 						{#each columns as column}
 							{@const tooltipText = getTooltip(column, row[column.key], row)}
 							<td
@@ -152,7 +182,10 @@
 
 				{#if data.length === 0}
 					<tr>
-						<td colspan={columns.length} class="px-6 py-8 text-center text-sm text-gray-500">
+						<td
+							colspan={rowMenu ? columns.length + 1 : columns.length}
+							class="px-6 py-8 text-center text-sm text-gray-500"
+						>
 							No data available
 						</td>
 					</tr>

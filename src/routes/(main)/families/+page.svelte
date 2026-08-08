@@ -15,7 +15,7 @@
 	let density = $state<'comfortable' | 'compact'>(
 		(typeof localStorage !== 'undefined' &&
 			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
-			'comfortable'
+			'compact'
 	);
 
 	function toggleDensity() {

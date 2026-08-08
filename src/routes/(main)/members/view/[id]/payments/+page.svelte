@@ -2,12 +2,15 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Payments from '$lib/components/other/Payments.svelte';
+	import coreApi from '$lib/endpoints/coreApi';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import type { Payment } from '$lib/types/payment';
 	import { ArrowLeft } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let data = $state<Payment.OutstandingData | null>(null);
+	let memberName = $state('');
+	let memberId = $state('');
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 
@@ -15,8 +18,16 @@
 		const userId = page.params.id;
 		if (!userId) return;
 		try {
-			const res = await paymentApi.getOutstandingPaymentOfMember(userId);
-			data = res.data;
+			const [paymentsRes, userInfo] = await Promise.all([
+				paymentApi.getOutstandingPaymentOfMember(userId),
+				coreApi.fetchUserInfo({ userId })
+			]);
+			data = paymentsRes.data;
+			if (userInfo?.user) {
+				memberName =
+					`${userInfo.user.first_name ?? ''} ${userInfo.user.surname ?? ''}`.trim();
+				memberId = userInfo.user.member_id ?? '';
+			}
 		} catch (err: any) {
 			errorMessage = err?.response?.data?.message || 'Failed to load payments.';
 		} finally {
@@ -51,7 +62,7 @@
 		{:else if errorMessage}
 			<div class="m-3 rounded-md bg-red-50 p-4 text-sm text-red-800">{errorMessage}</div>
 		{:else if data}
-			<Payments outstandingTableData={data} fitHeight={true} />
+			<Payments outstandingTableData={data} {memberName} {memberId} fitHeight={true} />
 		{/if}
 	</div>
 </div>

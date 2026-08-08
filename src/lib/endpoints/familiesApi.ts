@@ -1,5 +1,6 @@
 import axios from '$lib/config/axios';
 import type { Family } from '$lib/types/family';
+import { clearMembersCache } from '$lib/utilities/membersCache';
 
 class FamiliesApi {
 	async list(params?: {
@@ -26,6 +27,7 @@ class FamiliesApi {
 		memberId: string;
 	}): Promise<{ success: boolean; clubId: string; member: Family.MemberSummary }> {
 		const response = await axios.post(`/api/families/new`, payload);
+		clearMembersCache();
 		return response.data;
 	}
 
@@ -34,6 +36,7 @@ class FamiliesApi {
 		payload: { memberId: string }
 	): Promise<{ success: boolean; clubId: string; member: Family.MemberSummary }> {
 		const response = await axios.post(`/api/families/${id}/add-member`, payload);
+		clearMembersCache();
 		return response.data;
 	}
 
@@ -42,6 +45,7 @@ class FamiliesApi {
 		payload: { memberId: string }
 	): Promise<{ success: boolean; clubId: string; member: Family.MemberSummary }> {
 		const response = await axios.post(`/api/families/${id}/remove-member`, payload);
+		clearMembersCache();
 		return response.data;
 	}
 
@@ -50,6 +54,7 @@ class FamiliesApi {
 		payload: { memberId: string }
 	): Promise<{ success: boolean; clubId: string; managerId: string }> {
 		const response = await axios.post(`/api/families/${id}/make-head`, payload);
+		clearMembersCache();
 		return response.data;
 	}
 

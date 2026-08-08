@@ -120,5 +120,13 @@ export const APP_CONSTANTS = {
 			key: '250',
 			label: '250'
 		}
-	]
+	],
+
 };
+
+// The largest page-size the pagination selector offers. Any single
+// `getAllUsers` request should be capped at this — never ask the API for
+// more rows than the biggest step size the UI itself allows.
+export const MAX_PAGE_SIZE = Math.max(
+	...APP_CONSTANTS.PAGINATION_OPTIONS.map((o) => Number(o.key))
+);

@@ -6,7 +6,7 @@
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import { authStore } from '$lib/stores/authStore';
 	import { memberListStore } from '$lib/stores/memberListStore';
-	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 	import { AlertCircle, ChevronDown, Search, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
@@ -98,7 +98,7 @@
 				return fullName.includes(searchLower) || member_id.includes(searchLower);
 			})
 			.sort(
-				(a, b) => Number(a.member_id.replace('MSY_', '')) - Number(b.member_id.replace('MSY_', ''))
+				(a, b) => (memberIdDigits(a.member_id) ?? 0) - (memberIdDigits(b.member_id) ?? 0)
 			)
 	);
 

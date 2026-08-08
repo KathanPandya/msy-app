@@ -199,7 +199,7 @@
 					id="memberId"
 					label="Member ID"
 					bind:value={rawMemberId}
-					placeholder="MSY_1"
+					placeholder="MSY-1"
 					required
 				/>
 				<button

@@ -4,7 +4,7 @@
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
-	import { ChevronDown, LayoutGrid, Rows3, Search } from '@lucide/svelte';
+	import { ChevronDown, Download, LayoutGrid, Rows3, Search } from '@lucide/svelte';
 	import Button from '../ui/Button.svelte';
 	import ImageViewer from '../ui/ImageViewer.svelte';
 	import Modal from '../ui/Modal.svelte';
@@ -13,7 +13,7 @@
 
 	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 
-	let { outstandingTableData, fitHeight = false } = $props();
+	let { outstandingTableData, memberName = '', memberId = '', fitHeight = false } = $props();
 	let searchQuery = $state('');
 
 	let isSummaryOpen = $state(
@@ -22,7 +22,7 @@
 	let density = $state<'comfortable' | 'compact'>(
 		(typeof localStorage !== 'undefined' &&
 			(localStorage.getItem('app_table_density') as 'comfortable' | 'compact')) ||
-			'comfortable'
+			'compact'
 	);
 
 	function toggleSummary() {
@@ -33,6 +33,41 @@
 	function toggleDensity() {
 		density = density === 'comfortable' ? 'compact' : 'comfortable';
 		localStorage.setItem('app_table_density', density);
+	}
+
+	// CSV field quoting: wrap in quotes (doubling embedded quotes) whenever the
+	// value could otherwise break the delimiter/row structure.
+	function toCsvValue(value: any): string {
+		const str = value === null || value === undefined ? '' : String(value);
+		return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+	}
+
+	const filterSuffix: Record<string, string> = {
+		'': 'AllEntries',
+		payments: 'Payments',
+		deadMembers: 'DeadMembers'
+	};
+
+	function downloadCsv() {
+		// Export exactly what's on screen: current columns (minus the Actions
+		// button column, which has no data value) and the currently filtered rows.
+		const exportColumns = tableColumns.filter((c) => c.key !== 'actions');
+		const rows = [
+			exportColumns.map((c) => toCsvValue(c.label)),
+			...tableData.map((row: any) => exportColumns.map((c) => toCsvValue(row[c.key])))
+		];
+		const csvContent = rows.map((r) => r.join(',')).join('\n');
+
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		const namePart = formatMemberDisplay(memberName, memberId) || 'Member';
+		// Strip filesystem-illegal characters (parentheses from the display name are fine).
+		const safeNamePart = namePart.replace(/[\\/:*?"<>|]/g, '');
+		link.href = url;
+		link.download = `${safeNamePart}_${filterSuffix[filters.status] ?? 'AllEntries'}.csv`;
+		link.click();
+		URL.revokeObjectURL(url);
 	}
 
 	// Which rows are actual payments (dead-member rows aren't).
@@ -60,28 +95,22 @@
 		closeView();
 	}
 
-	if (typeof window !== 'undefined') {
-		(window as any).viewPayment = openView;
+	function editPayment(id: string) {
+		const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === id);
+		if (!record) return;
+		goto(`/payins/update/${record._id}`, {
+			state: { paymentData: { ...record, memberId: record.userId } }
+		});
 	}
 
-	const actionsColumn = {
-		key: 'actions',
-		label: 'Actions',
-		align: 'right' as const,
-		render: (_: any, row: any) => {
-			if (!paymentIds.has(row._id)) return '';
-			return `
-				<div class='flex justify-end'>
-					<button
-						class="px-3 py-1.5 rounded-md text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-						onclick="window.viewPayment('${row._id}')"
-					>
-						View
-					</button>
-				</div>
-			`;
-		}
-	};
+	// Dead-member rows aren't payments, so they get no row menu.
+	function getRowMenuActions(row: any) {
+		if (!paymentIds.has(row._id)) return [];
+		return [
+			{ label: 'View', onclick: () => openView(row._id) },
+			{ label: 'Edit', onclick: () => editPayment(row._id) }
+		];
+	}
 
 	const totalAmount = outstandingTableData.outstandingAmount + outstandingTableData.totalPayment;
 	const amountPaid = outstandingTableData.totalPayment;
@@ -94,8 +123,7 @@
 	let tableColumns = $state<any[]>([
 		{ key: 'date', label: 'Date' },
 		{ key: 'amount', label: 'Amount' },
-		{ key: 'remarks', label: 'Remarks' },
-		actionsColumn
+		{ key: 'remarks', label: 'Remarks' }
 	]);
 
 	const statusOptions = [
@@ -142,8 +170,7 @@
 				{ key: 'amount', label: 'Amount' },
 				{ key: 'payment_mode', label: 'Payment Mode' },
 				{ key: 'payment_type', label: 'Payment Type' },
-				{ key: 'remarks', label: 'Remarks' },
-				actionsColumn
+				{ key: 'remarks', label: 'Remarks' }
 			];
 			tableData =
 				sortRecords(outstandingTableData?.paymentRecords)?.map((payment: any) => {
@@ -175,8 +202,7 @@
 			tableColumns = [
 				{ key: 'date', label: 'Date' },
 				{ key: 'amount', label: 'Amount' },
-				{ key: 'remarks', label: 'Remarks' },
-				actionsColumn
+				{ key: 'remarks', label: 'Remarks' }
 			];
 
 			const mergedRecords = [
@@ -338,23 +364,41 @@
 				<h2 class="text-xs font-semibold text-gray-900 sm:text-sm">
 					Payment History ({tableData.length})
 				</h2>
-				<button
-					type="button"
-					onclick={toggleDensity}
-					title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
-					class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-				>
-					{#if density === 'comfortable'}
-						<Rows3 class="h-3.5 w-3.5" />
-						<span class="hidden sm:inline">Compact</span>
-					{:else}
-						<LayoutGrid class="h-3.5 w-3.5" />
-						<span class="hidden sm:inline">Comfortable</span>
-					{/if}
-				</button>
+				<div class="flex items-center gap-1.5">
+					<button
+						type="button"
+						onclick={toggleDensity}
+						title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
+						class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+					>
+						{#if density === 'comfortable'}
+							<Rows3 class="h-3.5 w-3.5" />
+							<span class="hidden sm:inline">Compact</span>
+						{:else}
+							<LayoutGrid class="h-3.5 w-3.5" />
+							<span class="hidden sm:inline">Comfortable</span>
+						{/if}
+					</button>
+					<button
+						type="button"
+						onclick={downloadCsv}
+						disabled={tableData.length === 0}
+						title="Download CSV"
+						aria-label="Download"
+						class="flex items-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<Download class="h-3.5 w-3.5" />
+					</button>
+				</div>
 			</div>
 			<div class="min-h-0 flex-1">
-				<Table columns={tableColumns} data={tableData} {getRowBgColor} {density} />
+				<Table
+					columns={tableColumns}
+					data={tableData}
+					rowMenu={filters.status === 'deadMembers' ? undefined : getRowMenuActions}
+					{getRowBgColor}
+					{density}
+				/>
 			</div>
 		</div>
 	</div>
