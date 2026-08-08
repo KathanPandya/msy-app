@@ -10,6 +10,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
@@ -94,7 +95,7 @@
 		// debugger
 		formData.memberId = member._id;
 		formData.memberName = `${member.first_name} ${member.surname}`;
-		memberSearchQuery = formData.memberName;
+		memberSearchQuery = formatMemberDisplay(formData.memberName, member.member_id);
 		showMemberDropdown = false;
 		errors.memberId = '';
 	}
@@ -381,11 +382,13 @@
 										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
 									>
 										<div class="font-medium text-gray-900">
-											{member.first_name}
-											{member.surname}
+											{formatMemberDisplay(
+												`${member.first_name} ${member.surname}`,
+												member.member_id
+											)}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.member_id} • {member.mobile}
+											{member.mobile}
 										</div>
 									</button>
 								{/each}

@@ -11,6 +11,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { Calendar, ChevronDown, ChevronUp, LayoutGrid, Plus, Rows3 } from '@lucide/svelte';
 	import { onMount } from 'svelte';
@@ -247,7 +248,9 @@
 				userId: member?._id,
 				memberId: member?.member_id,
 				_id: payment._id,
-				memberName: member ? `${member.first_name} ${member.surname}` : '-',
+				memberName: member
+					? formatMemberDisplay(`${member.first_name} ${member.surname}`, member.member_id)
+					: '-',
 				amount: payment.amount,
 				date: formatDate(payment.date),
 				paymentMode: formatString(payment.payment_mode, ['capitalize-first']) || '-',

@@ -4,7 +4,7 @@
 	import pinAuthApi from '$lib/endpoints/pinAuthApi';
 	import { authStore } from '$lib/stores/authStore';
 	import type { PinAuth } from '$lib/types/pinAuth';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { onMount } from 'svelte';
 
 	type Stage = PinAuth.Stage | 'identify';
@@ -159,7 +159,7 @@
 		}
 	}
 
-	const displayId = $derived(memberId ? formatMemberId(memberId) : '');
+	const displayMember = $derived(memberId ? formatMemberDisplay(name, memberId) : '');
 </script>
 
 <div class="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
@@ -170,12 +170,11 @@
 				<p class="mt-2 text-sm text-gray-600">Enter your member ID to continue.</p>
 			{:else if stage === 'pin'}
 				<p class="mt-2 text-sm text-gray-600">
-					Welcome back, <strong>{name}</strong> ({displayId}).
+					Welcome back, <strong>{displayMember}</strong>.
 				</p>
 			{:else if stage === 'bootstrap'}
 				<p class="mt-2 text-sm text-gray-600">
-					First login for <strong>{name}</strong> ({displayId}). Verify your date of birth and set a
-					PIN.
+					First login for <strong>{displayMember}</strong>. Verify your date of birth and set a PIN.
 				</p>
 			{:else if stage === 'changePin'}
 				<p class="mt-2 text-sm text-gray-600">
@@ -299,7 +298,7 @@
 		{:else if stage === 'admin'}
 			<div class="space-y-3 text-center">
 				<p class="text-gray-800">
-					Account <strong>{displayId}</strong> isn't set up for self-activation.
+					Account <strong>{displayMember}</strong> isn't set up for self-activation.
 				</p>
 				<p class="text-sm text-gray-600">
 					Please ask the admin for a temporary PIN, then come back to log in.
@@ -307,14 +306,14 @@
 			</div>
 		{:else if stage === 'locked'}
 			<div class="space-y-3 text-center">
-				<p class="text-gray-800">Account <strong>{displayId}</strong> is locked.</p>
+				<p class="text-gray-800">Account <strong>{displayMember}</strong> is locked.</p>
 				<p class="text-sm text-gray-600">
 					Too many incorrect attempts. Please contact the admin to unlock it.
 				</p>
 			</div>
 		{:else if stage === 'inactive'}
 			<div class="space-y-3 text-center">
-				<p class="text-gray-800">Account <strong>{displayId}</strong> is inactive.</p>
+				<p class="text-gray-800">Account <strong>{displayMember}</strong> is inactive.</p>
 				<p class="text-sm text-gray-600">
 					This membership is no longer active. Please contact the admin.
 				</p>

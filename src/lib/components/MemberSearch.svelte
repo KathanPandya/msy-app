@@ -11,7 +11,7 @@
 
 <script lang="ts">
 	import { debounce } from '$lib/utilities/helperFunc';
-	import { formatMemberId, memberIdDigits } from '$lib/utilities/memberId';
+	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 
 	let {
 		members = [],
@@ -172,10 +172,8 @@
 							? 'bg-blue-50'
 							: 'hover:bg-gray-50'}"
 					>
-						<span class="min-w-[3.5rem] font-mono text-xs text-gray-500"
-							>{formatMemberId(m.member_id)}</span
+						<span class="font-semibold text-gray-900">{formatMemberDisplay(m.name, m.member_id)}</span
 						>
-						<span class="font-semibold text-gray-900">{m.name}</span>
 					</button>
 				</li>
 			{/each}

@@ -6,7 +6,7 @@
 	import familiesApi from '$lib/endpoints/familiesApi';
 	import { familyListStore } from '$lib/stores/familyListStore';
 	import type { Family } from '$lib/types/family';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 
@@ -109,9 +109,9 @@
 		for (const m of pendingAdditions) {
 			try {
 				await familiesApi.addMember(family.clubId, { memberId: m.id });
-				added.push(formatMemberId(m.member_id));
+				added.push(formatMemberDisplay(m.name, m.member_id));
 			} catch {
-				failed.push(formatMemberId(m.member_id));
+				failed.push(formatMemberDisplay(m.name, m.member_id));
 			}
 		}
 		busy = false;
@@ -167,10 +167,8 @@
 		<section class="rounded-lg bg-white p-4 shadow-sm">
 			<h2 class="text-xl font-semibold text-gray-900">Family</h2>
 			<p class="mt-1 text-sm text-gray-600">
-				Head: <strong>{head?.name || '—'}</strong> · {family.members.length} member{family.members
-					.length === 1
-					? ''
-					: 's'} · {dueLabel(netDue)}
+				Head: <strong>{head ? formatMemberDisplay(head.name, head.member_id) : '—'}</strong> · {family
+					.members.length} member{family.members.length === 1 ? '' : 's'} · {dueLabel(netDue)}
 			</p>
 			{#if headInactive}
 				<p class="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
@@ -228,9 +226,8 @@
 								class="flex items-center gap-1.5 font-semibold text-gray-900 hover:underline"
 							>
 								{#if isHead}<span title="Head" class="text-amber-500">★</span>{/if}
-								<span class="truncate">{fullName(m)}</span>
+								<span class="truncate">{formatMemberDisplay(fullName(m), m.member_id)}</span>
 							</a>
-							<p class="mt-0.5 text-xs text-gray-400">{formatMemberId(m.member_id)}</p>
 						</div>
 						<span
 							class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize {m.status ===
@@ -272,7 +269,7 @@
 								<button
 									type="button"
 									disabled={busy}
-									onclick={() => makeHead(m.id, formatMemberId(m.member_id))}
+									onclick={() => makeHead(m.id, formatMemberDisplay(fullName(m), m.member_id))}
 									class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
 								>
 									Make head
@@ -283,7 +280,7 @@
 									<button
 										type="button"
 										disabled={busy}
-										onclick={() => removeMember(m.id, formatMemberId(m.member_id))}
+										onclick={() => removeMember(m.id, formatMemberDisplay(fullName(m), m.member_id))}
 										class="rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
 									>
 										Confirm
@@ -317,8 +314,9 @@
 				>
 					<div class="flex items-start justify-between gap-2">
 						<div class="min-w-0">
-							<p class="truncate font-semibold text-gray-900">{p.name}</p>
-							<p class="mt-0.5 text-xs text-gray-400">{formatMemberId(p.member_id)}</p>
+							<p class="truncate font-semibold text-gray-900">
+								{formatMemberDisplay(p.name, p.member_id)}
+							</p>
 						</div>
 						<span
 							class="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700"

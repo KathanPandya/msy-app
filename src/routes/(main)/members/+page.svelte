@@ -10,6 +10,7 @@
 	// import { memberListStore } from '$lib/stores/memberListStore';
 	import type { User } from '$lib/types/user';
 	import { debounce } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
 	import { formatString, truncateString } from '$lib/utilities/stringUtils';
 	import {
@@ -272,10 +273,9 @@
 
 	// Table columns configuration
 	const columns = $derived([
-		{ key: 'memberId', label: 'Member Id' },
 		{
 			key: 'modifiedName',
-			label: 'Name',
+			label: 'Member',
 			tooltip: (_: any, row: any) => {
 				return row.name;
 			},
@@ -390,10 +390,12 @@
 					memberId: user.member_id,
 					memberIdInNumber: Number(user.member_id.replace('MSY_', '')),
 					_id: user._id,
-					name: `${user.first_name} ${user.surname}${user.status === 'dead' ? ' 🔴' : ''}`,
+					name: `${formatMemberDisplay(`${user.first_name} ${user.surname}`, user.member_id)}${user.status === 'dead' ? ' 🔴' : ''}`,
 					modifiedName:
-						truncateString(`${user.first_name} ${user.surname}`, 20) +
-						`${user.status === 'dead' ? ' 🔴' : ''}`,
+						formatMemberDisplay(
+							truncateString(`${user.first_name} ${user.surname}`, 20),
+							user.member_id
+						) + `${user.status === 'dead' ? ' 🔴' : ''}`,
 					mobile: user.mobile || '-',
 					gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-',
 					status: user.status,
@@ -488,8 +490,7 @@
 	function downloadTableData() {
 		const copyOfTableData = tableData.map((tD) => {
 			return {
-				MemberID: tD.memberId,
-				Name: tD.name,
+				Member: tD.name,
 				Status: formatString(tD.status, ['capitalize-first']),
 				Balance: tD.heesab < 0 ? `+${Math.abs(tD.heesab)}` : `${tD.heesab ?? 0}`,
 				Mobile: tD.mobile,

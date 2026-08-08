@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import { formatDate } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, LayoutGrid, Rows3, Search } from '@lucide/svelte';
+	import Button from '../ui/Button.svelte';
+	import ImageViewer from '../ui/ImageViewer.svelte';
+	import Modal from '../ui/Modal.svelte';
 	import SearchInput from '../ui/SearchInput.svelte';
 	import Table from '../ui/Table.svelte';
+
+	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 
 	let { outstandingTableData, fitHeight = false } = $props();
 	let searchQuery = $state('');
@@ -31,15 +38,30 @@
 	// Which rows are actual payments (dead-member rows aren't).
 	const paymentIds = new Set((outstandingTableData?.paymentRecords ?? []).map((p: any) => p._id));
 
-	// The "View" button opens that payment's page (data passed via navigation state).
+	// View modal: shows the payment's details, with an Edit button that
+	// navigates to the update page (mirrors the /payins list flow).
+	let viewingRecord = $state<any | null>(null);
+
+	function openView(id: string) {
+		const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === id);
+		if (!record) return;
+		viewingRecord = record;
+	}
+
+	function closeView() {
+		viewingRecord = null;
+	}
+
+	function editFromView() {
+		if (!viewingRecord) return;
+		goto(`/payins/update/${viewingRecord._id}`, {
+			state: { paymentData: { ...viewingRecord, memberId: viewingRecord.userId } }
+		});
+		closeView();
+	}
+
 	if (typeof window !== 'undefined') {
-		(window as any).viewPayment = (id: string) => {
-			const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === id);
-			if (!record) return;
-			goto(`/payins/update/${record._id}`, {
-				state: { paymentData: { ...record, memberId: record.userId } }
-			});
-		};
+		(window as any).viewPayment = openView;
 	}
 
 	const actionsColumn = {
@@ -137,7 +159,7 @@
 		} else if (filters.status === 'deadMembers') {
 			tableColumns = [
 				{ key: 'date', label: 'Date of Death' },
-				{ key: 'name', label: 'Name' }
+				{ key: 'name', label: 'Member' }
 			];
 			tableData =
 				sortRecords(outstandingTableData?.deadMemberRecords)?.map((payment: any) => {
@@ -146,7 +168,7 @@
 						_id: payment._id,
 						date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
 						amount: payment.amount || '-',
-						name: memberName || '-'
+						name: memberName ? formatMemberDisplay(memberName, payment.user.member_id) : '-'
 					};
 				}) ?? [];
 		} else {
@@ -337,3 +359,59 @@
 		</div>
 	</div>
 </div>
+
+<!-- Payment Details Modal -->
+<Modal open={!!viewingRecord} onClose={closeView} title="Payment Details">
+	{#if viewingRecord}
+		<div class="space-y-4 text-sm">
+			<div class="grid grid-cols-2 gap-3">
+				<div>
+					<p class="text-xs text-gray-500">Amount</p>
+					<p class="font-medium text-gray-900">₹{viewingRecord.amount}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Date</p>
+					<p class="font-medium text-gray-900">{formatDate(viewingRecord.date)}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Payment Mode</p>
+					<p class="font-medium text-gray-900">
+						{formatString(viewingRecord.payment_mode, ['capitalize-first']) || '-'}
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Payment Type</p>
+					<p class="font-medium text-gray-900">
+						{backendMapping[viewingRecord.payment_type] || '-'}
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Reference Number</p>
+					<p class="font-medium text-gray-900">{viewingRecord.payment_reference || '-'}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Receipt Number</p>
+					<p class="font-medium text-gray-900">{viewingRecord.reciept_number || '-'}</p>
+				</div>
+			</div>
+
+			{#if viewingRecord.remarks}
+				<div>
+					<p class="text-xs text-gray-500">Description</p>
+					<p class="font-medium text-gray-900">{viewingRecord.remarks}</p>
+				</div>
+			{/if}
+
+			{#if viewingRecord.photo}
+				<div>
+					<p class="mb-1 text-xs text-gray-500">Receipt</p>
+					<ImageViewer src={viewingRecord.photo} alt="Payment Receipt" thumbnailSize="medium" />
+				</div>
+			{/if}
+		</div>
+
+		<div class="mt-4 flex justify-end border-t border-gray-200 pt-3">
+			<Button variant="primary" size="sm" onclick={editFromView}>Edit</Button>
+		</div>
+	{/if}
+</Modal>

@@ -8,7 +8,7 @@
 	import profileApi from '$lib/endpoints/profileApi';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate, getUserAddress } from '$lib/utilities/helperFunc';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { onMount } from 'svelte';
 
@@ -156,7 +156,10 @@
 		try {
 			const res = await familiesApi.resetPin(userData._id);
 			tempPinBanner = {
-				memberId: formatMemberId(memberIdRaw || res.member.member_id),
+				memberId: formatMemberDisplay(
+					`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(/\s+/g, ' ').trim(),
+					memberIdRaw || res.member.member_id
+				),
 				tempPin: res.tempPin
 			};
 			applyPinFields(res.member);
@@ -173,7 +176,10 @@
 		pinError = '';
 		try {
 			const res = await familiesApi.unlock(userData._id);
-			unlockBanner = `${formatMemberId(memberIdRaw || res.member.member_id)} unlocked.`;
+			unlockBanner = `${formatMemberDisplay(
+				`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(/\s+/g, ' ').trim(),
+				memberIdRaw || res.member.member_id
+			)} unlocked.`;
 			tempPinBanner = null;
 			applyPinFields(res.member);
 		} catch (err: any) {
@@ -204,9 +210,13 @@
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="flex-1">
 						<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
-							{userData.firstName}
-							{userData.middleName}
-							{userData.surname}
+							{formatMemberDisplay(
+								`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(
+									/\s+/g,
+									' '
+								).trim(),
+								memberIdRaw
+							)}
 						</h1>
 						<div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
 							<span

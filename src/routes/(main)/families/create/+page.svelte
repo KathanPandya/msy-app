@@ -5,7 +5,7 @@
 	import familiesApi from '$lib/endpoints/familiesApi';
 	import userApi from '$lib/endpoints/userApi';
 	import { familyListStore } from '$lib/stores/familyListStore';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { get } from 'svelte/store';
 
 	// Preserves the list's active search when returning, instead of always
@@ -103,8 +103,9 @@
 				>
 					<div class="flex items-start justify-between gap-2">
 						<div class="min-w-0">
-							<p class="truncate font-semibold text-gray-900">{p.name}</p>
-							<p class="mt-0.5 text-xs text-gray-400">{formatMemberId(p.member_id)}</p>
+							<p class="truncate font-semibold text-gray-900">
+								{formatMemberDisplay(p.name, p.member_id)}
+							</p>
 						</div>
 						<span
 							class="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700"

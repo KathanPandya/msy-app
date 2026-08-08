@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/authStore';
 	import { requireMember } from '$lib/utilities/authGuard';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import familiesApi from '$lib/endpoints/familiesApi';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { onMount } from 'svelte';
@@ -64,16 +64,17 @@
 						{(user.first_name || '?').charAt(0).toUpperCase()}
 					</div>
 					<div>
-						<p class="font-semibold text-gray-900">{displayName}</p>
-						<p class="text-sm text-gray-500">
-							{formatMemberId(user.member_id)}
-							{#if isHead}
+						<p class="font-semibold text-gray-900">
+							{formatMemberDisplay(displayName, user.member_id)}
+						</p>
+						{#if isHead}
+							<p class="text-sm text-gray-500">
 								<span
-									class="ml-2 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
+									class="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
 									>Head</span
 								>
-							{/if}
-						</p>
+							</p>
+						{/if}
 					</div>
 				</div>
 				<button
@@ -96,10 +97,6 @@
 			<section class="rounded-xl bg-white p-6 shadow-sm">
 				<h2 class="mb-4 text-lg font-semibold text-gray-900">Details</h2>
 				<dl class="space-y-3 text-sm">
-					<div class="flex justify-between gap-4">
-						<dt class="text-gray-500">Member ID</dt>
-						<dd class="font-medium text-gray-900">{formatMemberId(user.member_id)}</dd>
-					</div>
 					{#if user.entry_date}
 						<div class="flex justify-between gap-4">
 							<dt class="text-gray-500">Joined</dt>

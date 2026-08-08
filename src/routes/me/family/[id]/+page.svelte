@@ -4,7 +4,7 @@
 	import familiesApi from '$lib/endpoints/familiesApi';
 	import { authStore } from '$lib/stores/authStore';
 	import { requireMember } from '$lib/utilities/authGuard';
-	import { formatMemberId } from '$lib/utilities/memberId';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { onMount } from 'svelte';
 
@@ -62,7 +62,10 @@
 				>
 				{#if member}
 					<h1 class="text-xl font-bold text-gray-900">
-						{displayName}{member._id === myId || member.id === myId ? ' (you)' : ''}
+						{formatMemberDisplay(displayName, member.member_id)}{member._id === myId ||
+						member.id === myId
+							? ' (you)'
+							: ''}
 					</h1>
 				{/if}
 			</div>
@@ -81,10 +84,6 @@
 				<section class="rounded-xl bg-white p-6 shadow-sm">
 					<h2 class="mb-4 text-lg font-semibold text-gray-900">Details</h2>
 					<dl class="space-y-3 text-sm">
-						<div class="flex justify-between gap-4">
-							<dt class="text-gray-500">Member ID</dt>
-							<dd class="font-medium text-gray-900">{formatMemberId(member.member_id)}</dd>
-						</div>
 						<div class="flex justify-between gap-4">
 							<dt class="text-gray-500">Status</dt>
 							<dd class="font-medium text-gray-900">{member.status}</dd>

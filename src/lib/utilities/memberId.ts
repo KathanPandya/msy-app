@@ -20,3 +20,16 @@ export function memberIdDigits(memberId: string | number | null | undefined): nu
 	if (typeof memberId === 'number') return memberId > 0 ? memberId : null;
 	return parseMemberId(memberId);
 }
+
+/** Standard display form across the app: "Full Name (MSY_42)". Falls back gracefully if either part is missing. */
+export function formatMemberDisplay(
+	name: string | null | undefined,
+	id: number | string | null | undefined
+): string {
+	const trimmedName = (name ?? '').trim();
+	const hasId = id !== null && id !== undefined && String(id).trim() !== '';
+	if (!hasId) return trimmedName;
+	const formattedId = formatMemberId(id as number | string);
+	if (!trimmedName) return formattedId;
+	return `${trimmedName} (${formattedId})`;
+}

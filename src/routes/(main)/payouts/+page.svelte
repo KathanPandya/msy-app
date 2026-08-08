@@ -6,6 +6,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { Plus, Search } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
@@ -95,7 +96,7 @@
 
 	// Table columns configuration
 	const columns = [
-		{ key: 'memberName', label: 'Member Name' },
+		{ key: 'memberName', label: 'Member' },
 		{ key: 'amount', label: 'Amount' },
 		{ key: 'date', label: 'Date' },
 
@@ -130,7 +131,9 @@
 				memberId: member?.member_id,
 				userId: member?._id,
 				_id: payment._id,
-				memberName: member ? `${member.first_name} ${member.surname}` : '-',
+				memberName: member
+					? formatMemberDisplay(`${member.first_name} ${member.surname}`, member.member_id)
+					: '-',
 				amount: payment.payment_amount,
 				date: formatDate(payment.payment_date),
 				actions: '' // Placeholder, actual rendering handled by column.render

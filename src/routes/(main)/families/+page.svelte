@@ -6,6 +6,7 @@
 	import { familyListStore } from '$lib/stores/familyListStore';
 	import type { Family } from '$lib/types/family';
 	import { debounce } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { LayoutGrid, Rows3 } from '@lucide/svelte';
 	import { get } from 'svelte/store';
 	import { untrack } from 'svelte';
@@ -138,7 +139,7 @@
 				const head = headOf(f);
 				return {
 					clubId: f.clubId,
-					headName: `${head?.name || 'Unknown'}${head && head.status !== 'active' ? ' ⚠' : ''}`,
+					headName: `${head ? formatMemberDisplay(head.name, head.member_id) : 'Unknown'}${head && head.status !== 'active' ? ' ⚠' : ''}`,
 					memberCount: `${f.memberCount} member${f.memberCount === 1 ? '' : 's'}`,
 					due: dueLabel(netDue(f)),
 					actions: ''
