@@ -1,4 +1,4 @@
-// src/lib/utils/auth.ts
+// src/lib/utilities/authGuard.ts
 import { authStore } from '$lib/stores/authStore';
 import { goto } from '$app/navigation';
 import { get } from 'svelte/store';
@@ -7,7 +7,7 @@ export function requireAuth() {
 	const auth = get(authStore);
 
 	if (!auth.isAuthenticated) {
-		goto('/admin');
+		goto('/login');
 		return false;
 	}
 
@@ -25,6 +25,22 @@ export function requireAdmin() {
 
 	if (!isAdmin) {
 		goto('/unauthorized');
+		return false;
+	}
+
+	return true;
+}
+
+/** Authenticated member (PIN session) — not admin shell */
+export function requireMember() {
+	const auth = get(authStore);
+	if (!auth.isAuthenticated) {
+		goto('/login');
+		return false;
+	}
+
+	if (auth.authType === 'password' && auth.userAllInfo?.user.role === 'admin') {
+		goto('/dashboard');
 		return false;
 	}
 

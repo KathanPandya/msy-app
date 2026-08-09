@@ -6,6 +6,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { Plus, Search } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
@@ -95,7 +96,7 @@
 
 	// Table columns configuration
 	const columns = [
-		{ key: 'memberName', label: 'Member Name' },
+		{ key: 'memberName', label: 'Member' },
 		{ key: 'amount', label: 'Amount' },
 		{ key: 'date', label: 'Date' },
 
@@ -130,7 +131,9 @@
 				memberId: member?.member_id,
 				userId: member?._id,
 				_id: payment._id,
-				memberName: member ? `${member.first_name} ${member.surname}` : '-',
+				memberName: member
+					? formatMemberDisplay(`${member.first_name} ${member.surname}`, member.member_id)
+					: '-',
 				amount: payment.payment_amount,
 				date: formatDate(payment.payment_date),
 				actions: '' // Placeholder, actual rendering handled by column.render
@@ -201,16 +204,8 @@
 				</svg>
 				<h3 class="mt-2 text-sm font-medium text-gray-900">No members found</h3>
 				<p class="mt-1 text-sm text-gray-500">
-					{searchQuery ? 'Try a different search term' : 'Get started by adding a new member'}
+					{searchQuery ? 'Try a different search term' : 'No payouts to display'}
 				</p>
-				{#if !searchQuery}
-					<div class="mt-6">
-						<Button variant="primary" onclick={() => goto('/members/create')}>
-							<Plus class="mr-2 h-4 w-4" />
-							Add Member
-						</Button>
-					</div>
-				{/if}
 			</div>
 		{:else}
 			<!-- Table container with border, rounded corners, and scroll -->

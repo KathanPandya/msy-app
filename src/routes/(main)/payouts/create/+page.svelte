@@ -6,6 +6,7 @@
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import { authStore } from '$lib/stores/authStore';
 	import { memberListStore } from '$lib/stores/memberListStore';
+	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 	import { AlertCircle, ChevronDown, Search, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
@@ -97,7 +98,7 @@
 				return fullName.includes(searchLower) || member_id.includes(searchLower);
 			})
 			.sort(
-				(a, b) => Number(a.member_id.replace('MSY_', '')) - Number(b.member_id.replace('MSY_', ''))
+				(a, b) => (memberIdDigits(a.member_id) ?? 0) - (memberIdDigits(b.member_id) ?? 0)
 			)
 	);
 
@@ -114,7 +115,7 @@
 	async function selectDeceased(member: any) {
 		formData.deadMemberId = member._id;
 		formData.deadMemberName = `${member.first_name} ${member.surname}`;
-		memberSearchQuery = formData.deadMemberName;
+		memberSearchQuery = formatMemberDisplay(formData.deadMemberName, member.member_id);
 		showMemberDropdown = false;
 		errors.deadMemberId = '';
 
@@ -401,11 +402,13 @@
 										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100"
 									>
 										<div class="font-medium text-gray-900">
-											{member.first_name}
-											{member.surname}
+											{formatMemberDisplay(
+												`${member.first_name} ${member.surname}`,
+												member.member_id
+											)}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.member_id} • {member.mobile}
+											{member.mobile}
 										</div>
 									</button>
 								{/each}

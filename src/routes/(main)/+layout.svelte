@@ -2,15 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { authStore } from '$lib/stores/authStore';
-	import { requireAdmin } from '$lib/utilities/authGuard';
+	import { requireAdmin, requireAuth } from '$lib/utilities/authGuard';
 	import {
 		ArrowDownRight,
 		Bell,
 		ChevronLeft,
+		ChevronRight,
+		Home,
 		IndianRupee,
 		LayoutDashboard,
 		LogOut,
-		Menu,
 		Users
 	} from '@lucide/svelte';
 
@@ -21,16 +22,10 @@
 		if (!$authStore.isLoading) {
 			if (!$authStore.isAuthenticated) {
 				goto('/admin');
+			} else if ($authStore.authType === 'pin') {
+				goto('/me');
 			} else {
-				// const isAdmin = $authStore.userAllInfo?.user?.role === 'admin';
-
-				// if (!isAdmin) {
-				// 	goto('/unauthorized');
-				// } else {
-				// 	isAuthorized = true;
-				// }
-
-				isAuthorized = requireAdmin();
+				isAuthorized = requireAuth();
 			}
 		}
 	});
@@ -53,6 +48,7 @@
 	const navItems = [
 		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
 		{ href: '/members', icon: Users, label: 'Members' },
+		{ href: '/families', icon: Home, label: 'Families' },
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
 		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' }
 	];
@@ -89,18 +85,30 @@
 	</div>
 {:else if isAuthorized}
 	<div class="flex h-screen w-screen overflow-hidden bg-white">
+		<!-- Mobile backdrop -->
+		{#if isSidebarOpen}
+			<button
+				type="button"
+				class="fixed inset-0 z-30 bg-black/40 md:hidden"
+				aria-label="Close sidebar"
+				onclick={toggleSidebar}
+			></button>
+		{/if}
+
 		<!-- Sidebar -->
 		<aside
 			class={`
-    ${isSidebarOpen ? 'w-64' : 'w-12 lg:w-16'}
-    flex flex-col border-r border-gray-200 bg-white transition-all duration-300
+    fixed inset-y-0 left-0 z-40 w-44 transform transition-transform duration-300
+    md:relative md:z-auto md:translate-x-0 md:transition-all
+    ${isSidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:translate-x-0 md:w-12 lg:w-16'}
+    flex flex-col border-r border-gray-200 bg-white
   `}
 		>
 			<!-- Sidebar Header -->
-			<div class="flex items-center justify-between border-b border-gray-200 px-4 py-4">
+			<div class="flex h-12 flex-shrink-0 items-center justify-between border-b border-gray-200 px-3">
 				<span
 					class={`
-        ${isSidebarOpen ? 'opacity-100' : 'w-0 opacity-0'} 
+        ${isSidebarOpen ? 'opacity-100' : 'w-0 opacity-0'}
         text-lg font-semibold text-gray-900 transition-opacity duration-300
       `}
 				>
@@ -109,13 +117,13 @@
 				<button
 					type="button"
 					onclick={toggleSidebar}
-					class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+					class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 					aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
 				>
 					{#if isSidebarOpen}
-						<ChevronLeft size={20} />
+						<ChevronLeft size={18} />
 					{:else}
-						<Menu size={20} />
+						<ChevronRight size={18} />
 					{/if}
 				</button>
 			</div>
@@ -169,31 +177,39 @@
 		<div class="flex flex-1 flex-col overflow-hidden">
 			<!-- Header (Fixed) -->
 			<header
-				class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-4 shadow-sm"
+				class="flex h-12 flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 shadow-sm"
 			>
 				<!-- Left: Page Title or Breadcrumb -->
 
-				<div class="flex items-center space-x-3">
-					<h1 class="text-lg font-semibold text-gray-900">
+				<div class="flex items-center space-x-2">
+					<button
+						type="button"
+						onclick={toggleSidebar}
+						class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none md:hidden"
+						aria-label="Open sidebar"
+					>
+						<ChevronRight size={18} />
+					</button>
+					<h1 class="text-base font-semibold text-gray-900">
 						{pageTitle}
 					</h1>
 				</div>
 
 				<!-- Right: User Actions -->
-				<div class="flex items-center space-x-3">
+				<div class="flex items-center space-x-2">
 					<!-- Notifications (Optional) -->
 					<button
 						type="button"
-						class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+						class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 						aria-label="Notifications"
 					>
-						<Bell size={20} />
+						<Bell size={18} />
 					</button>
 
 					<!-- User Menu -->
-					<div class="flex items-center space-x-3 border-l border-gray-200 pl-3">
+					<div class="flex items-center space-x-2 border-l border-gray-200 pl-2">
 						<div
-							class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white"
+							class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white"
 						>
 							{currentUser.name.charAt(0)}
 						</div>
@@ -207,18 +223,18 @@
 					<button
 						type="button"
 						onclick={handleLogout}
-						class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
+						class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
 						aria-label="Logout"
 						title="Logout"
 					>
-						<LogOut size={20} />
+						<LogOut size={18} />
 					</button>
 				</div>
 			</header>
 
 			<!-- Content (Scrollable) -->
 			<main class="flex-1 overflow-y-auto bg-gray-50">
-				<div class="h-full overflow-y-auto p-2 lg:p-6">
+				<div class="h-full overflow-y-auto p-2">
 					<!-- Add this wrapper -->
 					{@render children?.()}
 				</div>

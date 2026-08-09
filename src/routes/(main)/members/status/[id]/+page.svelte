@@ -14,6 +14,7 @@
 	import type { DeadMember } from '$lib/types/deadMember';
 	import type { User } from '$lib/types/user';
 	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
@@ -63,7 +64,10 @@
 		const member = $memberListStore.members.find((m) => m._id === page.params.id);
 		if (member) {
 			currentMember = member as User.Get;
-			memberSearchQuery = `${currentMember.first_name} ${currentMember.surname}`;
+			memberSearchQuery = formatMemberDisplay(
+				`${currentMember.first_name} ${currentMember.surname}`,
+				currentMember.member_id
+			);
 			formData.status = currentMember.status;
 			formData.userId = currentMember._id;
 			if (currentMember.status === 'removed' || currentMember.status === 'voluntary-retired') {
@@ -131,7 +135,7 @@
 	function selectMember(member: any) {
 		formData.userId = member._id;
 		formData.memberName = `${member.first_name} ${member.surname}`;
-		memberSearchQuery = formData.memberName;
+		memberSearchQuery = formatMemberDisplay(formData.memberName, member.member_id);
 		showMemberDropdown = false;
 		errors.userId = '';
 	}
@@ -401,7 +405,13 @@
 
 <div class="mx-auto max-w-3xl p-6">
 	<Card
-		title={`Change User Status (${currentMember?.first_name} ${currentMember?.middle_name} ${currentMember?.surname})`}
+		title={`Change User Status (${formatMemberDisplay(
+			`${currentMember?.first_name ?? ''} ${currentMember?.middle_name ?? ''} ${currentMember?.surname ?? ''}`.replace(
+				/\s+/g,
+				' '
+			).trim(),
+			currentMember?.member_id
+		)})`}
 	>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<!-- Member Selection with Search -->
@@ -459,11 +469,13 @@
 										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
 									>
 										<div class="font-medium text-gray-900">
-											{member.first_name}
-											{member.surname}
+											{formatMemberDisplay(
+												`${member.first_name} ${member.surname}`,
+												member.member_id
+											)}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.member_id} • {member.mobile}
+											{member.mobile}
 										</div>
 									</button>
 								{/each}

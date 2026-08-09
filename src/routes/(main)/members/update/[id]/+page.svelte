@@ -1,21 +1,17 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Payments from '$lib/components/other/Payments.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
-	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import addressApi from '$lib/endpoints/addressApi';
 	import coreApi from '$lib/endpoints/coreApi';
-	import paymentApi from '$lib/endpoints/paymentApi';
 	import profileApi from '$lib/endpoints/profileApi';
 	import userApi from '$lib/endpoints/userApi';
 	import { updateUserSchema } from '$lib/schema/update-user';
 	import type { Address } from '$lib/types/address';
 	import type { Form } from '$lib/types/form';
-	import type { Payment } from '$lib/types/payment';
 	import type { User } from '$lib/types/user';
 	import { formatToYYYYMMDD, getUserAddress } from '$lib/utilities/helperFunc';
 	import { formatString } from '$lib/utilities/stringUtils';
@@ -26,18 +22,12 @@
   ****************/
 	let userInfo = $state<User.AllInfo | null>(null);
 	let userAddress = $state<Address.Data | null>(null);
-	let paymentsTableInfo = $state<Payment.OutstandingData | null>(null);
 	let isLoading = $state<boolean>(true);
 	const genders = APP_CONSTANTS.GENDERS;
 	const gotras = APP_CONSTANTS.GOTRAS;
 	const maritalStatus = APP_CONSTANTS.MARITAL_STATUS;
 	const memberStatus = APP_CONSTANTS.MEMBER_STATUS;
-	const tabs = [
-		{ id: 'user-info', label: 'User Info' },
-		{ id: 'payments', label: 'Payments' }
-	];
 
-	let activeTab = $state('user-info');
 	let formData = $state<Form.UserUpdate>({
 		firstName: '',
 		middleName: '',
@@ -99,9 +89,6 @@
 		isLoading = true;
 		const userId = page.params.id;
 		if (userId) {
-			const res = await paymentApi.getOutstandingPaymentOfMember(userId);
-			paymentsTableInfo = res.data;
-
 			userInfo = await coreApi.fetchUserInfo({ userId });
 
 			if (userInfo.profile === null) {
@@ -214,10 +201,6 @@
 					(firstErr as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
 			}, 50);
 		}
-	}
-
-	function handleTabChange(tabId: string) {
-		console.log('Tab changed to:', tabId);
 	}
 
 	let loaderStatus = $state<Record<string, boolean>>({
@@ -372,10 +355,8 @@
 
 {#if !isLoading}
 	<div class="mx-auto max-w-5xl">
-		<Tabs {tabs} bind:activeTab onTabChange={handleTabChange} />
 		<div class="space-y-6 p-2 lg:p-6">
-			{#if activeTab === 'user-info'}
-				<Card title="General Info">
+			<Card title="General Info">
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<Input
 							id="firstName"
@@ -741,15 +722,11 @@
 					</div>
 				</Card>
 
-				<!-- Final Actions -->
-				<div class="flex justify-end gap-3">
-					<Button variant="secondary" onclick={resetForm}>Reset All</Button>
-					<Button variant="success" onclick={submitForm}>Save All Changes</Button>
-				</div>
-			{:else if activeTab === 'payments'}
-				<!-- Payments Content -->
-				<Payments outstandingTableData={paymentsTableInfo}></Payments>
-			{/if}
+			<!-- Final Actions -->
+			<div class="flex justify-end gap-3">
+				<Button variant="secondary" onclick={resetForm}>Reset All</Button>
+				<Button variant="success" onclick={submitForm}>Save All Changes</Button>
+			</div>
 		</div>
 	</div>
 {:else}

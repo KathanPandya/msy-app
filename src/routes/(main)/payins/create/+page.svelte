@@ -10,6 +10,7 @@
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
@@ -85,7 +86,7 @@
 				);
 			})
 			.sort(
-				(a, b) => Number(a.member_id.replace('MSY_', '')) - Number(b.member_id.replace('MSY_', ''))
+				(a, b) => (memberIdDigits(a.member_id) ?? 0) - (memberIdDigits(b.member_id) ?? 0)
 			)
 	);
 
@@ -94,7 +95,7 @@
 		// debugger
 		formData.memberId = member._id;
 		formData.memberName = `${member.first_name} ${member.surname}`;
-		memberSearchQuery = formData.memberName;
+		memberSearchQuery = formatMemberDisplay(formData.memberName, member.member_id);
 		showMemberDropdown = false;
 		errors.memberId = '';
 	}
@@ -319,11 +320,11 @@
 	}
 </script>
 
-<div class="mx-auto max-w-3xl p-6">
+<div class="mx-auto max-w-5xl p-4">
 	<Card title="Add Payment">
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 			<!-- Member Selection with Search -->
-			<div class="md:col-span-2">
+			<div class="md:col-span-2 lg:col-span-3">
 				<label for="" class="mb-1 block text-sm font-medium text-gray-700">
 					Member
 					<span class="text-red-500">*</span>
@@ -381,11 +382,13 @@
 										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
 									>
 										<div class="font-medium text-gray-900">
-											{member.first_name}
-											{member.surname}
+											{formatMemberDisplay(
+												`${member.first_name} ${member.surname}`,
+												member.member_id
+											)}
 										</div>
 										<div class="text-sm text-gray-500">
-											{member.member_id} • {member.mobile}
+											{member.mobile}
 										</div>
 									</button>
 								{/each}
@@ -472,7 +475,7 @@
 			/>
 
 			<!-- Description -->
-			<div class="md:col-span-2">
+			<div class="md:col-span-2 lg:col-span-3">
 				<Input
 					id="description"
 					label="Description"
@@ -486,7 +489,7 @@
 			</div>
 
 			<!-- File Upload -->
-			<div class="md:col-span-2">
+			<div class="md:col-span-2 lg:col-span-3">
 				<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
 					Payment Receipt
 					<span class="text-red-500">*</span>
@@ -541,13 +544,13 @@
 
 		<!-- Messages -->
 		{#if errorMessage}
-			<div class="mt-4 rounded-md bg-red-50 p-4">
+			<div class="mt-4 rounded-md bg-red-50 p-3">
 				<p class="text-sm text-red-800">{errorMessage}</p>
 			</div>
 		{/if}
 
 		{#if successMessage}
-			<div class="mt-4 rounded-md bg-green-50 p-4">
+			<div class="mt-4 rounded-md bg-green-50 p-3">
 				<p class="text-sm text-green-800">{successMessage}</p>
 			</div>
 		{/if}

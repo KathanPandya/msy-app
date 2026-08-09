@@ -16,8 +16,16 @@
 		IndianRupee,
 		TriangleAlert
 	} from '@lucide/svelte';
-	// import { memberListStore } from '$lib/stores/memberListStore';
+	import { memberListStore } from '$lib/stores/memberListStore';
 	import { formatString } from '$lib/utilities/stringUtils';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
+
+	// Dashboard stats don't include member_id on the outstanding lists — look it
+	// up from the members store (keyed by _id) so the display can still combine
+	// name + MSY id.
+	const memberIdById = $derived(
+		new Map($memberListStore.members.map((m) => [m._id, m.member_id]))
+	);
 	import dashboardApi from '$lib/endpoints/dashboardApi';
 
 	// State
@@ -43,13 +51,26 @@
 			topDistricts: [] as { name: string; count: number }[]
 		},
 		outstanding: {
-			highest: [] as { full_name: string; outstanding_amount: number; _id: string }[],
-			lowest: [] as { full_name: string; outstanding_amount: number; _id: string }[]
+			highest: [] as {
+				full_name: string;
+				outstanding_amount: number;
+				_id: string;
+				member_id?: string;
+			}[],
+			lowest: [] as {
+				full_name: string;
+				outstanding_amount: number;
+				_id: string;
+				member_id?: string;
+			}[]
 		}
 	});
 
 	// Fetch dashboard data
 	onMount(async () => {
+		if ($memberListStore.members.length === 0) {
+			memberListStore.fetchAllMembers();
+		}
 		try {
 			const res = await dashboardApi.getDashboardStats();
 			// console.log('res', res);
@@ -177,7 +198,7 @@
 		</div>
 	</div>
 {:else}
-	<div class="space-y-6">
+	<div class="space-y-4">
 		<!-- Header -->
 		<!-- <div class="mb-8">
 			<h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -186,21 +207,21 @@
 
 		<!-- Member Statistics -->
 		<div>
-			<h2 class="mb-4 text-lg font-semibold text-gray-900">Member Statistics</h2>
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+			<h2 class="mb-3 text-lg font-semibold text-gray-900">Member Statistics</h2>
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
 				<!-- Total Members -->
 				<button
 					type="button"
 					onclick={() => navigateToMembers()}
-					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
+					class="group rounded-xl border border-gray-200 bg-white p-4 text-left transition-shadow hover:shadow-lg"
 				>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-blue-100 p-3 transition-colors group-hover:bg-blue-200">
-							<Users class="h-6 w-6 text-blue-600" />
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-blue-100 p-2 transition-colors group-hover:bg-blue-200">
+							<Users class="h-5 w-5 text-blue-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Total Members</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{dashboardData.members.total.toLocaleString()}
 					</p>
 				</button>
@@ -209,15 +230,15 @@
 				<button
 					type="button"
 					onclick={() => navigateToMembers('active')}
-					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
+					class="group rounded-xl border border-gray-200 bg-white p-4 text-left transition-shadow hover:shadow-lg"
 				>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-green-100 p-3 transition-colors group-hover:bg-green-200">
-							<UserCheck class="h-6 w-6 text-green-600" />
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-green-100 p-2 transition-colors group-hover:bg-green-200">
+							<UserCheck class="h-5 w-5 text-green-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Active</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{dashboardData.members.active.toLocaleString()}
 					</p>
 					<p class="mt-2 text-xs text-green-600">
@@ -230,15 +251,15 @@
 				<button
 					type="button"
 					onclick={() => navigateToMembers('dead')}
-					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
+					class="group rounded-xl border border-gray-200 bg-white p-4 text-left transition-shadow hover:shadow-lg"
 				>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-red-100 p-3 transition-colors group-hover:bg-red-200">
-							<UserX class="h-6 w-6 text-red-600" />
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-red-100 p-2 transition-colors group-hover:bg-red-200">
+							<UserX class="h-5 w-5 text-red-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Deceased</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{dashboardData.members.deceased.toLocaleString()}
 					</p>
 				</button>
@@ -247,15 +268,15 @@
 				<button
 					type="button"
 					onclick={() => navigateToMembers('voluntary-retired')}
-					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
+					class="group rounded-xl border border-gray-200 bg-white p-4 text-left transition-shadow hover:shadow-lg"
 				>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-orange-100 p-3 transition-colors group-hover:bg-orange-200">
-							<UserMinus class="h-6 w-6 text-orange-600" />
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-orange-100 p-2 transition-colors group-hover:bg-orange-200">
+							<UserMinus class="h-5 w-5 text-orange-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Voluntary Retired</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{dashboardData.members.retired.toLocaleString()}
 					</p>
 				</button>
@@ -264,15 +285,15 @@
 				<button
 					type="button"
 					onclick={() => navigateToMembers('removed')}
-					class="group rounded-xl border border-gray-200 bg-white p-6 text-left transition-shadow hover:shadow-lg"
+					class="group rounded-xl border border-gray-200 bg-white p-4 text-left transition-shadow hover:shadow-lg"
 				>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-gray-100 p-3 transition-colors group-hover:bg-gray-200">
-							<UserCircle class="h-6 w-6 text-gray-600" />
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-gray-100 p-2 transition-colors group-hover:bg-gray-200">
+							<UserCircle class="h-5 w-5 text-gray-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Removed</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{dashboardData.members.removed.toLocaleString()}
 					</p>
 				</button>
@@ -281,39 +302,39 @@
 
 		<!-- Financial Overview -->
 		<div>
-			<h2 class="mb-4 text-lg font-semibold text-gray-900">Financial Overview</h2>
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+			<h2 class="mb-3 text-lg font-semibold text-gray-900">Financial Overview</h2>
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				<!-- Total Collected -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-green-100 p-3">
-							<IndianRupee class="h-6 w-6 text-green-600" />
+				<div class="rounded-xl border border-gray-200 bg-white p-4">
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-green-100 p-2">
+							<IndianRupee class="h-5 w-5 text-green-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Total Collected</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{formatCurrency(dashboardData.financial.totalCollected)}
 					</p>
 					<p class="mt-2 text-xs text-gray-500">Till date</p>
 				</div>
 
 				<!-- Pending Amount -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
-					<div class="mb-4 flex items-center justify-between">
-						<div class="rounded-lg bg-orange-100 p-3">
-							<TriangleAlert class="h-6 w-6 text-orange-600" />
+				<div class="rounded-xl border border-gray-200 bg-white p-4">
+					<div class="mb-3 flex items-center justify-between">
+						<div class="rounded-lg bg-orange-100 p-2">
+							<TriangleAlert class="h-5 w-5 text-orange-600" />
 						</div>
 					</div>
 					<p class="mb-1 text-sm font-medium text-gray-600">Pending Collection</p>
-					<p class="text-3xl font-bold text-gray-900">
+					<p class="text-2xl font-bold text-gray-900">
 						{formatCurrency(dashboardData.financial.pending)}
 					</p>
 					<p class="mt-2 text-xs text-gray-500">Remaining to collect</p>
 				</div>
 
 				<!-- Collection Progress -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
-					<p class="mb-4 text-sm font-medium text-gray-600">Collection Progress</p>
+				<div class="rounded-xl border border-gray-200 bg-white p-4">
+					<p class="mb-3 text-sm font-medium text-gray-600">Collection Progress</p>
 					<div class="mb-4">
 						<div class="mb-2 flex items-center justify-between">
 							<span class="text-2xl font-bold text-gray-900">{collectionProgress}%</span>
@@ -335,11 +356,11 @@
 
 		<!-- Demographics -->
 		<div>
-			<h2 class="mb-4 text-lg font-semibold text-gray-900">Demographics</h2>
-			<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+			<h2 class="mb-3 text-lg font-semibold text-gray-900">Demographics</h2>
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				<!-- Most Outstanding -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
-					<div class="mb-4 flex items-center gap-2">
+				<div class="rounded-xl border border-gray-200 bg-white p-4">
+					<div class="mb-3 flex items-center gap-2">
 						<OctagonX class="h-5 w-5 text-red-600" />
 						<h3 class="text-sm font-semibold text-gray-900">Most Outstanding</h3>
 					</div>
@@ -354,7 +375,11 @@
 									</span>
 									<a
 										href={`/members/view/${user._id}`}
-										class="cursor-pointer text-sm font-medium text-gray-900">{user.full_name}</a
+										class="cursor-pointer text-sm font-medium text-gray-900"
+										>{formatMemberDisplay(
+											user.full_name,
+											user.member_id ?? memberIdById.get(user._id)
+										)}</a
 									>
 								</div>
 								<span class="text-sm font-bold text-red-600">{user.outstanding_amount}</span>
@@ -364,8 +389,8 @@
 				</div>
 
 				<!-- Advance Payment -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
-					<div class="mb-4 flex items-center gap-2">
+				<div class="rounded-xl border border-gray-200 bg-white p-4">
+					<div class="mb-3 flex items-center gap-2">
 						<SmilePlus class="h-5 w-5 text-green-600" />
 						<h3 class="text-sm font-semibold text-gray-900">Advance Payment</h3>
 					</div>
@@ -380,7 +405,11 @@
 									</span>
 									<a
 										href={`/members/view/${user._id}`}
-										class="cursor-pointer text-sm font-medium text-gray-900">{user.full_name}</a
+										class="cursor-pointer text-sm font-medium text-gray-900"
+										>{formatMemberDisplay(
+											user.full_name,
+											user.member_id ?? memberIdById.get(user._id)
+										)}</a
 									>
 								</div>
 								<span class="text-sm font-bold text-green-600"
@@ -452,8 +481,8 @@
 				</div> -->
 
 				<!-- Top Surnames -->
-				<div class="rounded-xl border border-gray-200 bg-white p-6">
-					<div class="mb-4 flex items-center gap-2">
+				<div class="rounded-xl border border-gray-200 bg-white p-4">
+					<div class="mb-3 flex items-center gap-2">
 						<Hash class="h-5 w-5 text-gray-600" />
 						<h3 class="text-sm font-semibold text-gray-900">Top Surnames</h3>
 					</div>

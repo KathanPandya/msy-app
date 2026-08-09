@@ -4,6 +4,7 @@
 	type InputProps = {
 		id: string;
 		label?: string;
+		labelStyle?: 'stacked' | 'border';
 		type?: string;
 		value: string;
 		error?: string;
@@ -29,6 +30,7 @@
 	let {
 		id,
 		label,
+		labelStyle = 'stacked',
 		type = 'text',
 		value = $bindable(),
 		error = '',
@@ -48,11 +50,11 @@
 	const inputType = $derived(type === 'password' && showPassword ? 'text' : type);
 
 	const inputClasses = $derived(
-		`w-full px-3 py-2 border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-			error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-		} ${disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white text-gray-900'} ${
-			type === 'password' ? 'pr-10' : ''
-		}`
+		`w-full px-3 border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+			labelStyle === 'border' ? 'pt-2 pb-1.5' : 'py-2'
+		} ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'} ${
+			disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white text-gray-900'
+		} ${type === 'password' ? 'pr-10' : ''}`
 	);
 
 	function togglePasswordVisibility() {
@@ -61,7 +63,7 @@
 </script>
 
 <div>
-	{#if label}
+	{#if label && labelStyle === 'stacked'}
 		<label for={id} class="mb-1 block text-sm font-medium text-gray-700">
 			{label}
 			{#if required}<span class="text-red-500">*</span>{/if}
@@ -69,6 +71,15 @@
 	{/if}
 
 	<div class="relative">
+		{#if label && labelStyle === 'border'}
+			<label
+				for={id}
+				class="absolute -top-2 left-2 z-10 bg-white px-1 text-[11px] font-medium text-gray-600"
+			>
+				{label}
+				{#if required}<span class="text-red-500">*</span>{/if}
+			</label>
+		{/if}
 		<input
 			{id}
 			type={inputType}

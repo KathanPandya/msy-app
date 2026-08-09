@@ -2,6 +2,7 @@
 	import Select from '$lib/components/ui/Select.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, IndianRupee } from '@lucide/svelte';
+	import RowActionsMenu from './RowActionsMenu.svelte';
 	import Tooltip from './Tooltip.svelte';
 
 	const iconMapping: Record<string, any> = {
@@ -27,6 +28,13 @@
 		canGoPrevious: boolean;
 	};
 
+	type RowMenuAction = {
+		label: string;
+		onclick: () => void;
+		disabled?: boolean;
+		danger?: boolean;
+	};
+
 	type TableProps = {
 		columns: Column[];
 		data: any[];
@@ -36,6 +44,8 @@
 		onNext?: () => void;
 		onPrevious?: () => void;
 		onLimitChange?: (v: string) => void;
+		density?: 'comfortable' | 'compact';
+		rowMenu?: (row: any) => RowMenuAction[];
 	};
 
 	let {
@@ -46,8 +56,29 @@
 		pagination,
 		onNext,
 		onPrevious,
-		onLimitChange
+		onLimitChange,
+		density = 'compact',
+		rowMenu
 	}: TableProps = $props();
+
+	const headerPaddingClass = $derived(
+		density === 'compact' ? 'px-2.5 py-1 sm:px-3 sm:py-1' : 'px-3 py-2.5 sm:px-6 sm:py-3'
+	);
+	const cellPaddingClass = $derived(
+		density === 'compact' ? 'px-2.5 py-0.5 sm:px-3 sm:py-1' : 'px-3 py-2.5 sm:px-6 sm:py-4'
+	);
+	const cellTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
+	const paginationWrapClass = $derived(
+		density === 'compact' ? 'mt-1.5 gap-2 p-1.5' : 'mt-4 gap-3 p-2 lg:p-4'
+	);
+	const paginationBtnClass = $derived(
+		density === 'compact' ? 'gap-1 px-2 py-1 text-xs' : 'gap-1 px-2 py-1.5 text-sm sm:gap-1.5 sm:px-3 sm:py-2'
+	);
+	const paginationLimitTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
+	const paginationSelectWidthClass = $derived(density === 'compact' ? 'w-16 sm:w-20' : 'w-20 sm:w-24');
+
+	// Only one row's actions menu can be open at a time — tracked by row index.
+	let openMenuIndex = $state<number | null>(null);
 
 	function getAlignClass(align?: string) {
 		if (align === 'right') return 'text-right';
@@ -80,9 +111,12 @@
 		<table class="min-w-full divide-y divide-gray-200">
 			<thead class="sticky top-0 z-10 bg-gray-50">
 				<tr>
+					{#if rowMenu}
+						<th class="{headerPaddingClass} w-7 bg-gray-50"></th>
+					{/if}
 					{#each columns as column}
 						<th
-							class="px-6 py-3 {getAlignClass(
+							class="{headerPaddingClass} {getAlignClass(
 								column.align
 							)} bg-gray-50 text-xs font-medium tracking-wider text-gray-500 uppercase"
 						>
@@ -105,12 +139,26 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
-				{#each data as row}
+				{#each data as row, rowIndex}
 					<tr class={getRowClasses(row)} onclick={() => onRowClick?.(row)}>
+						{#if rowMenu}
+							{@const actions = rowMenu(row)}
+							<td class="{cellPaddingClass} whitespace-nowrap" onclick={(e) => e.stopPropagation()}>
+								{#if actions.length > 0}
+									<RowActionsMenu
+										{actions}
+										open={openMenuIndex === rowIndex}
+										onToggle={() =>
+											(openMenuIndex = openMenuIndex === rowIndex ? null : rowIndex)}
+										onClose={() => (openMenuIndex = null)}
+									/>
+								{/if}
+							</td>
+						{/if}
 						{#each columns as column}
 							{@const tooltipText = getTooltip(column, row[column.key], row)}
 							<td
-								class="px-6 py-4 text-sm whitespace-nowrap text-gray-900 {getAlignClass(
+								class="{cellPaddingClass} {cellTextClass} whitespace-nowrap text-gray-900 {getAlignClass(
 									column.align
 								)}"
 							>
@@ -134,7 +182,10 @@
 
 				{#if data.length === 0}
 					<tr>
-						<td colspan={columns.length} class="px-6 py-8 text-center text-sm text-gray-500">
+						<td
+							colspan={rowMenu ? columns.length + 1 : columns.length}
+							class="px-6 py-8 text-center text-sm text-gray-500"
+						>
 							No data available
 						</td>
 					</tr>
@@ -146,13 +197,13 @@
 	<!-- Sticky Pagination Controls - Bottom -->
 	{#if pagination?.limit || onNext || onPrevious}
 		<div
-			class="sticky bottom-0 z-10 mt-4 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-2 shadow-lg lg:p-4"
+			class="{paginationWrapClass} sticky bottom-0 z-10 flex items-center justify-between rounded-lg border border-gray-200 bg-white shadow-lg"
 		>
 			<!-- Rows per page -->
 			{#if onLimitChange && pagination?.limit}
 				<div class="flex items-center gap-2">
-					<span class="hidden text-sm text-gray-700 md:inline">Show</span>
-					<div class="w-20 sm:w-24">
+					<span class="hidden {paginationLimitTextClass} text-gray-700 md:inline">Show</span>
+					<div class="{paginationSelectWidthClass} {density === 'compact' ? 'pagination-select-compact' : ''}">
 						<Select
 							options={APP_CONSTANTS.PAGINATION_OPTIONS}
 							id="pagination"
@@ -161,7 +212,7 @@
 							onchange={(e: any) => onLimitChange(e.target.value)}
 						/>
 					</div>
-					<span class="hidden text-sm text-gray-700 md:inline">entries</span>
+					<span class="hidden {paginationLimitTextClass} text-gray-700 md:inline">entries</span>
 				</div>
 			{/if}
 
@@ -172,7 +223,7 @@
 						<button
 							disabled={!pagination?.canGoPrevious}
 							onclick={onPrevious}
-							class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:gap-1.5 sm:px-3 sm:py-2"
+							class="{paginationBtnClass} inline-flex items-center rounded-md border border-gray-300 bg-white font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
 						>
 							<ChevronLeft class="h-4 w-4" />
 							<span class="hidden sm:inline">Previous</span>
@@ -182,7 +233,7 @@
 						<button
 							disabled={!pagination?.canGoNext}
 							onclick={onNext}
-							class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:gap-1.5 sm:px-3 sm:py-2"
+							class="{paginationBtnClass} inline-flex items-center rounded-md border border-gray-300 bg-white font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
 						>
 							<span class="hidden sm:inline">Next</span>
 							<ChevronRight class="h-4 w-4" />
@@ -193,3 +244,11 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.pagination-select-compact :global(select) {
+		padding-block: 0.25rem;
+		padding-inline: 0.5rem;
+		font-size: 0.75rem;
+	}
+</style>

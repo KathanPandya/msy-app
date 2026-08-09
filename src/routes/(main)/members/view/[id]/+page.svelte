@@ -1,23 +1,34 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import Button from '$lib/components/ui/Button.svelte';
 	import coreApi from '$lib/endpoints/coreApi';
+	import familiesApi from '$lib/endpoints/familiesApi';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import profileApi from '$lib/endpoints/profileApi';
-	import type { Address } from '$lib/types/address';
 	import type { Payment } from '$lib/types/payment';
-	import type { User } from '$lib/types/user';
 	import { formatDate, getUserAddress } from '$lib/utilities/helperFunc';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { onMount } from 'svelte';
 
 	let paymentsTableInfo = $state<Payment.OutstandingData | null>(null);
 	let isLoading = $state(false);
-	// let userInfo = $state<User.AllInfo | null>(null);
-	// let userAddress = $state<Address.Data | null>(null);
+	let pinBusy = $state(false);
+	let pinError = $state('');
+	let tempPinBanner = $state<{ memberId: string; tempPin: string } | null>(null);
+	let unlockBanner = $state('');
+	let memberIdRaw = $state('');
+	let pinStatus = $state({
+		has_pin: false,
+		must_change_pin: false,
+		locked: false,
+		pin_attempts: 0,
+		club_id: null as string | null,
+		statusRaw: ''
+	});
 
 	let userData = {
-		// General Info
 		હિસાબ: 0,
 		firstName: '',
 		middleName: '',
@@ -27,13 +38,9 @@
 		dob: '',
 		gender: '',
 		status: '',
-
-		// Other Info
 		nativePlace: '',
 		gotra: '',
 		maritalStatus: '',
-
-		// Address
 		addressLine1: '',
 		addressLine2: '',
 		areaName: '',
@@ -42,14 +49,31 @@
 		pincode: '',
 		state: '',
 		country: '',
-
-		// Additional fields
 		joiningDate: '',
-		// membershipType: '',
-		// bloodGroup: '',
-		// occupation: '',
-		_id: '' // User ID for navigation
+		_id: ''
 	};
+
+	const isActiveMember = $derived(pinStatus.statusRaw === 'active');
+
+	function applyPinFields(user: {
+		has_pin?: boolean;
+		must_change_pin?: boolean;
+		locked?: boolean;
+		pin_attempts?: number;
+		club_id?: string | null;
+		status?: string;
+		member_id?: string;
+	}) {
+		pinStatus = {
+			has_pin: Boolean(user.has_pin),
+			must_change_pin: Boolean(user.must_change_pin),
+			locked: Boolean(user.locked),
+			pin_attempts: user.pin_attempts || 0,
+			club_id: user.club_id || null,
+			statusRaw: user.status || ''
+		};
+		if (user.member_id) memberIdRaw = user.member_id;
+	}
 
 	onMount(async () => {
 		const userId = page.params.id;
@@ -69,7 +93,6 @@
 				userInfo.profile = newProfile.profile;
 			}
 
-			// Populate form with user data
 			if (userInfo?.user) {
 				userData.firstName = formatString(userInfo.user.first_name, ['trim']);
 				userData.middleName = formatString(userInfo.user.middle_name, ['trim']);
@@ -81,8 +104,7 @@
 				userData.status = formatString(userInfo?.user?.status, ['trim', 'capitalize-first']);
 				userData.joiningDate = formatDate(userInfo.user.entry_date);
 				userData._id = userInfo.user._id;
-				// userData.refNum1 = formatString(userInfo?.user.reference_member_1, ['trim']);
-				// userData.refNum2 = formatString(userInfo?.user.reference_member_2, ['trim']);
+				applyPinFields(userInfo.user);
 			}
 
 			if (userInfo.profile) {
@@ -114,8 +136,6 @@
 		}
 	});
 
-	// Sample user data - replace with actual data from props or API
-
 	function handleEditUser() {
 		goto(`/members/update/${userData._id}`, {
 			state: { userData }
@@ -127,6 +147,59 @@
 			state: { userData }
 		});
 	}
+
+	async function handleResetPin() {
+		if (!userData._id || !isActiveMember) return;
+		pinBusy = true;
+		pinError = '';
+		unlockBanner = '';
+		try {
+			const res = await familiesApi.resetPin(userData._id);
+			tempPinBanner = {
+				memberId: formatMemberDisplay(
+					`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(/\s+/g, ' ').trim(),
+					memberIdRaw || res.member.member_id
+				),
+				tempPin: res.tempPin
+			};
+			applyPinFields(res.member);
+		} catch (err: any) {
+			pinError = err?.response?.data?.message || 'Could not reset PIN.';
+		} finally {
+			pinBusy = false;
+		}
+	}
+
+	async function handleUnlock() {
+		if (!userData._id || !isActiveMember) return;
+		pinBusy = true;
+		pinError = '';
+		try {
+			const res = await familiesApi.unlock(userData._id);
+			unlockBanner = `${formatMemberDisplay(
+				`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(/\s+/g, ' ').trim(),
+				memberIdRaw || res.member.member_id
+			)} unlocked.`;
+			tempPinBanner = null;
+			applyPinFields(res.member);
+		} catch (err: any) {
+			pinError = err?.response?.data?.message || 'Could not unlock member.';
+		} finally {
+			pinBusy = false;
+		}
+	}
+
+	function dismissTempPin() {
+		tempPinBanner = null;
+	}
+
+	const pinTag = $derived.by(() => {
+		if (!isActiveMember) return '—';
+		if (pinStatus.locked) return 'Locked';
+		if (!pinStatus.has_pin) return 'No PIN';
+		if (pinStatus.must_change_pin) return 'Temp PIN';
+		return 'Set';
+	});
 </script>
 
 {#if !isLoading}
@@ -137,9 +210,13 @@
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="flex-1">
 						<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
-							{userData.firstName}
-							{userData.middleName}
-							{userData.surname}
+							{formatMemberDisplay(
+								`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(
+									/\s+/g,
+									' '
+								).trim(),
+								memberIdRaw
+							)}
 						</h1>
 						<div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
 							<span
@@ -171,7 +248,7 @@
 						</div>
 					</div>
 
-					<div class="flex gap-2 sm:gap-3">
+					<div class="flex flex-wrap gap-2 sm:gap-3">
 						<button
 							onclick={handleEditUser}
 							class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-initial sm:px-6"
@@ -206,17 +283,103 @@
 				</div>
 			</div>
 
+			{#if tempPinBanner}
+				<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+					<p class="text-sm font-medium text-amber-950">
+						Temp PIN for {tempPinBanner.memberId}:
+						<span class="font-mono text-lg tracking-widest">{tempPinBanner.tempPin}</span>
+						— share it with the member; they must change it on next login. It won't be shown again.
+					</p>
+					<button
+						type="button"
+						onclick={dismissTempPin}
+						class="mt-2 text-sm font-medium text-amber-800 underline"
+					>
+						Dismiss
+					</button>
+				</div>
+			{/if}
+			{#if unlockBanner}
+				<div class="mb-6 rounded-md bg-green-50 p-4 text-sm text-green-800">{unlockBanner}</div>
+			{/if}
+			{#if pinError}
+				<div class="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-800">{pinError}</div>
+			{/if}
+
+			<!-- Login PIN (admin) -->
+			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-800">Login PIN</h2>
+						<p class="mt-1 text-sm text-gray-600">
+							Status:
+							<span class="font-medium text-gray-900">{pinTag}</span>
+							{#if isActiveMember && pinStatus.pin_attempts > 0 && !pinStatus.locked}
+								<span class="text-gray-500">· {pinStatus.pin_attempts}/5</span>
+							{/if}
+						</p>
+					</div>
+					{#if isActiveMember}
+						<div class="flex flex-wrap gap-2">
+							{#if pinStatus.locked}
+								<Button variant="secondary" disabled={pinBusy} onclick={handleUnlock}>Unlock</Button>
+							{/if}
+							<Button variant="primary" disabled={pinBusy} onclick={handleResetPin}>
+								{pinStatus.has_pin ? 'Reset PIN' : 'Generate Temp PIN'}
+							</Button>
+						</div>
+					{:else}
+						<span class="text-sm text-gray-400">—</span>
+					{/if}
+				</div>
+			</div>
+
+			{#if pinStatus.club_id}
+				<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+					<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<h2 class="text-lg font-semibold text-gray-800">Family</h2>
+							<p class="mt-1 text-sm text-gray-600">This member belongs to a family group.</p>
+						</div>
+						<a
+							href={`/families/${pinStatus.club_id}`}
+							class="text-sm font-medium text-blue-600 hover:underline"
+						>
+							Manage family →
+						</a>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Payments -->
+			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-800">Payments</h2>
+						<p class="mt-1 text-sm text-gray-600">
+							View this member's payment history and outstanding balance.
+						</p>
+					</div>
+					<a
+						href={`/members/view/${page.params.id}/payments`}
+						class="text-sm font-medium text-blue-600 hover:underline"
+					>
+						Show payments →
+					</a>
+				</div>
+			</div>
+
 			<!-- General Information -->
 			<div class="mb-6 rounded-lg bg-white p-6 shadow-sm">
 				<h2 class="mb-6 border-b pb-3 text-xl font-semibold text-gray-800">General Information</h2>
 
 				<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 					<div>
-						<p class="mb-1 text-sm font-medium text-gray-500">હિસાબ</p>
+						<p class="mb-1 text-sm font-medium text-gray-500">Balance</p>
 						<p
-							class={`text-base text-gray-900 ${userData.હિસાબ < 0 ? 'text-green-600' : 'text-red-600'}`}
+							class={`text-base font-medium ${userData.હિસાબ < 0 ? 'text-green-600' : userData.હિસાબ > 0 ? 'text-red-600' : 'text-gray-500'}`}
 						>
-							{`${Math.abs(userData.હિસાબ)} ${userData.હિસાબ < 0 ? 'જમા' : 'બાકી'}`}
+							{userData.હિસાબ < 0 ? `+${Math.abs(userData.હિસાબ)}` : `${userData.હિસાબ ?? 0}`}
 						</p>
 					</div>
 

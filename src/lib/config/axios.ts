@@ -39,10 +39,10 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
 	(response) => response,
 	async (error) => {
-		if (error.status == 403) {
+		const status = error.response?.status ?? error.status;
+		// Only force logout on 403 when a session token was present (avoid PIN public 403s)
+		if (status === 403 && localStorage.getItem('authToken')) {
 			authStore.logout();
-			// const lo = getExternalLogout();
-			// await lo();
 		}
 		console.error('API Error:', error);
 		return Promise.reject(error);
