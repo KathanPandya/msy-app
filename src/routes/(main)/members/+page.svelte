@@ -1032,7 +1032,6 @@
 		color: var(--text-muted);
 	}
 
-	.badge,
 	.chip {
 		background: var(--accent-bg);
 		color: var(--accent-fg);

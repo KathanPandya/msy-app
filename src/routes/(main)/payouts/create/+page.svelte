@@ -65,14 +65,14 @@
 	// Deceased member dropdown
 	let memberSearchQuery = $state('');
 	let showMemberDropdown = $state(false);
-	let memberDropdownRef: HTMLDivElement;
+	let memberDropdownRef = $state<HTMLDivElement | undefined>(undefined);
 
 	// Nominee dropdown
 	let nominees = $state<any[]>([]);
 	let loadingNominees = $state(false);
 	let nomineeSearchQuery = $state('');
 	let showNomineeDropdown = $state(false);
-	let nomineeDropdownRef: HTMLDivElement;
+	let nomineeDropdownRef = $state<HTMLDivElement | undefined>(undefined);
 
 	// Load deceased members on mount
 	onMount(() => {
@@ -347,7 +347,7 @@
 
 			<!-- Deceased Member Selection -->
 			<div class="md:col-span-2">
-				<label class="mb-1 block text-sm font-medium text-gray-700">
+				<label for="deceased-member-search" class="mb-1 block text-sm font-medium text-gray-700">
 					Deceased Member
 					<span class="text-red-500">*</span>
 				</label>
@@ -358,6 +358,7 @@
 							<Search class="h-5 w-5 text-gray-400" />
 						</div>
 						<input
+							id="deceased-member-search"
 							type="text"
 							value={memberSearchQuery}
 							oninput={handleMemberSearch}
@@ -424,7 +425,7 @@
 
 			<!-- Nominee Selection -->
 			<div class="md:col-span-2">
-				<label class="mb-1 block text-sm font-medium text-gray-700">
+				<label for="nominee-search" class="mb-1 block text-sm font-medium text-gray-700">
 					Nominee
 					<span class="text-red-500">*</span>
 				</label>
@@ -457,6 +458,7 @@
 								<Search class="h-5 w-5 text-gray-400" />
 							</div>
 							<input
+								id="nominee-search"
 								type="text"
 								value={nomineeSearchQuery}
 								oninput={handleNomineeSearch}

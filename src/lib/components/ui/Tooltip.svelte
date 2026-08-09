@@ -39,7 +39,12 @@
 	};
 </script>
 
-<div class="relative inline-block" onmouseenter={handleMouseEnter} onmouseleave={handleMouseLeave}>
+<div
+	class="relative inline-block"
+	role="group"
+	onmouseenter={handleMouseEnter}
+	onmouseleave={handleMouseLeave}
+>
 	{@render children?.()}
 
 	{#if showTooltip && text}

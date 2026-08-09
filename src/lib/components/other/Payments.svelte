@@ -71,7 +71,9 @@
 	}
 
 	// Which rows are actual payments (dead-member rows aren't).
-	const paymentIds = new Set((outstandingTableData?.paymentRecords ?? []).map((p: any) => p._id));
+	const paymentIds = $derived(
+		new Set((outstandingTableData?.paymentRecords ?? []).map((p: any) => p._id))
+	);
 
 	// View modal: shows the payment's details, with an Edit button that
 	// navigates to the update page (mirrors the /payins list flow).
@@ -112,19 +114,18 @@
 		];
 	}
 
-	const totalAmount = outstandingTableData.outstandingAmount + outstandingTableData.totalPayment;
-	const amountPaid = outstandingTableData.totalPayment;
-	const remainingAmount = totalAmount - amountPaid;
-	const completionPercentage =
-		Number(((amountPaid / totalAmount) * 100).toFixed(1)) > 100
-			? 100
-			: ((amountPaid / totalAmount) * 100).toFixed(1);
-
-	let tableColumns = $state<any[]>([
-		{ key: 'date', label: 'Date' },
-		{ key: 'amount', label: 'Amount' },
-		{ key: 'remarks', label: 'Remarks' }
-	]);
+	const totalAmount = $derived(
+		(outstandingTableData?.outstandingAmount ?? 0) + (outstandingTableData?.totalPayment ?? 0)
+	);
+	const amountPaid = $derived(outstandingTableData?.totalPayment ?? 0);
+	const remainingAmount = $derived(totalAmount - amountPaid);
+	const completionPercentage = $derived(
+		totalAmount === 0
+			? 0
+			: Number(((amountPaid / totalAmount) * 100).toFixed(1)) > 100
+				? 100
+				: ((amountPaid / totalAmount) * 100).toFixed(1)
+	);
 
 	const statusOptions = [
 		{ key: '', label: 'All Entries' },
@@ -139,102 +140,8 @@
 		gotra: ''
 	});
 
-	let tableData = $state(
-		sortRecords([
-			...(outstandingTableData?.paymentRecords ?? []),
-			...(outstandingTableData?.deadMemberRecords ?? [])
-		])?.map((payment: any) => {
-			let date: any;
-			let type: string;
-			if (payment.date) {
-				date = payment.date;
-				type = 'credit';
-			} else {
-				date = payment?.deadMember?.date_of_death;
-				type = 'debit';
-			}
-			return {
-				_id: payment._id,
-				date: formatDate(payment.date ?? payment.deadMember.date_of_death) || '-',
-				amount: payment.amount || -100,
-					remarks: payment.remarks || '-',
-				type: type
-			};
-		}) ?? []
-	);
-
-	function applyFilters() {
-		if (filters.status === 'payments') {
-			tableColumns = [
-				{ key: 'date', label: 'Date' },
-				{ key: 'amount', label: 'Amount' },
-				{ key: 'payment_mode', label: 'Payment Mode' },
-				{ key: 'payment_type', label: 'Payment Type' },
-				{ key: 'remarks', label: 'Remarks' }
-			];
-			tableData =
-				sortRecords(outstandingTableData?.paymentRecords)?.map((payment: any) => {
-					return {
-						_id: payment._id,
-						date: formatDate(payment.date) || '-',
-						amount: payment.amount || '-',
-						payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-						payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-',
-						remarks: payment.remarks || '-'
-					};
-				}) ?? [];
-		} else if (filters.status === 'deadMembers') {
-			tableColumns = [
-				{ key: 'date', label: 'Date of Death' },
-				{ key: 'name', label: 'Member' }
-			];
-			tableData =
-				sortRecords(outstandingTableData?.deadMemberRecords)?.map((payment: any) => {
-					const memberName = `${payment.user.first_name} ${payment.user.middle_name} ${payment.user.surname}`;
-					return {
-						_id: payment._id,
-						date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
-						amount: payment.amount || '-',
-						name: memberName ? formatMemberDisplay(memberName, payment.user.member_id) : '-'
-					};
-				}) ?? [];
-		} else {
-			tableColumns = [
-				{ key: 'date', label: 'Date' },
-				{ key: 'amount', label: 'Amount' },
-				{ key: 'remarks', label: 'Remarks' }
-			];
-
-			const mergedRecords = [
-				...(outstandingTableData?.paymentRecords ?? []),
-				...(outstandingTableData?.deadMemberRecords ?? [])
-			];
-
-			tableData = sortRecords(mergedRecords).map((payment: any) => {
-				let date: any;
-				let type: string;
-				if (payment.date) {
-					date = payment.date;
-					type = 'credit';
-				} else {
-					date = payment?.deadMember?.date_of_death;
-					type = 'debit';
-				}
-				// const date = payment.date || payment?.deadMember?.date_of_death;
-
-				return {
-					_id: payment._id,
-					date: date ? formatDate(date) : '-',
-					amount: payment.amount ?? -100,
-					remarks: payment.remarks || '-',
-					type: type
-				};
-			});
-		}
-	}
-
-	function sortRecords(records: any) {
-		return records.sort((a: any, b: any) => {
+	function sortRecords(records: any[] = []) {
+		return [...records].sort((a: any, b: any) => {
 			const date1 = a.date || a?.deadMember?.date_of_death;
 			const date2 = b.date || b?.deadMember?.date_of_death;
 
@@ -244,6 +151,71 @@
 			return dateB - dateA;
 		});
 	}
+
+	const tableColumns = $derived.by(() => {
+		if (filters.status === 'payments') {
+			return [
+				{ key: 'date', label: 'Date' },
+				{ key: 'amount', label: 'Amount' },
+				{ key: 'payment_mode', label: 'Payment Mode' },
+				{ key: 'payment_type', label: 'Payment Type' },
+				{ key: 'remarks', label: 'Remarks' }
+			];
+		}
+		if (filters.status === 'deadMembers') {
+			return [
+				{ key: 'date', label: 'Date of Death' },
+				{ key: 'name', label: 'Member' }
+			];
+		}
+		return [
+			{ key: 'date', label: 'Date' },
+			{ key: 'amount', label: 'Amount' },
+			{ key: 'remarks', label: 'Remarks' }
+		];
+	});
+
+	const tableData = $derived.by(() => {
+		if (filters.status === 'payments') {
+			return sortRecords(outstandingTableData?.paymentRecords ?? []).map((payment: any) => ({
+				_id: payment._id,
+				date: formatDate(payment.date) || '-',
+				amount: payment.amount || '-',
+				payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
+				payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-',
+				remarks: payment.remarks || '-'
+			}));
+		}
+
+		if (filters.status === 'deadMembers') {
+			return sortRecords(outstandingTableData?.deadMemberRecords ?? []).map((payment: any) => {
+				const name = `${payment.user.first_name} ${payment.user.middle_name} ${payment.user.surname}`;
+				return {
+					_id: payment._id,
+					date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
+					amount: payment.amount || '-',
+					name: name ? formatMemberDisplay(name, payment.user.member_id) : '-'
+				};
+			});
+		}
+
+		const mergedRecords = [
+			...(outstandingTableData?.paymentRecords ?? []),
+			...(outstandingTableData?.deadMemberRecords ?? [])
+		];
+
+		return sortRecords(mergedRecords).map((payment: any) => {
+			const date = payment.date || payment?.deadMember?.date_of_death;
+			const type = payment.date ? 'credit' : 'debit';
+			return {
+				_id: payment._id,
+				date: date ? formatDate(date) : '-',
+				amount: payment.amount ?? -100,
+				remarks: payment.remarks || '-',
+				type
+			};
+		});
+	});
 
 	function getRowBgColor(row: any) {
 		if (row.type === 'credit') return 'bg-green-100';
@@ -332,7 +304,6 @@
 			>
 				<select
 					bind:value={filters.status}
-					onchange={applyFilters}
 					class="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:px-3"
 				>
 					{#each statusOptions as option}
