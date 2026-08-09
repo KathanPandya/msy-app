@@ -1,0 +1,1 @@
+import{a as e}from"./BOokco-I.js";import{g as t}from"./OiQeyDU2.js";import{j as a}from"./B31XBvoV.js";function n(){return a(e).isAuthenticated?!0:(t("/login"),!1)}function s(){const r=a(e);return r.isAuthenticated?r.authType==="password"&&r.userAllInfo?.user.role==="admin"?(t("/dashboard"),!1):!0:(t("/login"),!1)}export{n as a,s as r};
