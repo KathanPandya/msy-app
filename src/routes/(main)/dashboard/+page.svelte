@@ -14,7 +14,8 @@
 		OctagonX,
 		SmilePlus,
 		IndianRupee,
-		TriangleAlert
+		TriangleAlert,
+		Download
 	} from '@lucide/svelte';
 	import { memberListStore } from '$lib/stores/memberListStore';
 	import { formatString } from '$lib/utilities/stringUtils';
@@ -30,6 +31,8 @@
 
 	// State
 	let isLoading = $state(true);
+	let isDownloadingBackup = $state(false);
+	let backupError = $state('');
 	let dashboardData = $state({
 		members: {
 			total: 0,
@@ -168,6 +171,28 @@
 		}
 	}
 
+	async function handleDownloadBackup() {
+		if (isDownloadingBackup) return;
+		isDownloadingBackup = true;
+		backupError = '';
+		try {
+			const { blob, filename } = await dashboardApi.downloadBackup();
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+		} catch (error: any) {
+			console.error('Failed to download backup:', error);
+			backupError = error?.message || 'Failed to download backup';
+		} finally {
+			isDownloadingBackup = false;
+		}
+	}
+
 	// Format currency
 	function formatCurrency(amount: number): string {
 		return new Intl.NumberFormat('en-IN', {
@@ -200,10 +225,33 @@
 {:else}
 	<div class="space-y-4">
 		<!-- Header -->
-		<!-- <div class="mb-8">
-			<h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-			<p class="mt-1 text-gray-600">Overview of your organization</p>
-		</div> -->
+		<div class="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+				<p class="mt-1 text-gray-600">Overview of your organization</p>
+			</div>
+			<div class="flex flex-col items-stretch gap-2 sm:items-end">
+				<button
+					type="button"
+					onclick={handleDownloadBackup}
+					disabled={isDownloadingBackup}
+					class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					{#if isDownloadingBackup}
+						<span
+							class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent"
+						></span>
+						Preparing backup…
+					{:else}
+						<Download class="h-4 w-4" />
+						Download backup
+					{/if}
+				</button>
+				{#if backupError}
+					<p class="text-sm text-red-600" role="alert">{backupError}</p>
+				{/if}
+			</div>
+		</div>
 
 		<!-- Member Statistics -->
 		<div>
