@@ -7,8 +7,6 @@ export namespace Form {
 		email: string;
 		gender: string;
 		dob: string;
-		password: string;
-		confirmPassword: string;
 		maritalStatus: string;
 		gotra: string;
 		nativePlace: string;

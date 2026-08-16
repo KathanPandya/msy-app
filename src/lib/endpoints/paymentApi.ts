@@ -2,6 +2,7 @@ import axios from '$lib/config/axios';
 import type { Payment } from '$lib/types/payment';
 import { clearMembersCache } from '$lib/utilities/membersCache';
 import { clearPaymentsCache } from '$lib/utilities/paymentsCache';
+import { clearMeCache } from '$lib/utilities/meCache';
 
 class PaymentApi {
 	async getAllPayments(queryParams: {
@@ -54,6 +55,7 @@ class PaymentApi {
 		const response = await axios.post('/api/payment/create', payload);
 		clearMembersCache();
 		clearPaymentsCache();
+		clearMeCache();
 		return response.data;
 	}
 
@@ -65,6 +67,7 @@ class PaymentApi {
 		const response = await axios.put(`/api/payment/update/${payload.id}`, payload);
 		clearMembersCache();
 		clearPaymentsCache();
+		clearMeCache();
 		return response.data;
 	}
 
@@ -74,6 +77,17 @@ class PaymentApi {
 		payload: Payment.Payout_Create;
 	}): Promise<{ address: Payment.Get; success: boolean; message: string }> {
 		const response = await axios.post('/api/payout/create', payload);
+		return response.data;
+	}
+
+	async submitPaymentScreenshot({
+		userId,
+		url
+	}: {
+		userId: string;
+		url: string;
+	}): Promise<{ success: boolean; message: string }> {
+		const response = await axios.post('/api/payment-screenshot', { userId, url });
 		return response.data;
 	}
 }

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { t, withLang } from '$lib/i18n';
 	import Input from '$lib/components/ui/Input.svelte';
 	import pinAuthApi from '$lib/endpoints/pinAuthApi';
 	import { authStore } from '$lib/stores/authStore';
@@ -8,6 +10,8 @@
 	import { onMount } from 'svelte';
 
 	type Stage = PinAuth.Stage | 'identify';
+
+	const lang = $derived(page.params.lang as 'guj' | undefined);
 
 	let stage = $state<Stage>('identify');
 	let memberId = $state('');
@@ -24,7 +28,7 @@
 
 	onMount(() => {
 		if ($authStore.isAuthenticated && $authStore.authType === 'pin') {
-			goto('/me');
+			goto(withLang(lang, '/me'));
 		} else if ($authStore.isAuthenticated && $authStore.userAllInfo?.user.role === 'admin') {
 			goto('/dashboard');
 		}
@@ -74,7 +78,7 @@
 			if (data?.stage) {
 				applyStageResult(data);
 			} else {
-				errorMessage = data?.error || data?.message || 'Something went wrong.';
+				errorMessage = data?.error || data?.message || t(lang, 'errSomethingWrong');
 			}
 		} finally {
 			isLoading = false;
@@ -84,7 +88,7 @@
 	async function completeSession(data: PinAuth.StageResult) {
 		if (data.success && data.token && data.user) {
 			await authStore.loginWithPinSession(data.token, data.user);
-			goto('/me');
+			goto(withLang(lang, '/me'));
 			return true;
 		}
 		return false;
@@ -107,7 +111,7 @@
 		} catch (err: any) {
 			const data = err?.response?.data as PinAuth.StageResult | undefined;
 			if (data?.stage) applyStageResult(data);
-			else errorMessage = data?.error || err?.response?.data?.message || 'Login failed.';
+			else errorMessage = data?.error || err?.response?.data?.message || t(lang, 'errLoginFailed');
 		} finally {
 			isLoading = false;
 		}
@@ -115,9 +119,13 @@
 
 	async function handleBootstrap(e: Event) {
 		e.preventDefault();
-		isLoading = true;
 		errorMessage = '';
 		attemptsLeft = null;
+		if (newPin !== confirmPin) {
+			errorMessage = t(lang, 'errPinsMismatch');
+			return;
+		}
+		isLoading = true;
 		try {
 			const data = await pinAuthApi.bootstrap({
 				memberId,
@@ -130,7 +138,7 @@
 		} catch (err: any) {
 			const data = err?.response?.data as PinAuth.StageResult | undefined;
 			if (data?.stage) applyStageResult(data);
-			else errorMessage = data?.error || err?.response?.data?.message || 'Could not set PIN.';
+			else errorMessage = data?.error || err?.response?.data?.message || t(lang, 'errCouldNotSetPin');
 		} finally {
 			isLoading = false;
 		}
@@ -138,9 +146,13 @@
 
 	async function handleChangePin(e: Event) {
 		e.preventDefault();
-		isLoading = true;
 		errorMessage = '';
 		attemptsLeft = null;
+		if (newPin !== confirmPin) {
+			errorMessage = t(lang, 'errPinsMismatch');
+			return;
+		}
+		isLoading = true;
 		try {
 			const data = await pinAuthApi.changePin({
 				memberId,
@@ -153,7 +165,8 @@
 		} catch (err: any) {
 			const data = err?.response?.data as PinAuth.StageResult | undefined;
 			if (data?.stage) applyStageResult(data);
-			else errorMessage = data?.error || err?.response?.data?.message || 'Could not update PIN.';
+			else
+				errorMessage = data?.error || err?.response?.data?.message || t(lang, 'errCouldNotUpdatePin');
 		} finally {
 			isLoading = false;
 		}
@@ -165,20 +178,18 @@
 <div class="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
 	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
 		<div class="mb-6 text-center">
-			<h1 class="text-2xl font-bold text-gray-900">Member login</h1>
-			{#if stage === 'identify'}
-				<p class="mt-2 text-sm text-gray-600">Enter your member ID to continue.</p>
-			{:else if stage === 'pin'}
+			<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'memberLogin')}</h1>
+			{#if stage === 'pin'}
 				<p class="mt-2 text-sm text-gray-600">
-					Welcome back, <strong>{displayMember}</strong>.
+					{t(lang, 'welcomeBack')} <strong>{displayMember}</strong>.
 				</p>
 			{:else if stage === 'bootstrap'}
 				<p class="mt-2 text-sm text-gray-600">
-					First login for <strong>{displayMember}</strong>. Verify your date of birth and set a PIN.
+					{t(lang, 'firstLoginFor')} <strong>{displayMember}</strong>. {t(lang, 'verifyDobAndSetPin')}
 				</p>
 			{:else if stage === 'changePin'}
 				<p class="mt-2 text-sm text-gray-600">
-					Your PIN was set by the admin. Please choose your own.
+					{t(lang, 'pinSetByAdminNotice')}
 				</p>
 			{/if}
 		</div>
@@ -190,14 +201,14 @@
 		{/if}
 
 		{#if attemptsLeft != null && (stage === 'pin' || stage === 'bootstrap' || stage === 'changePin')}
-			<p class="mb-4 text-sm text-amber-700">{attemptsLeft} attempt(s) left.</p>
+			<p class="mb-4 text-sm text-amber-700">{attemptsLeft} {t(lang, 'attemptsLeft')}</p>
 		{/if}
 
 		{#if stage === 'identify'}
 			<form onsubmit={handleIdentify} class="space-y-4">
 				<Input
 					id="memberId"
-					label="Member ID"
+					label={t(lang, 'memberId')}
 					bind:value={rawMemberId}
 					placeholder="MSY-1"
 					required
@@ -207,14 +218,14 @@
 					disabled={isLoading}
 					class="w-full rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
 				>
-					{isLoading ? 'Checking…' : 'Continue'}
+					{isLoading ? t(lang, 'checking') : t(lang, 'continueLabel')}
 				</button>
 			</form>
 		{:else if stage === 'pin'}
 			<form onsubmit={handleLoginPin} class="space-y-4">
 				<Input
 					id="pin"
-					label="4-digit PIN"
+					label={t(lang, 'fourDigitPin')}
 					type="password"
 					inputmode="numeric"
 					maxlength={4}
@@ -226,15 +237,15 @@
 					disabled={isLoading}
 					class="w-full rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
 				>
-					{isLoading ? 'Logging in…' : 'Log in'}
+					{isLoading ? t(lang, 'loggingIn') : t(lang, 'logIn')}
 				</button>
 			</form>
 		{:else if stage === 'bootstrap'}
 			<form onsubmit={handleBootstrap} class="space-y-4">
-				<Input id="dob" label="Date of birth" type="date" bind:value={dob} required />
+				<Input id="dob" label={t(lang, 'dateOfBirth')} type="date" bind:value={dob} required />
 				<Input
 					id="newPin"
-					label="New 4-digit PIN"
+					label={t(lang, 'newFourDigitPin')}
 					type="password"
 					inputmode="numeric"
 					maxlength={4}
@@ -243,7 +254,7 @@
 				/>
 				<Input
 					id="confirmPin"
-					label="Confirm PIN"
+					label={t(lang, 'confirmPin')}
 					type="password"
 					inputmode="numeric"
 					maxlength={4}
@@ -255,14 +266,14 @@
 					disabled={isLoading}
 					class="w-full rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
 				>
-					{isLoading ? 'Saving…' : 'Set PIN & log in'}
+					{isLoading ? t(lang, 'saving') : t(lang, 'setPinAndLogIn')}
 				</button>
 			</form>
 		{:else if stage === 'changePin'}
 			<form onsubmit={handleChangePin} class="space-y-4">
 				<Input
 					id="currentPin"
-					label="Temporary PIN"
+					label={t(lang, 'temporaryPin')}
 					type="password"
 					inputmode="numeric"
 					maxlength={4}
@@ -271,7 +282,7 @@
 				/>
 				<Input
 					id="newPinChange"
-					label="New 4-digit PIN"
+					label={t(lang, 'newFourDigitPin')}
 					type="password"
 					inputmode="numeric"
 					maxlength={4}
@@ -280,7 +291,7 @@
 				/>
 				<Input
 					id="confirmPinChange"
-					label="Confirm PIN"
+					label={t(lang, 'confirmPin')}
 					type="password"
 					inputmode="numeric"
 					maxlength={4}
@@ -292,30 +303,35 @@
 					disabled={isLoading}
 					class="w-full rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
 				>
-					{isLoading ? 'Updating…' : 'Update PIN'}
+					{isLoading ? t(lang, 'updating') : t(lang, 'updatePin')}
 				</button>
 			</form>
 		{:else if stage === 'admin'}
 			<div class="space-y-3 text-center">
 				<p class="text-gray-800">
-					Account <strong>{displayMember}</strong> isn't set up for self-activation.
+					{t(lang, 'accountLabel')} <strong>{displayMember}</strong>
+					{t(lang, 'accountNotSelfActivated')}
 				</p>
 				<p class="text-sm text-gray-600">
-					Please ask the admin for a temporary PIN, then come back to log in.
+					{t(lang, 'askAdminForTempPin')}
 				</p>
 			</div>
 		{:else if stage === 'locked'}
 			<div class="space-y-3 text-center">
-				<p class="text-gray-800">Account <strong>{displayMember}</strong> is locked.</p>
+				<p class="text-gray-800">
+					{t(lang, 'accountLabel')} <strong>{displayMember}</strong> {t(lang, 'isLocked')}
+				</p>
 				<p class="text-sm text-gray-600">
-					Too many incorrect attempts. Please contact the admin to unlock it.
+					{t(lang, 'tooManyAttemptsNotice')}
 				</p>
 			</div>
 		{:else if stage === 'inactive'}
 			<div class="space-y-3 text-center">
-				<p class="text-gray-800">Account <strong>{displayMember}</strong> is inactive.</p>
+				<p class="text-gray-800">
+					{t(lang, 'accountLabel')} <strong>{displayMember}</strong> {t(lang, 'isInactive')}
+				</p>
 				<p class="text-sm text-gray-600">
-					This membership is no longer active. Please contact the admin.
+					{t(lang, 'membershipInactiveNotice')}
 				</p>
 			</div>
 		{/if}
@@ -326,19 +342,19 @@
 				onclick={startOver}
 				class="mt-6 w-full text-center text-sm font-medium text-blue-600 hover:text-blue-800"
 			>
-				← Start over
+				{t(lang, 'startOver')}
 			</button>
 		{/if}
 
 		<p class="mt-8 text-center text-xs text-gray-500">
-			Need help?
+			{t(lang, 'needHelp')}
 			<a
 				href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal%20login"
 				target="_blank"
 				rel="noopener noreferrer"
 				class="text-blue-600 hover:underline"
 			>
-				Contact Support
+				{t(lang, 'contactSupport')}
 			</a>
 		</p>
 	</div>
@@ -347,6 +363,6 @@
 		href="/admin"
 		class="absolute bottom-3 right-3 text-[11px] text-gray-400 hover:text-gray-600 hover:underline"
 	>
-		Login to admin portal
+		{t(lang, 'loginToAdminPortal')}
 	</a>
 </div>

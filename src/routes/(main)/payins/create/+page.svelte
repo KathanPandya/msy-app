@@ -76,7 +76,7 @@
 		$memberListStore.members
 			.filter((member) => {
 				const searchLower = memberSearchQuery.toLowerCase();
-				const fullName = `${member.first_name} ${member.surname}`.toLowerCase();
+				const fullName = (member.name || '').toLowerCase();
 				// const mobile = member.mobile || '';
 				const member_id = (member.member_id ?? '').toLowerCase();
 				return (
@@ -94,7 +94,7 @@
 	function selectMember(member: any) {
 		// debugger
 		formData.memberId = member._id;
-		formData.memberName = `${member.first_name} ${member.surname}`;
+		formData.memberName = member.name;
 		memberSearchQuery = formatMemberDisplay(formData.memberName, member.member_id);
 		showMemberDropdown = false;
 		errors.memberId = '';
@@ -382,10 +382,7 @@
 										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
 									>
 										<div class="font-medium text-gray-900">
-											{formatMemberDisplay(
-												`${member.first_name} ${member.surname}`,
-												member.member_id
-											)}
+											{formatMemberDisplay(member.name, member.member_id)}
 										</div>
 										<div class="text-sm text-gray-500">
 											{member.mobile}

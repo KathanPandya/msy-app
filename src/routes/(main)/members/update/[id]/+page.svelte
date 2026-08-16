@@ -36,8 +36,6 @@
 		email: '',
 		gender: '',
 		dob: '',
-		password: '',
-		confirmPassword: '',
 		maritalStatus: '',
 		gotra: '',
 		nativePlace: '',
@@ -62,8 +60,6 @@
 		email: '',
 		gender: '',
 		dob: '',
-		password: '',
-		confirmPassword: '',
 		maritalStatus: '',
 		gotra: '',
 		nativePlace: '',
@@ -80,7 +76,79 @@
 		refNum2: ''
 	});
 
-	let successMessage = $state('');
+	/***************
+    Per-section dirty tracking
+    Snapshots of "last saved" values per card, used to know when to show
+    each card's Reset button and to revert only that card's fields.
+  ****************/
+	const GENERAL_FIELDS = [
+		'firstName',
+		'middleName',
+		'lastName',
+		'mobileNumber',
+		'email',
+		'gender',
+		'dob',
+		'refNum1',
+		'refNum2'
+	] as const;
+	const OTHER_FIELDS = ['nativePlace', 'gotra', 'maritalStatus'] as const;
+	const ADDRESS_FIELDS = [
+		'addressLine1',
+		'addressLine2',
+		'areaName',
+		'landmark',
+		'city',
+		'pincode',
+		'state',
+		'country'
+	] as const;
+
+	function snapshot<K extends keyof Form.UserUpdate>(keys: readonly K[]) {
+		return Object.fromEntries(keys.map((k) => [k, formData[k]])) as Pick<Form.UserUpdate, K>;
+	}
+
+	function isSectionDirty<K extends keyof Form.UserUpdate>(
+		keys: readonly K[],
+		original: Pick<Form.UserUpdate, K>
+	) {
+		return keys.some((k) => formData[k] !== original[k]);
+	}
+
+	let originalGeneral = $state<Pick<Form.UserUpdate, (typeof GENERAL_FIELDS)[number]>>(
+		snapshot(GENERAL_FIELDS)
+	);
+	let originalOther = $state<Pick<Form.UserUpdate, (typeof OTHER_FIELDS)[number]>>(
+		snapshot(OTHER_FIELDS)
+	);
+	let originalAddress = $state<Pick<Form.UserUpdate, (typeof ADDRESS_FIELDS)[number]>>(
+		snapshot(ADDRESS_FIELDS)
+	);
+
+	let isGeneralDirty = $derived(isSectionDirty(GENERAL_FIELDS, originalGeneral));
+	let isOtherDirty = $derived(isSectionDirty(OTHER_FIELDS, originalOther));
+	let isAddressDirty = $derived(isSectionDirty(ADDRESS_FIELDS, originalAddress));
+
+	function resetSection(section: 'general' | 'other' | 'address') {
+		if (section === 'general') {
+			GENERAL_FIELDS.forEach((k) => {
+				formData[k] = originalGeneral[k];
+				errors[k] = '';
+			});
+		} else if (section === 'other') {
+			OTHER_FIELDS.forEach((k) => {
+				formData[k] = originalOther[k];
+				errors[k] = '';
+			});
+		} else {
+			ADDRESS_FIELDS.forEach((k) => {
+				formData[k] = originalAddress[k];
+				errors[k] = '';
+			});
+		}
+		sectionErrors[section] = '';
+		sectionSuccess[section] = '';
+	}
 
 	/***************
     Load user data
@@ -131,6 +199,11 @@
 					formData.landmark = formatString(userAddress.landmark, ['trim']);
 				}
 			}
+
+			originalGeneral = snapshot(GENERAL_FIELDS);
+			originalOther = snapshot(OTHER_FIELDS);
+			originalAddress = snapshot(ADDRESS_FIELDS);
+
 			isLoading = false;
 		}
 	});
@@ -145,61 +218,6 @@
 			errors[name] = '';
 		} catch (err: any) {
 			errors[name] = err?.message || 'Invalid';
-		}
-	}
-
-	function resetForm() {
-		formData = {
-			firstName: formatString(userInfo?.user?.first_name, ['trim']),
-			middleName: formatString(userInfo?.user?.middle_name, ['trim']),
-			lastName: formatString(userInfo?.user?.surname, ['trim']),
-			mobileNumber: formatString(userInfo?.user?.mobile, ['trim']),
-			email: formatString(userInfo?.user?.email, ['trim']),
-			gender: formatString(userInfo?.user?.gender, ['trim']),
-			dob: formatString(userInfo?.user?.date_of_birth?.split('T')[0], ['trim']),
-			password: '',
-			confirmPassword: '',
-			maritalStatus: formatString(userInfo?.profile?.marital_status, ['trim']),
-			gotra: formatString(userInfo?.profile?.gotra, ['trim']),
-			nativePlace: formatString(userInfo?.profile?.native_place, ['trim']),
-			addressLine1: formatString(userAddress?.address_line_1, ['trim']),
-			addressLine2: formatString(userAddress?.address_line_2, ['trim']),
-			areaName: formatString(userAddress?.area_name, ['trim']),
-			landmark: formatString(userAddress?.landmark, ['trim']),
-			city: formatString(userAddress?.city, ['trim']),
-			pincode: formatString(userAddress?.pincode, ['trim']),
-			state: formatString(userAddress?.state, ['trim']),
-			country: formatString(userAddress?.country, ['trim']),
-			status: userInfo?.user?.status || '',
-			refNum1: '',
-			refNum2: ''
-		};
-		errors = Object.fromEntries(Object.keys(formData).map((k) => [k, ''])) as any;
-		successMessage = '';
-	}
-
-	async function submitForm() {
-		errors = Object.fromEntries(Object.keys(formData).map((k) => [k, ''])) as any;
-		try {
-			const validated = await updateUserSchema.validate(formData, { abortEarly: false });
-			successMessage = 'Form submitted successfully. Check console for payload.';
-			console.log('Validated payload:', validated);
-		} catch (err: any) {
-			if (err.inner && Array.isArray(err.inner)) {
-				const errs: Partial<Record<keyof Form.UserUpdate, string>> = {};
-				err.inner.forEach((e: any) => {
-					if (e.path) errs[e.path as keyof Form.UserUpdate] = e.message;
-				});
-				errors = { ...errors, ...errs };
-			} else {
-				console.error(err);
-			}
-			successMessage = '';
-			setTimeout(() => {
-				const firstErr = document.querySelector('.error-message');
-				if (firstErr)
-					(firstErr as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
-			}, 50);
 		}
 	}
 
@@ -248,6 +266,7 @@
 						date_of_birth: formatToYYYYMMDD(formData.dob),
 						gender: formData.gender,
 						mobile: formData.mobileNumber,
+						email: formData.email,
 						reference_member_1: formData.refNum1,
 						reference_member_2: formData.refNum2,
 						status_details: userInfo.user.status_details,
@@ -268,6 +287,7 @@
 					formData.refNum1 = response.user.reference_member_1 || '';
 					formData.refNum2 = response.user.reference_member_2 || '';
 
+					originalGeneral = snapshot(GENERAL_FIELDS);
 					sectionSuccess[section] = response.message || 'General info updated successfully';
 				}
 			} else if (section === 'other') {
@@ -292,6 +312,7 @@
 					formData.gotra = response.profile.gotra || '';
 					formData.nativePlace = response.profile.native_place || '';
 
+					originalOther = snapshot(OTHER_FIELDS);
 					sectionSuccess[section] = response.message || 'Other info updated successfully';
 				}
 			} else if (section === 'address') {
@@ -325,6 +346,7 @@
 					formData.state = response.address.state || '';
 					formData.country = response.address.country || '';
 
+					originalAddress = snapshot(ADDRESS_FIELDS);
 					sectionSuccess[section] = response.message || 'Address updated successfully';
 				}
 			}
@@ -348,9 +370,6 @@
 			}
 		}
 	}
-	function checkDiff() {
-		console.log('value changes');
-	}
 </script>
 
 {#if !isLoading}
@@ -365,7 +384,6 @@
 							error={errors.firstName}
 							onblur={() => validateField('firstName')}
 							placeholder="First name"
-							onChange={checkDiff}
 						/>
 
 						<Input
@@ -427,6 +445,24 @@
 							onchange={() => validateField('gender')}
 						/>
 
+						<Input
+							id="refNum1"
+							label="Reference Number 1"
+							bind:value={formData.refNum1}
+							error={errors.refNum1}
+							onblur={() => validateField('refNum1')}
+							placeholder="Reference Number 1"
+						/>
+
+						<Input
+							id="refNum2"
+							label="Reference Number 2"
+							bind:value={formData.refNum2}
+							error={errors.refNum2}
+							onblur={() => validateField('refNum2')}
+							placeholder="Reference Number 2"
+						/>
+
 						<!-- <Select
 						id="status"
 						label="Status"
@@ -475,11 +511,17 @@
 						</div>
 					{/if}
 
-					<div class="mt-6 flex justify-end">
+					<div class="mt-6 flex justify-end gap-2">
+						{#if isGeneralDirty}
+							<Button variant="secondary" size="sm" onclick={() => resetSection('general')}>
+								Reset
+							</Button>
+						{/if}
 						<Button
 							variant="primary"
+							size="sm"
 							onclick={() => submitSection('general')}
-							disabled={loaderStatus.general}
+							disabled={loaderStatus.general || !isGeneralDirty}
 						>
 							{#if loaderStatus.general}
 								<div class="flex items-center gap-2">
@@ -566,11 +608,17 @@
 						</div>
 					{/if}
 
-					<div class="mt-6 flex justify-end">
+					<div class="mt-6 flex justify-end gap-2">
+						{#if isOtherDirty}
+							<Button variant="secondary" size="sm" onclick={() => resetSection('other')}>
+								Reset
+							</Button>
+						{/if}
 						<Button
 							variant="primary"
+							size="sm"
 							onclick={() => submitSection('other')}
-							disabled={loaderStatus.other}
+							disabled={loaderStatus.other || !isOtherDirty}
 						>
 							{#if loaderStatus.other}
 								<div class="flex items-center gap-2">
@@ -702,11 +750,17 @@
 						</div>
 					{/if}
 
-					<div class="mt-6 flex justify-end">
+					<div class="mt-6 flex justify-end gap-2">
+						{#if isAddressDirty}
+							<Button variant="secondary" size="sm" onclick={() => resetSection('address')}>
+								Reset
+							</Button>
+						{/if}
 						<Button
 							variant="primary"
+							size="sm"
 							onclick={() => submitSection('address')}
-							disabled={loaderStatus.address}
+							disabled={loaderStatus.address || !isAddressDirty}
 						>
 							{#if loaderStatus.address}
 								<div class="flex items-center gap-2">
@@ -721,12 +775,6 @@
 						</Button>
 					</div>
 				</Card>
-
-			<!-- Final Actions -->
-			<div class="flex justify-end gap-3">
-				<Button variant="secondary" onclick={resetForm}>Reset All</Button>
-				<Button variant="success" onclick={submitForm}>Save All Changes</Button>
-			</div>
 		</div>
 	</div>
 {:else}

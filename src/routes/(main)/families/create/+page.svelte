@@ -24,7 +24,7 @@
 		return (res?.users || []).map((u) => ({
 			id: u._id,
 			member_id: u.member_id,
-			name: `${u.first_name || ''} ${u.surname || ''}`.trim()
+			name: u.name
 		}));
 	}
 

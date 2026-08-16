@@ -57,11 +57,6 @@
 		return 'text-gray-500';
 	}
 
-	function fullName(m: Family.MemberSummary) {
-		const parts = [m.first_name, m.middle_name, m.surname].filter(Boolean);
-		return parts.length ? parts.join(' ') : m.name;
-	}
-
 	function joinedLabel(s: string | undefined) {
 		if (!s) return '—';
 		const d = new Date(s);
@@ -226,7 +221,7 @@
 								class="flex items-center gap-1.5 font-semibold text-gray-900 hover:underline"
 							>
 								{#if isHead}<span title="Head" class="text-amber-500">★</span>{/if}
-								<span class="truncate">{formatMemberDisplay(fullName(m), m.member_id)}</span>
+								<span class="truncate">{formatMemberDisplay(m.name, m.member_id)}</span>
 							</a>
 						</div>
 						<span
@@ -269,7 +264,7 @@
 								<button
 									type="button"
 									disabled={busy}
-									onclick={() => makeHead(m.id, formatMemberDisplay(fullName(m), m.member_id))}
+									onclick={() => makeHead(m.id, formatMemberDisplay(m.name, m.member_id))}
 									class="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
 								>
 									Make head
@@ -280,7 +275,7 @@
 									<button
 										type="button"
 										disabled={busy}
-										onclick={() => removeMember(m.id, formatMemberDisplay(fullName(m), m.member_id))}
+										onclick={() => removeMember(m.id, formatMemberDisplay(m.name, m.member_id))}
 										class="rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
 									>
 										Confirm

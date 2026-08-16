@@ -7,16 +7,16 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import coreApi from '$lib/endpoints/coreApi';
 	import deadMemberApi from '$lib/endpoints/deadMemberApi';
 	import uploadApi from '$lib/endpoints/uploadApi';
 	import userApi from '$lib/endpoints/userApi';
-	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { DeadMember } from '$lib/types/deadMember';
 	import type { User } from '$lib/types/user';
 	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
-	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
+	import { Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
 
@@ -55,19 +55,15 @@
 		'voluntary-retired': 'Retirement'
 	};
 
-	// Load members on mount
+	// Load current member on mount
 	onMount(async () => {
-		if ($memberListStore.members.length === 0) {
-			memberListStore.fetchAllMembers();
-		}
+		const userId = page.params.id;
+		if (!userId) return;
 
-		const member = $memberListStore.members.find((m) => m._id === page.params.id);
+		const userInfo = await coreApi.fetchUserInfo({ userId });
+		const member = userInfo?.user;
 		if (member) {
-			currentMember = member as User.Get;
-			memberSearchQuery = formatMemberDisplay(
-				`${currentMember.first_name} ${currentMember.surname}`,
-				currentMember.member_id
-			);
+			currentMember = member;
 			formData.status = currentMember.status;
 			formData.userId = currentMember._id;
 			if (currentMember.status === 'removed' || currentMember.status === 'voluntary-retired') {
@@ -92,10 +88,7 @@
 		}
 	});
 
-	let memberSearchQuery = $state('');
 	let deadMemberId = $state('');
-	let showMemberDropdown = $state(false);
-	let memberDropdownRef: HTMLDivElement;
 	let currentMember = $state<User.Get>();
 
 	// Form Data
@@ -119,51 +112,9 @@
 		photo: ''
 	});
 
-	// Member dropdown state
-
-	// Filtered members based on search
-	const filteredMembers = $derived(
-		$memberListStore.members.filter((member) => {
-			const searchLower = memberSearchQuery.toLowerCase();
-			const fullName = `${member.first_name} ${member.surname}`.toLowerCase();
-			const mobile = member.mobile || '';
-			return fullName.includes(searchLower) || mobile.includes(searchLower);
-		})
-	);
-
-	// Select member
-	function selectMember(member: any) {
-		formData.userId = member._id;
-		formData.memberName = `${member.first_name} ${member.surname}`;
-		memberSearchQuery = formatMemberDisplay(formData.memberName, member.member_id);
-		showMemberDropdown = false;
-		errors.userId = '';
-	}
-
-	// Clear member selection
-	function clearMemberSelection() {
-		formData.userId = '';
-		formData.memberName = '';
-		memberSearchQuery = '';
-	}
-
-	// Click outside to close dropdown
-	function handleClickOutside(event: MouseEvent) {
-		if (memberDropdownRef && !memberDropdownRef.contains(event.target as Node)) {
-			showMemberDropdown = false;
-		}
-	}
-
 	function removeImage() {
 		formData.photo = '';
 	}
-
-	onMount(() => {
-		document.addEventListener('click', handleClickOutside);
-		return () => {
-			document.removeEventListener('click', handleClickOutside);
-		};
-	});
 
 	// Loading state
 	let isLoading = $state(false);
@@ -220,19 +171,6 @@
 			errors[field] = '';
 		} catch (err: any) {
 			errors[field] = err?.message || 'Invalid';
-		}
-	}
-
-	// Handle member search input
-	function handleMemberSearch(event: Event) {
-		const target = event.target as HTMLInputElement;
-		memberSearchQuery = target.value;
-		showMemberDropdown = true;
-
-		// Clear selection if user types
-		if (formData.userId) {
-			formData.userId = '';
-			formData.memberName = '';
 		}
 	}
 
@@ -323,6 +261,7 @@
 						date_of_birth: formatToYYYYMMDD(currentMember.date_of_birth),
 						gender: currentMember.gender,
 						mobile: currentMember.mobile,
+						email: currentMember.email,
 						reference_member_1: currentMember.reference_member_1,
 						reference_member_2: currentMember.reference_member_2,
 						entry_date: formatToYYYYMMDD(currentMember.entry_date),
@@ -377,7 +316,7 @@
 		if (currentMember) {
 			formData = {
 				userId: currentMember._id,
-				memberName: `${currentMember.first_name} ${currentMember.surname}`,
+				memberName: currentMember.name,
 				status: currentMember.status,
 				date: '',
 				contribution_amount: '',
@@ -395,7 +334,6 @@
 			photo: '',
 			reason: ''
 		};
-		memberSearchQuery = '';
 		fileName = '';
 		if (fileInput) fileInput.value = '';
 		successMessage = '';
@@ -405,88 +343,18 @@
 
 <div class="mx-auto max-w-3xl p-6">
 	<Card
-		title={`Change User Status (${formatMemberDisplay(
-			`${currentMember?.first_name ?? ''} ${currentMember?.middle_name ?? ''} ${currentMember?.surname ?? ''}`.replace(
-				/\s+/g,
-				' '
-			).trim(),
+		title={`Update User Status (${formatMemberDisplay(
+			currentMember?.name,
 			currentMember?.member_id
 		)})`}
 	>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-			<!-- Member Selection with Search -->
+			<!-- Current Member -->
 			<div class="md:col-span-2">
-				<label for="" class="mb-1 block text-sm font-medium text-gray-700">
-					Select Member
-					<span class="text-red-500">*</span>
-				</label>
-
-				<div class="relative" bind:this={memberDropdownRef}>
-					<div class="relative">
-						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-							<Search class="h-5 w-5 text-gray-400" />
-						</div>
-						<input
-							type="text"
-							value={memberSearchQuery}
-							oninput={handleMemberSearch}
-							onfocus={() => (showMemberDropdown = true)}
-							placeholder="Search member by name or mobile..."
-							class={`w-full rounded-md border px-3 py-2 pr-10 pl-10 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-								errors.userId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-							} cursor-not-allowed bg-gray-100 text-gray-500`}
-							disabled={true}
-						/>
-						{#if formData.userId}
-							<button
-								type="button"
-								onclick={clearMemberSelection}
-								class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-							>
-								<X class="h-5 w-5" />
-							</button>
-						{:else}
-							<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-								<ChevronDown class="h-5 w-5 text-gray-400" />
-							</div>
-						{/if}
-					</div>
-
-					<!-- Dropdown -->
-					{#if showMemberDropdown && !isLoading}
-						<div
-							class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg"
-						>
-							{#if $memberListStore.isLoading}
-								<div class="px-4 py-3 text-center text-sm text-gray-500">Loading members...</div>
-							{:else if filteredMembers.length === 0}
-								<div class="px-4 py-3 text-center text-sm text-gray-500">No members found</div>
-							{:else}
-								{#each filteredMembers as member}
-									<button
-										type="button"
-										onclick={() => selectMember(member)}
-										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-									>
-										<div class="font-medium text-gray-900">
-											{formatMemberDisplay(
-												`${member.first_name} ${member.surname}`,
-												member.member_id
-											)}
-										</div>
-										<div class="text-sm text-gray-500">
-											{member.mobile}
-										</div>
-									</button>
-								{/each}
-							{/if}
-						</div>
-					{/if}
+				<label class="mb-1 block text-sm font-medium text-gray-700"> Member </label>
+				<div class="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900">
+					{formatMemberDisplay(currentMember?.name, currentMember?.member_id)}
 				</div>
-
-				{#if errors.userId}
-					<p class="mt-1 text-sm text-red-600">{errors.userId}</p>
-				{/if}
 			</div>
 
 			<Select
@@ -630,7 +498,7 @@
 						<span>Submitting...</span>
 					</div>
 				{:else}
-					Change Status
+					Update Status
 				{/if}
 			</Button>
 		</div>

@@ -24,8 +24,7 @@
 			]);
 			data = paymentsRes.data;
 			if (userInfo?.user) {
-				memberName =
-					`${userInfo.user.first_name ?? ''} ${userInfo.user.surname ?? ''}`.trim();
+				memberName = userInfo.user.name ?? '';
 				memberId = userInfo.user.member_id ?? '';
 			}
 		} catch (err: any) {

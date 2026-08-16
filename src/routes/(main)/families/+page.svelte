@@ -200,20 +200,16 @@
 		{#if $familyListStore.isLoading && families.length === 0}
 			<p class="text-sm text-gray-500">Loading families…</p>
 		{:else}
-			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-				<div class="h-full overflow-y-auto">
-					<Table
-						pagination={paginationConfig}
-						{columns}
-						data={tableData}
-						onRowClick={(row) => goto(`/families/${row.clubId}`)}
-						onNext={goNext}
-						onPrevious={goPrevious}
-						onLimitChange={changeLimit}
-						{density}
-					/>
-				</div>
-			</div>
+			<Table
+				pagination={paginationConfig}
+				{columns}
+				data={tableData}
+				onRowClick={(row) => goto(`/families/${row.clubId}`)}
+				onNext={goNext}
+				onPrevious={goPrevious}
+				onLimitChange={changeLimit}
+				{density}
+			/>
 		{/if}
 	</div>
 </div>

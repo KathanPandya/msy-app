@@ -41,8 +41,7 @@
 		paymentDate: '',
 		paymentToPerson: '',
 		aadhaarCardNo: '',
-		paymentByPerson:
-			`${$authStore.userAllInfo?.user.first_name} ${$authStore.userAllInfo?.user.surname}` || ''
+		paymentByPerson: $authStore.userAllInfo?.user.name || ''
 	});
 
 	// Errors
@@ -93,7 +92,7 @@
 			.filter((member) => member.status === 'dead')
 			.filter((member) => {
 				const searchLower = memberSearchQuery.toLowerCase();
-				const fullName = `${member.first_name} ${member.surname}`.toLowerCase();
+				const fullName = (member.name || '').toLowerCase();
 				const member_id = (member.member_id ?? '').toLowerCase();
 				return fullName.includes(searchLower) || member_id.includes(searchLower);
 			})
@@ -114,7 +113,7 @@
 	// Select deceased member
 	async function selectDeceased(member: any) {
 		formData.deadMemberId = member._id;
-		formData.deadMemberName = `${member.first_name} ${member.surname}`;
+		formData.deadMemberName = member.name;
 		memberSearchQuery = formatMemberDisplay(formData.deadMemberName, member.member_id);
 		showMemberDropdown = false;
 		errors.deadMemberId = '';
@@ -402,10 +401,7 @@
 										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100"
 									>
 										<div class="font-medium text-gray-900">
-											{formatMemberDisplay(
-												`${member.first_name} ${member.surname}`,
-												member.member_id
-											)}
+											{formatMemberDisplay(member.name, member.member_id)}
 										</div>
 										<div class="text-sm text-gray-500">
 											{member.mobile}

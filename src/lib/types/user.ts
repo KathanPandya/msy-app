@@ -25,6 +25,7 @@ export namespace User {
 		is_profile_completed: boolean;
 		member_id: string;
 		middle_name: string;
+		name: string;
 		mobile: string;
 		outstanding_amount: number;
 		password: string;
@@ -58,6 +59,7 @@ export namespace User {
 		date_of_birth: string;
 		gender: string;
 		mobile: string;
+		email: string;
 		// is_profile_completed?: boolean;
 		// entry_date?: string;
 		reference_member_1: string;

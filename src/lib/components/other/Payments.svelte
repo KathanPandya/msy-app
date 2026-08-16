@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import { t, type Lang } from '$lib/i18n';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
@@ -13,7 +14,28 @@
 
 	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 
-	let { outstandingTableData, memberName = '', memberId = '', fitHeight = false } = $props();
+	let {
+		outstandingTableData,
+		memberName = '',
+		memberId = '',
+		fitHeight = false,
+		// When true, the table grows to its full row count instead of being boxed
+		// into a fixed-height internal scroll area — used on pages (like /me) where
+		// the whole page scrolls, so we don't stack two scroll containers.
+		naturalHeight = false,
+		readOnly = false,
+		showSearch = true,
+		lang = undefined
+	}: {
+		outstandingTableData: any;
+		memberName?: string;
+		memberId?: string;
+		fitHeight?: boolean;
+		naturalHeight?: boolean;
+		readOnly?: boolean;
+		showSearch?: boolean;
+		lang?: Lang;
+	} = $props();
 	let searchQuery = $state('');
 
 	let isSummaryOpen = $state(
@@ -104,12 +126,12 @@
 	}
 
 	// Dead-member rows aren't payments, so they get no row menu.
+	// readOnly (member self-view) drops the Edit action — members can look but not change records.
 	function getRowMenuActions(row: any) {
 		if (!paymentIds.has(row._id)) return [];
-		return [
-			{ label: 'View', onclick: () => openView(row._id) },
-			{ label: 'Edit', onclick: () => editPayment(row._id) }
-		];
+		const actions = [{ label: t(lang, 'view'), onclick: () => openView(row._id) }];
+		if (!readOnly) actions.push({ label: t(lang, 'edit'), onclick: () => editPayment(row._id) });
+		return actions;
 	}
 
 	const totalAmount = outstandingTableData.outstandingAmount + outstandingTableData.totalPayment;
@@ -121,16 +143,16 @@
 			: ((amountPaid / totalAmount) * 100).toFixed(1);
 
 	let tableColumns = $state<any[]>([
-		{ key: 'date', label: 'Date' },
-		{ key: 'amount', label: 'Amount' },
-		{ key: 'remarks', label: 'Remarks' }
+		{ key: 'date', label: t(lang, 'date') },
+		{ key: 'amount', label: t(lang, 'amount') },
+		{ key: 'remarks', label: t(lang, 'remarks') }
 	]);
 
-	const statusOptions = [
-		{ key: '', label: 'All Entries' },
-		{ key: 'payments', label: 'Payments' },
-		{ key: 'deadMembers', label: 'Dead Members' }
-	];
+	const statusOptions = $derived([
+		{ key: '', label: t(lang, 'allEntries') },
+		{ key: 'payments', label: t(lang, 'payments') },
+		{ key: 'deadMembers', label: t(lang, 'deadMembers') }
+	]);
 
 	let filters = $state({
 		status: '',
@@ -166,11 +188,11 @@
 	function applyFilters() {
 		if (filters.status === 'payments') {
 			tableColumns = [
-				{ key: 'date', label: 'Date' },
-				{ key: 'amount', label: 'Amount' },
-				{ key: 'payment_mode', label: 'Payment Mode' },
-				{ key: 'payment_type', label: 'Payment Type' },
-				{ key: 'remarks', label: 'Remarks' }
+				{ key: 'date', label: t(lang, 'date') },
+				{ key: 'amount', label: t(lang, 'amount') },
+				{ key: 'payment_mode', label: t(lang, 'paymentMode') },
+				{ key: 'payment_type', label: t(lang, 'paymentType') },
+				{ key: 'remarks', label: t(lang, 'remarks') }
 			];
 			tableData =
 				sortRecords(outstandingTableData?.paymentRecords)?.map((payment: any) => {
@@ -185,24 +207,24 @@
 				}) ?? [];
 		} else if (filters.status === 'deadMembers') {
 			tableColumns = [
-				{ key: 'date', label: 'Date of Death' },
-				{ key: 'name', label: 'Member' }
+				{ key: 'date', label: t(lang, 'dateOfDeath') },
+				{ key: 'name', label: t(lang, 'member') }
 			];
 			tableData =
 				sortRecords(outstandingTableData?.deadMemberRecords)?.map((payment: any) => {
-					const memberName = `${payment.user.first_name} ${payment.user.middle_name} ${payment.user.surname}`;
+					const memberName = payment.userDetails?.name;
 					return {
 						_id: payment._id,
 						date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
 						amount: payment.amount || '-',
-						name: memberName ? formatMemberDisplay(memberName, payment.user.member_id) : '-'
+						name: memberName ? formatMemberDisplay(memberName, payment.userDetails?.member_id) : '-'
 					};
 				}) ?? [];
 		} else {
 			tableColumns = [
-				{ key: 'date', label: 'Date' },
-				{ key: 'amount', label: 'Amount' },
-				{ key: 'remarks', label: 'Remarks' }
+				{ key: 'date', label: t(lang, 'date') },
+				{ key: 'amount', label: t(lang, 'amount') },
+				{ key: 'remarks', label: t(lang, 'remarks') }
 			];
 
 			const mergedRecords = [
@@ -267,12 +289,12 @@
 					onclick={toggleSummary}
 					class="flex w-full items-center justify-between gap-2 px-3 py-2 lg:px-4"
 				>
-					<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">Payment Summary</h3>
+					<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">{t(lang, 'paymentSummary')}</h3>
 					{#if !isSummaryOpen}
 						<span class="min-w-0 flex-1 truncate text-right text-xs text-gray-500">
-							₹{totalAmount} · Paid ₹{amountPaid} ·
+							₹{totalAmount} · {t(lang, 'paid')} ₹{amountPaid} ·
 							<span class={remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}>
-								Bal ₹{Math.abs(remainingAmount)}
+								{t(lang, 'bal')} ₹{Math.abs(remainingAmount)}
 							</span>
 						</span>
 					{/if}
@@ -285,106 +307,89 @@
 					<div class="px-3 pb-2 lg:px-4 lg:pb-3">
 						<div class="grid grid-cols-3 gap-1.5 sm:gap-2">
 							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
-								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">લેવાના</p>
+								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'total')}</p>
 								<p class="text-sm font-bold text-gray-800 sm:text-lg">₹{totalAmount}</p>
 							</div>
 
 							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
-								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">આપેલા</p>
+								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'paid')}</p>
 								<p class="text-sm font-bold text-blue-600 sm:text-lg">₹{amountPaid}</p>
 							</div>
 
 							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
-								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">Balance</p>
+								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'balance')}</p>
 								<p
 									class={`text-sm font-bold sm:text-lg ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
 								>
 									₹{Math.abs(remainingAmount)}
-									{remainingAmount < 0 ? 'જમા' : 'બાકી'}
+									{remainingAmount < 0 ? t(lang, 'credit') : t(lang, 'due')}
 								</p>
 							</div>
 						</div>
-
-						<!-- Calculation -->
-						<div
-							class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 sm:mt-2"
-						>
-							<span class="font-medium">Collection: ₹{totalAmount}</span>
-							<span>−</span>
-							<span class="font-medium">Paid: ₹{amountPaid}</span>
-							<span>=</span>
-							<span
-								class={`font-semibold ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
-							>
-								Balance: {remainingAmount < 0
-									? `+₹${Math.abs(remainingAmount)}`
-									: `₹${remainingAmount}`}
-							</span>
-							<span class="text-gray-400">· {completionPercentage}% complete</span>
-						</div>
+						<p class="mt-1.5 text-xs text-gray-500 sm:mt-2">
+							{completionPercentage}% {t(lang, 'complete')}
+						</p>
 					</div>
 				{/if}
 			</div>
 
-			<!-- Filter -->
-			<div
-				class="w-28 min-w-0 flex-shrink-0 sm:max-w-[160px] sm:shrink sm:basis-[160px] sm:grow-0"
-			>
-				<select
-					bind:value={filters.status}
-					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:px-3"
+			{#if showSearch}
+				<!-- Search -->
+				<div
+					class="relative min-w-0 flex-1 sm:ml-auto sm:max-w-[315px] sm:shrink sm:basis-[315px] sm:grow-0"
 				>
-					{#each statusOptions as option}
-						<option value={option.key}>{option.label}</option>
-					{/each}
-				</select>
-			</div>
-
-			<!-- Search -->
-			<div
-				class="relative min-w-0 flex-1 sm:ml-auto sm:max-w-[315px] sm:shrink sm:basis-[315px] sm:grow-0"
-			>
-				<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
-					<Search class="h-5 w-5 text-gray-400" />
+					<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
+						<Search class="h-5 w-5 text-gray-400" />
+					</div>
+					<SearchInput
+						id="member-search"
+						bind:value={searchQuery}
+						placeholder={t(lang, 'searchMembers')}
+					/>
 				</div>
-				<SearchInput
-					id="member-search"
-					bind:value={searchQuery}
-					placeholder="Search members by name or mobile..."
-				/>
-			</div>
+			{/if}
 		</div>
 
 		<!-- Payment History -->
 		<div
-			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : 'h-[60vh]'}`}
+			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : naturalHeight ? '' : 'h-[60vh]'}`}
 		>
 			<div class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 px-3 py-1.5 sm:px-4 sm:py-2">
 				<h2 class="text-xs font-semibold text-gray-900 sm:text-sm">
-					Payment History ({tableData.length})
+					{t(lang, 'paymentHistory')} ({tableData.length})
 				</h2>
 				<div class="flex items-center gap-1.5">
+					<select
+						bind:value={filters.status}
+						onchange={applyFilters}
+						class="w-24 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-28 sm:px-2"
+					>
+						{#each statusOptions as option}
+							<option value={option.key}>{option.label}</option>
+						{/each}
+					</select>
 					<button
 						type="button"
 						onclick={toggleDensity}
-						title={density === 'comfortable' ? 'Switch to compact view' : 'Switch to comfortable view'}
+						title={density === 'comfortable'
+							? t(lang, 'switchToCompact')
+							: t(lang, 'switchToComfortable')}
 						class="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
 					>
 						{#if density === 'comfortable'}
 							<Rows3 class="h-3.5 w-3.5" />
-							<span class="hidden sm:inline">Compact</span>
+							<span class="hidden sm:inline">{t(lang, 'compact')}</span>
 						{:else}
 							<LayoutGrid class="h-3.5 w-3.5" />
-							<span class="hidden sm:inline">Comfortable</span>
+							<span class="hidden sm:inline">{t(lang, 'comfortable')}</span>
 						{/if}
 					</button>
 					<button
 						type="button"
 						onclick={downloadCsv}
 						disabled={tableData.length === 0}
-						title="Download CSV"
-						aria-label="Download"
+						title={t(lang, 'downloadCsv')}
+						aria-label={t(lang, 'downloadCsv')}
 						class="flex items-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						<Download class="h-3.5 w-3.5" />
@@ -398,6 +403,7 @@
 					rowMenu={filters.status === 'deadMembers' ? undefined : getRowMenuActions}
 					{getRowBgColor}
 					{density}
+					{naturalHeight}
 				/>
 			</div>
 		</div>
@@ -405,57 +411,59 @@
 </div>
 
 <!-- Payment Details Modal -->
-<Modal open={!!viewingRecord} onClose={closeView} title="Payment Details">
+<Modal open={!!viewingRecord} onClose={closeView} title={t(lang, 'paymentDetails')}>
 	{#if viewingRecord}
 		<div class="space-y-4 text-sm">
 			<div class="grid grid-cols-2 gap-3">
 				<div>
-					<p class="text-xs text-gray-500">Amount</p>
+					<p class="text-xs text-gray-500">{t(lang, 'amount')}</p>
 					<p class="font-medium text-gray-900">₹{viewingRecord.amount}</p>
 				</div>
 				<div>
-					<p class="text-xs text-gray-500">Date</p>
+					<p class="text-xs text-gray-500">{t(lang, 'date')}</p>
 					<p class="font-medium text-gray-900">{formatDate(viewingRecord.date)}</p>
 				</div>
 				<div>
-					<p class="text-xs text-gray-500">Payment Mode</p>
+					<p class="text-xs text-gray-500">{t(lang, 'paymentMode')}</p>
 					<p class="font-medium text-gray-900">
 						{formatString(viewingRecord.payment_mode, ['capitalize-first']) || '-'}
 					</p>
 				</div>
 				<div>
-					<p class="text-xs text-gray-500">Payment Type</p>
+					<p class="text-xs text-gray-500">{t(lang, 'paymentType')}</p>
 					<p class="font-medium text-gray-900">
 						{backendMapping[viewingRecord.payment_type] || '-'}
 					</p>
 				</div>
 				<div>
-					<p class="text-xs text-gray-500">Reference Number</p>
+					<p class="text-xs text-gray-500">{t(lang, 'referenceNumber')}</p>
 					<p class="font-medium text-gray-900">{viewingRecord.payment_reference || '-'}</p>
 				</div>
 				<div>
-					<p class="text-xs text-gray-500">Receipt Number</p>
+					<p class="text-xs text-gray-500">{t(lang, 'receiptNumber')}</p>
 					<p class="font-medium text-gray-900">{viewingRecord.reciept_number || '-'}</p>
 				</div>
 			</div>
 
 			{#if viewingRecord.remarks}
 				<div>
-					<p class="text-xs text-gray-500">Description</p>
+					<p class="text-xs text-gray-500">{t(lang, 'description')}</p>
 					<p class="font-medium text-gray-900">{viewingRecord.remarks}</p>
 				</div>
 			{/if}
 
 			{#if viewingRecord.photo}
 				<div>
-					<p class="mb-1 text-xs text-gray-500">Receipt</p>
+					<p class="mb-1 text-xs text-gray-500">{t(lang, 'receipt')}</p>
 					<ImageViewer src={viewingRecord.photo} alt="Payment Receipt" thumbnailSize="medium" />
 				</div>
 			{/if}
 		</div>
 
-		<div class="mt-4 flex justify-end border-t border-gray-200 pt-3">
-			<Button variant="primary" size="sm" onclick={editFromView}>Edit</Button>
-		</div>
+		{#if !readOnly}
+			<div class="mt-4 flex justify-end border-t border-gray-200 pt-3">
+				<Button variant="primary" size="sm" onclick={editFromView}>{t(lang, 'edit')}</Button>
+			</div>
+		{/if}
 	{/if}
 </Modal>

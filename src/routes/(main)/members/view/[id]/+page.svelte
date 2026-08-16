@@ -10,6 +10,7 @@
 	import { formatDate, getUserAddress } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
+	import { Pencil } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let paymentsTableInfo = $state<Payment.OutstandingData | null>(null);
@@ -30,6 +31,7 @@
 
 	let userData = {
 		હિસાબ: 0,
+		name: '',
 		firstName: '',
 		middleName: '',
 		surname: '',
@@ -94,6 +96,7 @@
 			}
 
 			if (userInfo?.user) {
+				userData.name = userInfo.user.name;
 				userData.firstName = formatString(userInfo.user.first_name, ['trim']);
 				userData.middleName = formatString(userInfo.user.middle_name, ['trim']);
 				userData.surname = formatString(userInfo.user.surname, ['trim']);
@@ -156,10 +159,7 @@
 		try {
 			const res = await familiesApi.resetPin(userData._id);
 			tempPinBanner = {
-				memberId: formatMemberDisplay(
-					`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(/\s+/g, ' ').trim(),
-					memberIdRaw || res.member.member_id
-				),
+				memberId: formatMemberDisplay(userData.name, memberIdRaw || res.member.member_id),
 				tempPin: res.tempPin
 			};
 			applyPinFields(res.member);
@@ -176,10 +176,7 @@
 		pinError = '';
 		try {
 			const res = await familiesApi.unlock(userData._id);
-			unlockBanner = `${formatMemberDisplay(
-				`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(/\s+/g, ' ').trim(),
-				memberIdRaw || res.member.member_id
-			)} unlocked.`;
+			unlockBanner = `${formatMemberDisplay(userData.name, memberIdRaw || res.member.member_id)} unlocked.`;
 			tempPinBanner = null;
 			applyPinFields(res.member);
 		} catch (err: any) {
@@ -205,29 +202,34 @@
 {#if !isLoading}
 	<div class="min-h-screen bg-gray-50 p-2 lg:p-6">
 		<div class="mx-auto max-w-5xl">
-			<!-- Header with Action Buttons -->
+			<!-- Header -->
 			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="flex-1">
 						<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">
-							{formatMemberDisplay(
-								`${userData.firstName} ${userData.middleName} ${userData.surname}`.replace(
-									/\s+/g,
-									' '
-								).trim(),
-								memberIdRaw
-							)}
+							{formatMemberDisplay(userData.name, memberIdRaw)}
 						</h1>
 						<div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-							<span
-								class="inline-flex w-fit rounded-full px-4 py-1.5 text-sm font-medium {userData.status ===
-								'Active'
-									? 'bg-green-100 text-green-800'
-									: userData.status === 'Inactive'
-										? 'bg-red-100 text-red-800'
-										: 'bg-yellow-100 text-yellow-800'}"
-							>
-								{userData.status}
+							<span class="inline-flex w-fit items-center gap-1.5">
+								<span
+									class="inline-flex w-fit rounded-full px-4 py-1.5 text-sm font-medium {userData.status ===
+									'Active'
+										? 'bg-green-100 text-green-800'
+										: userData.status === 'Inactive'
+											? 'bg-red-100 text-red-800'
+											: 'bg-yellow-100 text-yellow-800'}"
+								>
+									{userData.status}
+								</span>
+								<button
+									type="button"
+									onclick={handleChangeStatus}
+									class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+									title="Update status"
+									aria-label="Update status"
+								>
+									<Pencil class="h-3 w-3" />
+								</button>
 							</span>
 							<span class="text-sm text-gray-500">
 								<svg
@@ -246,39 +248,6 @@
 								Member since {userData.joiningDate}
 							</span>
 						</div>
-					</div>
-
-					<div class="flex flex-wrap gap-2 sm:gap-3">
-						<button
-							onclick={handleEditUser}
-							class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:flex-initial sm:px-6"
-						>
-							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-								/>
-							</svg>
-							<span class="hidden sm:inline">Edit User</span>
-							<span class="sm:hidden">Edit</span>
-						</button>
-						<button
-							onclick={handleChangeStatus}
-							class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-700 sm:flex-initial sm:px-6"
-						>
-							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-								/>
-							</svg>
-							<span class="hidden sm:inline">Change Status</span>
-							<span class="sm:hidden">Status</span>
-						</button>
 					</div>
 				</div>
 			</div>
@@ -308,23 +277,16 @@
 
 			<!-- Login PIN (admin) -->
 			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
-				<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-					<div>
-						<h2 class="text-lg font-semibold text-gray-800">Login PIN</h2>
-						<p class="mt-1 text-sm text-gray-600">
-							Status:
-							<span class="font-medium text-gray-900">{pinTag}</span>
-							{#if isActiveMember && pinStatus.pin_attempts > 0 && !pinStatus.locked}
-								<span class="text-gray-500">· {pinStatus.pin_attempts}/5</span>
-							{/if}
-						</p>
-					</div>
+				<div class="flex items-center justify-between gap-3">
+					<h2 class="text-lg font-semibold text-gray-800">Login PIN</h2>
 					{#if isActiveMember}
-						<div class="flex flex-wrap gap-2">
+						<div class="flex shrink-0 flex-wrap justify-end gap-2">
 							{#if pinStatus.locked}
-								<Button variant="secondary" disabled={pinBusy} onclick={handleUnlock}>Unlock</Button>
+								<Button variant="secondary" size="sm" disabled={pinBusy} onclick={handleUnlock}>
+									Unlock
+								</Button>
 							{/if}
-							<Button variant="primary" disabled={pinBusy} onclick={handleResetPin}>
+							<Button variant="primary" size="sm" disabled={pinBusy} onclick={handleResetPin}>
 								{pinStatus.has_pin ? 'Reset PIN' : 'Generate Temp PIN'}
 							</Button>
 						</div>
@@ -332,46 +294,60 @@
 						<span class="text-sm text-gray-400">—</span>
 					{/if}
 				</div>
+				<p class="mt-1 text-sm text-gray-600">
+					Status:
+					<span class="font-medium text-gray-900">{pinTag}</span>
+					{#if isActiveMember && pinStatus.pin_attempts > 0 && !pinStatus.locked}
+						<span class="text-gray-500">· {pinStatus.pin_attempts}/5</span>
+					{/if}
+				</p>
 			</div>
 
 			{#if pinStatus.club_id}
 				<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
-					<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-						<div>
-							<h2 class="text-lg font-semibold text-gray-800">Family</h2>
-							<p class="mt-1 text-sm text-gray-600">This member belongs to a family group.</p>
-						</div>
+					<div class="flex items-center justify-between gap-3">
+						<h2 class="text-lg font-semibold text-gray-800">Family</h2>
 						<a
 							href={`/families/${pinStatus.club_id}`}
-							class="text-sm font-medium text-blue-600 hover:underline"
+							class="shrink-0 text-sm font-medium text-blue-600 hover:underline"
 						>
 							Manage family →
 						</a>
 					</div>
+					<p class="mt-1 text-sm text-gray-600">This member belongs to a family group.</p>
 				</div>
 			{/if}
 
 			<!-- Payments -->
 			<div class="mb-6 rounded-lg bg-white p-4 shadow-sm sm:p-6">
-				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-					<div>
-						<h2 class="text-lg font-semibold text-gray-800">Payments</h2>
-						<p class="mt-1 text-sm text-gray-600">
-							View this member's payment history and outstanding balance.
-						</p>
-					</div>
+				<div class="flex items-center justify-between gap-3">
+					<h2 class="text-lg font-semibold text-gray-800">Payments</h2>
 					<a
 						href={`/members/view/${page.params.id}/payments`}
-						class="text-sm font-medium text-blue-600 hover:underline"
+						class="shrink-0 text-sm font-medium text-blue-600 hover:underline"
 					>
 						Show payments →
 					</a>
 				</div>
+				<p class="mt-1 text-sm text-gray-600">
+					View this member's payment history and outstanding balance.
+				</p>
 			</div>
 
 			<!-- General Information -->
 			<div class="mb-6 rounded-lg bg-white p-6 shadow-sm">
-				<h2 class="mb-6 border-b pb-3 text-xl font-semibold text-gray-800">General Information</h2>
+				<h2 class="mb-6 flex items-center gap-1.5 border-b pb-3 text-xl font-semibold text-gray-800">
+					General Information
+					<button
+						type="button"
+						onclick={handleEditUser}
+						class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+						title="Edit member"
+						aria-label="Edit member"
+					>
+						<Pencil class="h-3 w-3" />
+					</button>
+				</h2>
 
 				<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 					<div>
@@ -469,7 +445,18 @@
 
 			<!-- Other Information -->
 			<div class="mb-6 rounded-lg bg-white p-6 shadow-sm">
-				<h2 class="mb-6 border-b pb-3 text-xl font-semibold text-gray-800">Other Information</h2>
+				<h2 class="mb-6 flex items-center gap-1.5 border-b pb-3 text-xl font-semibold text-gray-800">
+					Other Information
+					<button
+						type="button"
+						onclick={handleEditUser}
+						class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+						title="Edit member"
+						aria-label="Edit member"
+					>
+						<Pencil class="h-3 w-3" />
+					</button>
+				</h2>
 
 				<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 					<div>
@@ -507,7 +494,18 @@
 
 			<!-- Address Information -->
 			<div class="rounded-lg bg-white p-6 shadow-sm">
-				<h2 class="mb-6 border-b pb-3 text-xl font-semibold text-gray-800">Address</h2>
+				<h2 class="mb-6 flex items-center gap-1.5 border-b pb-3 text-xl font-semibold text-gray-800">
+					Address
+					<button
+						type="button"
+						onclick={handleEditUser}
+						class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+						title="Edit member"
+						aria-label="Edit member"
+					>
+						<Pencil class="h-3 w-3" />
+					</button>
+				</h2>
 
 				<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 					<div class="md:col-span-2">
