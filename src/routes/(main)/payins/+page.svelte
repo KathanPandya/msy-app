@@ -354,7 +354,7 @@
 				memberId: member?.member_id,
 				_id: payment._id,
 				memberName: member
-					? formatMemberDisplay(`${member.first_name} ${member.surname}`, member.member_id)
+					? formatMemberDisplay(member.name, member.member_id)
 					: '-',
 				amount: payment.amount,
 				date: formatDate(payment.date),
@@ -593,20 +593,15 @@
 				{/if}
 			</div>
 		{:else}
-			<!-- Table container with border, rounded corners, and scroll -->
-			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-				<div class="h-full overflow-x-auto overflow-y-auto">
-					<Table
-						pagination={paginationConfig}
-						{columns}
-						data={tableData}
-						onNext={goNext}
-						onPrevious={goPrevious}
-						onLimitChange={changeLimit}
-						{density}
-					/>
-				</div>
-			</div>
+			<Table
+				pagination={paginationConfig}
+				{columns}
+				data={tableData}
+				onNext={goNext}
+				onPrevious={goPrevious}
+				onLimitChange={changeLimit}
+				{density}
+			/>
 		{/if}
 	</div>
 </div>

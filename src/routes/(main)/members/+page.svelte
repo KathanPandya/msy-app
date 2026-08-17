@@ -14,7 +14,7 @@
 	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 	import { getCachedMembers, setCachedMembers } from '$lib/utilities/membersCache';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
-	import { formatString, truncateString } from '$lib/utilities/stringUtils';
+	import { formatString } from '$lib/utilities/stringUtils';
 	import {
 		ChevronDown,
 		ChevronUp,
@@ -298,11 +298,7 @@
 	const columns = $derived([
 		{
 			key: 'modifiedName',
-			label: 'Member',
-			tooltip: (_: any, row: any) => {
-				return row.name;
-			},
-			tooltipPosition: 'right' as const
+			label: 'Member'
 		},
 		{
 			key: 'heesab',
@@ -335,7 +331,22 @@
 		},
 		{ key: 'mobile', label: 'Mobile' },
 		// { key: 'email', label: 'Email' },
-		{ key: 'gender', label: 'Gender' }
+		{ key: 'gender', label: 'Gender' },
+		{
+			key: 'status',
+			label: 'Status',
+			render: (value: any) => {
+				const label = formatString(value, ['capitalize-first']) || '-';
+				const pill =
+					'display:inline-block;min-width:2.5rem;text-align:center;padding:0.125rem 0.5rem;border-radius:999px;font-weight:600;font-size:0.75rem;';
+				// Mirrors the balance pill's OKLCH scheme: dead/removed = red, active = green, everything else neutral.
+				if (value === 'dead' || value === 'removed')
+					return `<span style="${pill}color:oklch(50% 0.2 27);background:oklch(95% 0.045 27)">${label}</span>`;
+				if (value === 'active')
+					return `<span style="${pill}color:oklch(45% 0.13 150);background:oklch(95% 0.05 150)">${label}</span>`;
+				return `<span style="color:oklch(65% 0.01 264)">${label}</span>`;
+			}
+		}
 	]);
 
 	// Transform user data for table
@@ -390,12 +401,8 @@
 					memberId: user.member_id,
 					memberIdInNumber: memberIdDigits(user.member_id) ?? 0,
 					_id: user._id,
-					name: `${formatMemberDisplay(`${user.first_name} ${user.surname}`, user.member_id)}${user.status === 'dead' ? ' 🔴' : ''}`,
-					modifiedName:
-						formatMemberDisplay(
-							truncateString(`${user.first_name} ${user.surname}`, 20),
-							user.member_id
-						) + `${user.status === 'dead' ? ' 🔴' : ''}`,
+					name: formatMemberDisplay(user.name, user.member_id),
+					modifiedName: formatMemberDisplay(user.name, user.member_id),
 					mobile: user.mobile || '-',
 					gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-',
 					status: user.status,
@@ -492,7 +499,7 @@
 				disabled: !row.clubId,
 				onclick: () => goto(`/families/${row.clubId}`)
 			},
-			{ label: 'Change Status', onclick: () => goto(`/members/status/${row._id}`) }
+			{ label: 'Update Status', onclick: () => goto(`/members/status/${row._id}`) }
 		];
 	}
 
@@ -508,6 +515,13 @@
 	let fileNameError = $state('');
 	let isDownloading = $state(false);
 	let downloadStage = $state('');
+	// Set once the CSV has been fetched/built and is waiting on an explicit
+	// "Save" tap (Safari only — see confirmDownload).
+	let readyFile: File | null = $state(null);
+
+	const isSafari =
+		typeof navigator !== 'undefined' &&
+		/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 
 	function defaultCsvFileName() {
 		const today = new Date();
@@ -538,11 +552,13 @@
 		fileNameError = '';
 		isDownloading = false;
 		downloadStage = '';
+		readyFile = null;
 		showDownloadModal = true;
 	}
 
 	function closeDownloadModal() {
 		if (isDownloading) return; // don't allow closing mid-export
+		readyFile = null;
 		showDownloadModal = false;
 	}
 
@@ -581,6 +597,39 @@
 		return rows;
 	}
 
+	function triggerDownload(file: File) {
+		const objUrl = URL.createObjectURL(file);
+		const link = document.createElement('a');
+		link.href = objUrl;
+		link.download = file.name;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		setTimeout(() => URL.revokeObjectURL(objUrl), 30000);
+	}
+
+	// Safari (iOS especially) opens viewable types like CSV as an in-tab
+	// preview instead of saving them, even from a plain anchor click — the
+	// `download` attribute doesn't force a save the way it does on
+	// Chrome/Android. The Web Share API instead hands the file to the native
+	// Share sheet ("Save to Files"), which is the reliable way to get an
+	// actual saved file on iOS.
+	async function saveReadyFile() {
+		if (!readyFile) return;
+		const file = readyFile;
+		if (isSafari && navigator.canShare?.({ files: [file] })) {
+			try {
+				await navigator.share({ files: [file] });
+			} catch (err: any) {
+				if (err?.name !== 'AbortError') triggerDownload(file);
+			}
+		} else {
+			triggerDownload(file);
+		}
+		readyFile = null;
+		showDownloadModal = false;
+	}
+
 	async function confirmDownload() {
 		fileNameError = validateFileName(downloadFileName);
 		if (fileNameError) return;
@@ -592,7 +641,7 @@
 
 			downloadStage = 'Generating CSV…';
 			const rows = allMembers.map((user) => ({
-				Member: `${user.first_name} ${user.surname}`,
+				Member: user.name,
 				Status: formatString(user.status, ['capitalize-first']),
 				// Mirrors the table pill: negative outstanding = credit (green, "+"),
 				// positive = debit (red, "-"), zero stays plain. Forced to text so
@@ -613,15 +662,18 @@
 				row.map(csvEscape).join(',')
 			);
 
-			const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8,' });
-			const objUrl = URL.createObjectURL(blob);
-			const link = document.createElement('a');
-			link.href = objUrl;
-			link.download = `${downloadFileName.trim()}.csv`;
-			link.click();
-			URL.revokeObjectURL(objUrl);
+			const file = new File([csvLines.join('\n')], `${downloadFileName.trim()}.csv`, {
+				type: 'text/csv;charset=utf-8'
+			});
 
-			showDownloadModal = false;
+			if (isSafari) {
+				// Require one more explicit tap so the save happens inside a fresh,
+				// un-awaited user gesture (see saveReadyFile).
+				readyFile = file;
+			} else {
+				triggerDownload(file);
+				showDownloadModal = false;
+			}
 		} catch (err: any) {
 			fileNameError = err?.message || 'Failed to generate CSV';
 		} finally {
@@ -922,22 +974,17 @@
 				<p class="t-muted mt-1 text-sm text-pretty">Try changing your search or filters</p>
 			</div>
 		{:else}
-			<!-- Table container with border, rounded corners, and scroll -->
-			<div class="surface h-full overflow-hidden rounded-lg border shadow-sm">
-				<div class="scroll-area h-full overflow-y-auto" id="tableContainer">
-					<Table
-						pagination={paginationConfig}
-						{columns}
-						data={tableData}
-						onRowClick={(row) => goto(`/members/view/${row._id}`)}
-						rowMenu={getRowMenuActions}
-						onNext={goNext}
-						onPrevious={goPrevious}
-						onLimitChange={changeLimit}
-						{density}
-					/>
-				</div>
-			</div>
+			<Table
+				pagination={paginationConfig}
+				{columns}
+				data={tableData}
+				onRowClick={(row) => goto(`/members/view/${row._id}`)}
+				rowMenu={getRowMenuActions}
+				onNext={goNext}
+				onPrevious={goPrevious}
+				onLimitChange={changeLimit}
+				{density}
+			/>
 		{/if}
 	</div>
 </div>
@@ -963,19 +1010,25 @@
 				></div>
 				<span>{downloadStage || 'Working…'}</span>
 			</div>
+		{:else if readyFile}
+			<p class="t-muted text-sm">CSV is ready — tap Save to store it on your device.</p>
 		{/if}
 
 		<div class="mt-1 flex justify-end gap-2">
 			<Button variant="secondary" onclick={closeDownloadModal} disabled={isDownloading}>
 				Cancel
 			</Button>
-			<Button
-				variant="primary"
-				onclick={confirmDownload}
-				disabled={isDownloading || !downloadFileName.trim() || !!fileNameError}
-			>
-				{isDownloading ? 'Downloading…' : 'Download'}
-			</Button>
+			{#if readyFile}
+				<Button variant="primary" onclick={saveReadyFile}>Save</Button>
+			{:else}
+				<Button
+					variant="primary"
+					onclick={confirmDownload}
+					disabled={isDownloading || !downloadFileName.trim() || !!fileNameError}
+				>
+					{isDownloading ? 'Downloading…' : 'Download'}
+				</Button>
+			{/if}
 		</div>
 	</div>
 </Modal>
@@ -1101,12 +1154,6 @@
 	}
 	.members-page p {
 		text-wrap: pretty;
-	}
-
-	/* Modern scrollbar styling */
-	.scroll-area {
-		scrollbar-color: var(--border-1) transparent;
-		scrollbar-width: thin;
 	}
 
 	/*

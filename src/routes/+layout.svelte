@@ -5,6 +5,7 @@
 	import { authStore } from '$lib/stores/authStore';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { withLang } from '$lib/i18n';
 	let { children } = $props();
 
 	onMount(() => {
@@ -15,15 +16,19 @@
 	// Redirect to login if not authenticated (except for public routes)
 	$effect(() => {
 		const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/admin', '/unauthorized'];
+		const lang = page.params.lang as 'guj' | undefined;
 		const currentPath = page.url.pathname;
-		const isPublic =
-			publicRoutes.includes(currentPath) || publicRoutes.some((r) => currentPath === r);
+		// The /login route lives under the optional [[lang]] segment, so strip
+		// it before comparing against publicRoutes (otherwise /guj/login never
+		// matches '/login' and gets bounced straight back to it, losing the lang).
+		const pathWithoutLang = lang ? currentPath.replace(new RegExp(`^/${lang}`), '') || '/' : currentPath;
+		const isPublic = publicRoutes.includes(pathWithoutLang);
 
 		if (!$authStore.isLoading && !$authStore.isAuthenticated) {
 			if (!isPublic) {
 				// Send browsers hitting /me to member login; everything else to admin
 				// goto(currentPath.startsWith('/me') ? '/login' : '/admin');
-				goto('/login');
+				goto(withLang(lang, '/login'));
 			}
 		}
 
@@ -32,9 +37,9 @@
 			!$authStore.isLoading &&
 			$authStore.isAuthenticated &&
 			$authStore.authType === 'pin' &&
-			(currentPath === '/' || currentPath === '/admin')
+			(pathWithoutLang === '/' || pathWithoutLang === '/admin')
 		) {
-			goto('/me');
+			goto(withLang(lang, '/me'));
 		}
 	});
 </script>
@@ -53,8 +58,8 @@
 		</div>
 	</div>
 {:else} -->
-	<div class="bg-whit flex h-screen flex-col overflow-hidden">
-		<main class="overflow-hiddens flex-1">
+	<div class="bg-whit flex h-dvh flex-col overflow-hidden">
+		<main class="min-h-0 flex-1 overflow-hidden">
 			{@render children?.()}
 		</main>
 	</div>

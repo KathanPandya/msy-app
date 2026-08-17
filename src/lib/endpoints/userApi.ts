@@ -2,6 +2,7 @@ import axios from '$lib/config/axios';
 import { memberListStore } from '$lib/stores/memberListStore';
 import type { User } from '$lib/types/user';
 import { clearMembersCache } from '$lib/utilities/membersCache';
+import { clearMeCache } from '$lib/utilities/meCache';
 
 class UserApi {
 	async updateUser({
@@ -11,12 +12,10 @@ class UserApi {
 		userId: string;
 		payload: User.Update;
 	}): Promise<{ user: User.Get; message: string; success: boolean }> {
-		//to be done
-		payload.reference_member_1 = 'test';
-		payload.reference_member_2 = 'test';
 		const response = await axios.put(`/api/user/update/${userId}`, payload);
 		memberListStore.clear();
 		clearMembersCache();
+		clearMeCache();
 		return response.data;
 	}
 
@@ -28,6 +27,7 @@ class UserApi {
 		const response = await axios.post(`/api/auth/register`, payload);
 		memberListStore.clear();
 		clearMembersCache();
+		clearMeCache();
 		return response.data;
 	}
 

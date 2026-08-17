@@ -2,6 +2,7 @@
 import { authStore } from '$lib/stores/authStore';
 import { goto } from '$app/navigation';
 import { get } from 'svelte/store';
+import { withLang, type Lang } from '$lib/i18n';
 
 export function requireAuth() {
 	const auth = get(authStore);
@@ -32,10 +33,10 @@ export function requireAdmin() {
 }
 
 /** Authenticated member (PIN session) — not admin shell */
-export function requireMember() {
+export function requireMember(lang?: Lang) {
 	const auth = get(authStore);
 	if (!auth.isAuthenticated) {
-		goto('/login');
+		goto(withLang(lang, '/login'));
 		return false;
 	}
 

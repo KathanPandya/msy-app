@@ -132,7 +132,7 @@
 				userId: member?._id,
 				_id: payment._id,
 				memberName: member
-					? formatMemberDisplay(`${member.first_name} ${member.surname}`, member.member_id)
+					? formatMemberDisplay(member.name, member.member_id)
 					: '-',
 				amount: payment.payment_amount,
 				date: formatDate(payment.payment_date),
@@ -208,12 +208,7 @@
 				</p>
 			</div>
 		{:else}
-			<!-- Table container with border, rounded corners, and scroll -->
-			<div class="h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-				<div class="h-full overflow-y-auto">
-					<Table {columns} data={tableData} />
-				</div>
-			</div>
+			<Table {columns} data={tableData} />
 		{/if}
 	</div>
 </div>
