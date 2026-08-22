@@ -6,6 +6,11 @@ class CoreApi {
 		const response = await axios.get<{ data: User.AllInfo }>(`/api/user/${userId}`);
 		return response.data.data;
 	}
+
+	async fetchCurrentUser(): Promise<User.AllInfo> {
+		const response = await axios.get<{ data: User.AllInfo }>(`/api/auth/me`);
+		return response.data.data;
+	}
 }
 
 const coreApi = new CoreApi();

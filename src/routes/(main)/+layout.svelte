@@ -84,7 +84,7 @@
 		</div>
 	</div>
 {:else if isAuthorized}
-	<div class="flex h-screen w-screen overflow-hidden bg-white">
+	<div class="flex h-full w-full overflow-hidden bg-white">
 		<!-- Mobile backdrop -->
 		{#if isSidebarOpen}
 			<button

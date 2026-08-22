@@ -3,12 +3,11 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import authApi from '$lib/endpoints/authApi';
 	import { authStore } from '$lib/stores/authStore';
-	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
 
 	// Redirect if already logged in
-	onMount(() => {
-		if ($authStore.isAuthenticated) {
+	$effect(() => {
+		if (!$authStore.isLoading && $authStore.isAuthenticated) {
 			if ($authStore.authType === 'pin') {
 				goto('/me');
 			} else {
@@ -19,19 +18,19 @@
 
 	// Validation Schema
 	const loginSchema = Yup.object().shape({
-		email: Yup.string().email('Invalid email address').required('Email is required'),
+		username: Yup.string().required('Username is required'),
 		password: Yup.string().required('Password is required')
 	});
 
 	// Form Data
 	let formData = $state({
-		email: '',
+		username: '',
 		password: ''
 	});
 
 	// Errors
 	let errors = $state({
-		email: '',
+		username: '',
 		password: ''
 	});
 
@@ -56,7 +55,7 @@
 
 		// Reset errors
 		errors = {
-			email: '',
+			username: '',
 			password: ''
 		};
 
@@ -64,8 +63,7 @@
 			// Validate form
 			await loginSchema.validate(formData, { abortEarly: false });
 
-			// TODO: Replace with your actual login API call
-			await authStore.login(formData.email, formData.password);
+			await authStore.login(formData.username, formData.password);
 
 			// Redirect to dashboard
 			goto('/dashboard');
@@ -82,7 +80,7 @@
 				errorMessage =
 					err?.response?.data?.message ||
 					err?.message ||
-					'Invalid email or password. Please try again.';
+					'Invalid username or password. Please try again.';
 			}
 		} finally {
 			isLoading = false;
@@ -99,7 +97,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+<div class="relative flex min-h-full items-center justify-center bg-gray-50 px-4 py-8">
 	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
 		<div class="mb-6 text-center">
 			<h1 class="text-2xl font-bold text-gray-900">Admin login</h1>
@@ -114,15 +112,15 @@
 			}}
 			class="space-y-6"
 		>
-				<!-- Email -->
+				<!-- Username -->
 				<Input
-					id="email"
-					label="Email Address"
-					type="email"
-					bind:value={formData.email}
-					error={errors.email}
-					onblur={() => validateField('email')}
-					placeholder="admin@example.com"
+					id="username"
+					label="Username"
+					type="text"
+					bind:value={formData.username}
+					error={errors.username}
+					onblur={() => validateField('username')}
+					placeholder="Enter your username"
 					required
 					disabled={isLoading}
 				/>

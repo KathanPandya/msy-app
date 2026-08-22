@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 </script>
 
-<div class="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
+<div class="flex min-h-full flex-col items-center justify-center bg-gray-50 px-4">
 	<div class="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-sm">
 		<h1 class="text-2xl font-bold text-gray-900">Unauthorized</h1>
 		<p class="mt-3 text-sm text-gray-600">You don't have permission to view this page.</p>

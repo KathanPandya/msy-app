@@ -54,7 +54,10 @@ function createAuthStore() {
 			try {
 				update((state) => ({ ...state, isLoading: true }));
 
-				const userData = await coreApi.fetchUserInfo({ userId });
+				const userData =
+					authType === 'password'
+						? await coreApi.fetchCurrentUser()
+						: await coreApi.fetchUserInfo({ userId });
 
 				set({
 					userAllInfo: userData,
@@ -81,16 +84,16 @@ function createAuthStore() {
 			}
 		},
 
-		async login(email: string, password: string) {
+		async login(username: string, password: string) {
 			try {
 				update((state) => ({ ...state, isLoading: true, error: null }));
 
-				const response = await authApi.userLogin({ email, password });
+				const response = await authApi.userLogin({ username, password });
 
 				localStorage.setItem('authToken', response.token);
-				localStorage.setItem('userId', response.user._id);
+				localStorage.setItem('userId', response.user.id);
 				localStorage.setItem('authType', 'password');
-				const userAllInfo = await coreApi.fetchUserInfo({ userId: response.user._id });
+				const userAllInfo = await coreApi.fetchCurrentUser();
 
 				set({
 					userAllInfo,
