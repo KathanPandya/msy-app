@@ -1,21 +1,11 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import MemberSearch, { type MemberSearchItem } from '$lib/components/MemberSearch.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import familiesApi from '$lib/endpoints/familiesApi';
-	import { familyListStore } from '$lib/stores/familyListStore';
 	import type { Family } from '$lib/types/family';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
-
-	// Preserves the list's active search when returning, instead of always
-	// landing back on the unfiltered /families.
-	function backToFamilies() {
-		const search = get(familyListStore).search;
-		goto(search ? `/families?search=${encodeURIComponent(search)}` : '/families');
-	}
 
 	let family = $state<Family.Detail | null>(null);
 	let isLoading = $state(true);
@@ -152,10 +142,6 @@
 </script>
 
 <div class="space-y-3">
-	<button type="button" onclick={backToFamilies} class="text-sm text-blue-600 hover:underline"
-		>← All families</button
-	>
-
 	{#if isLoading}
 		<p class="text-sm text-gray-500">Loading…</p>
 	{:else if family}

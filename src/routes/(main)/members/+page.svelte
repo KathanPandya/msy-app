@@ -499,7 +499,13 @@
 				disabled: !row.clubId,
 				onclick: () => goto(`/families/${row.clubId}`)
 			},
-			{ label: 'Update Status', onclick: () => goto(`/members/status/${row._id}`) }
+			{
+				label: 'Update Status',
+				onclick: () =>
+					goto(`/members/status/${row._id}`, {
+						state: { returnTo: page.url.pathname + page.url.search }
+					})
+			}
 		];
 	}
 

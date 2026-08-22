@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -78,7 +79,7 @@
 			width: 120,
 			render: (value: StatusLog.StatusDocument | null) =>
 				value?.url
-					? `<a href="${escapeHtml(value.url)}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline">View</a>`
+					? `<button type="button" onclick="window.openStatusDocument('${escapeHtml(value.url)}')" class="font-medium text-blue-600 hover:underline">View</button>`
 					: '-'
 		},
 		{
@@ -90,6 +91,7 @@
 	];
 
 	const userId = page.params.id ?? '';
+	const returnTo = (page.state as any).returnTo || '/members';
 
 	let memberName = $state('');
 	let memberIdRaw = $state('');
@@ -98,6 +100,18 @@
 	let logs = $state<StatusLog.Entry[]>([]);
 	let isLoading = $state(true);
 	let loadError = $state('');
+
+	let viewerOpen = $state(false);
+	let viewerSrc = $state('');
+
+	function openStatusDocument(url: string) {
+		if (url.toLowerCase().endsWith('.pdf')) {
+			window.open(url, '_blank', 'noopener,noreferrer');
+			return;
+		}
+		viewerSrc = url;
+		viewerOpen = true;
+	}
 
 	const newStatusOptions = $derived(
 		currentStatus === 'active' ? memberStatus : memberStatus.filter((o) => o.key !== 'dead')
@@ -116,6 +130,7 @@
 	}
 
 	onMount(async () => {
+		(window as any).openStatusDocument = openStatusDocument;
 		if (!userId) return;
 		isLoading = true;
 		const userInfo = await coreApi.fetchUserInfo({ userId });
@@ -223,7 +238,7 @@
 			newFormSuccess = res.message || 'Status has been updated';
 			resetNewForm();
 			showNewForm = false;
-			await loadStatusLog();
+			setTimeout(() => goto(returnTo), 1000);
 		} catch (err: any) {
 			newFormError = err?.response?.data?.message || 'Something went wrong';
 		} finally {
@@ -485,6 +500,8 @@
 		{/if}
 	</Card>
 </div>
+
+<ImageViewer src={viewerSrc} alt="Document" thumbnail={false} bind:open={viewerOpen} />
 
 <Modal open={editEntry !== null} onClose={closeEditModal} title="Edit status entry">
 	{#if editEntry}

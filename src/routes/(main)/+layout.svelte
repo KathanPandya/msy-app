@@ -39,10 +39,9 @@
 		authStore.logout();
 	}
 
-	let currentUser = {
-		name: `${$authStore.userAllInfo?.user?.first_name || 'Admin'}`,
-		email: `${$authStore.userAllInfo?.user?.email || 'Email'}`
-	};
+	let currentUser = $derived({
+		name: $authStore.userAllInfo?.user?.username || 'Admin'
+	});
 
 	// Navigation items
 	const navItems = [
@@ -100,12 +99,14 @@
 			class={`
     fixed inset-y-0 left-0 z-40 w-44 transform transition-transform duration-300
     md:relative md:z-auto md:translate-x-0 md:transition-all
-    ${isSidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:translate-x-0 md:w-12 lg:w-16'}
+    ${isSidebarOpen ? 'translate-x-0 md:w-64' : '-translate-x-full md:w-12 md:translate-x-0 lg:w-16'}
     flex flex-col border-r border-gray-200 bg-white
   `}
 		>
 			<!-- Sidebar Header -->
-			<div class="flex h-12 flex-shrink-0 items-center justify-between border-b border-gray-200 px-3">
+			<div
+				class="flex h-12 flex-shrink-0 items-center justify-between border-b border-gray-200 px-3"
+			>
 				<span
 					class={`
         ${isSidebarOpen ? 'opacity-100' : 'w-0 opacity-0'}
@@ -211,11 +212,10 @@
 						<div
 							class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white"
 						>
-							{currentUser.name.charAt(0)}
+							{currentUser.name.charAt(0).toUpperCase()}
 						</div>
 						<div class="hidden md:block">
 							<p class="text-sm font-medium text-gray-900">{currentUser.name}</p>
-							<p class="text-xs text-gray-500">{currentUser.email}</p>
 						</div>
 					</div>
 
