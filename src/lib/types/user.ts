@@ -22,7 +22,6 @@ export namespace User {
 		first_name: string;
 		gender: string;
 		is_firebase: boolean;
-		is_profile_completed: boolean;
 		member_id: string;
 		middle_name: string;
 		name: string;
@@ -58,8 +57,6 @@ export namespace User {
 		gender: string;
 		mobile: string;
 		email: string;
-		// is_profile_completed?: boolean;
-		// entry_date?: string;
 		reference_member_1: string;
 		reference_member_2: string;
 		entry_date: string;
