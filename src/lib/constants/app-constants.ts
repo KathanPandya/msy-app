@@ -75,7 +75,10 @@ export const APP_CONSTANTS = {
 		{ key: 'netbanking', label: 'Net Banking' },
 		{ key: 'card', label: 'Card' },
 		{ key: 'emandate', label: 'E-mandate' },
-		{ key: 'nach', label: 'NACH' }
+		{ key: 'nach', label: 'NACH' },
+		{ key: 'neft', label: 'NEFT' },
+		{ key: 'imps', label: 'IMPS' },
+		{ key: 'rtgs', label: 'RTGS' }
 	],
 
 	PAYMENT_TYPES: [
