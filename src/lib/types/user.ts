@@ -41,7 +41,6 @@ export namespace User {
 		username: string;
 		_v: number;
 		_id: string;
-		status_details: Status_Details;
 		/** Login PIN present (not address pincode) */
 		has_pin?: boolean;
 		must_change_pin?: boolean;
@@ -55,7 +54,6 @@ export namespace User {
 		first_name: string;
 		middle_name: string;
 		surname: string;
-		status: string;
 		date_of_birth: string;
 		gender: string;
 		mobile: string;
@@ -64,7 +62,6 @@ export namespace User {
 		// entry_date?: string;
 		reference_member_1: string;
 		reference_member_2: string;
-		status_details: Status_Details;
 		entry_date: string;
 	};
 
@@ -80,11 +77,4 @@ export namespace User {
 	};
 
 	export type List = Array<Get>;
-
-	export type Status_Details = null | {
-		date: string;
-		remarks: string;
-		photo_url: string;
-		contribution_amount: null | number;
-	};
 }
