@@ -1,1 +1,0 @@
-import{a as e}from"./CnceZ-rV.js";import{g as t}from"./bXn1JfYZ.js";import{j as a}from"./CMuNEn28.js";function n(){return a(e).isAuthenticated?!0:(t("/login"),!1)}function s(){const r=a(e);return r.isAuthenticated?r.authType==="password"&&r.userAllInfo?.user.role==="admin"?(t("/dashboard"),!1):!0:(t("/login"),!1)}export{n as a,s as r};
