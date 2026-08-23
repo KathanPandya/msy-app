@@ -6,14 +6,6 @@
 	import userApi from '$lib/endpoints/userApi';
 	import { familyListStore } from '$lib/stores/familyListStore';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
-	import { get } from 'svelte/store';
-
-	// Preserves the list's active search when returning, instead of always
-	// landing back on the unfiltered /families.
-	function backToFamilies() {
-		const search = get(familyListStore).search;
-		goto(search ? `/families?search=${encodeURIComponent(search)}` : '/families');
-	}
 
 	let pendingMembers = $state<MemberSearchItem[]>([]);
 	let creating = $state(false);
@@ -62,10 +54,6 @@
 </script>
 
 <div class="space-y-3">
-	<button type="button" onclick={backToFamilies} class="text-sm text-blue-600 hover:underline">
-		← All families
-	</button>
-
 	<section class="rounded-lg bg-white p-4 shadow-sm">
 		<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div>

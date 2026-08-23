@@ -384,6 +384,7 @@
 							error={errors.firstName}
 							onblur={() => validateField('firstName')}
 							placeholder="First name"
+							required
 						/>
 
 						<Input
@@ -393,6 +394,7 @@
 							error={errors.middleName}
 							onblur={() => validateField('middleName')}
 							placeholder="Middle name"
+							required
 						/>
 
 						<Input
@@ -402,6 +404,7 @@
 							error={errors.lastName}
 							onblur={() => validateField('lastName')}
 							placeholder="Surname"
+							required
 						/>
 
 						<Input
@@ -413,6 +416,7 @@
 							placeholder="10 digit mobile"
 							inputmode="numeric"
 							maxlength={10}
+							required
 						/>
 
 						<div class="md:col-span-2">
@@ -424,6 +428,7 @@
 								error={errors.email}
 								onblur={() => validateField('email')}
 								placeholder="you@example.com"
+								required
 							/>
 						</div>
 
@@ -434,6 +439,7 @@
 							bind:value={formData.dob}
 							error={errors.dob}
 							onblur={() => validateField('dob')}
+							required
 						/>
 
 						<Select
@@ -443,6 +449,7 @@
 							options={genders}
 							error={errors.gender}
 							onchange={() => validateField('gender')}
+							required
 						/>
 
 						<Input
@@ -452,6 +459,7 @@
 							error={errors.refNum1}
 							onblur={() => validateField('refNum1')}
 							placeholder="Reference Number 1"
+							required
 						/>
 
 						<Input
@@ -461,6 +469,7 @@
 							error={errors.refNum2}
 							onblur={() => validateField('refNum2')}
 							placeholder="Reference Number 2"
+							required
 						/>
 
 						<!-- <Select
@@ -549,6 +558,7 @@
 							error={errors.nativePlace}
 							onblur={() => validateField('nativePlace')}
 							placeholder="Native Place"
+							required
 						/>
 
 						<Select
@@ -558,6 +568,7 @@
 							options={gotras}
 							error={errors.gotra}
 							onchange={() => validateField('gotra')}
+							required
 						/>
 
 						<Select
@@ -567,6 +578,7 @@
 							options={maritalStatus}
 							error={errors.maritalStatus}
 							onchange={() => validateField('maritalStatus')}
+							required
 						/>
 					</div>
 
@@ -644,6 +656,7 @@
 							error={errors.addressLine1}
 							onblur={() => validateField('addressLine1')}
 							placeholder="House, building, street"
+							required
 						/>
 
 						<Input
@@ -662,6 +675,7 @@
 							error={errors.areaName}
 							onblur={() => validateField('areaName')}
 							placeholder="Area"
+							required
 						/>
 
 						<Input
@@ -671,6 +685,7 @@
 							error={errors.landmark}
 							onblur={() => validateField('landmark')}
 							placeholder="Nearby landmark"
+							required
 						/>
 
 						<Input
@@ -680,6 +695,7 @@
 							error={errors.city}
 							onblur={() => validateField('city')}
 							placeholder="City"
+							required
 						/>
 
 						<Input
@@ -691,6 +707,7 @@
 							placeholder="6 digit pincode"
 							inputmode="numeric"
 							maxlength={6}
+							required
 						/>
 
 						<Input
@@ -700,6 +717,7 @@
 							error={errors.state}
 							onblur={() => validateField('state')}
 							placeholder="State"
+							required
 						/>
 
 						<Input
@@ -709,6 +727,7 @@
 							error={errors.country}
 							onblur={() => validateField('country')}
 							placeholder="Country"
+							required
 						/>
 					</div>
 

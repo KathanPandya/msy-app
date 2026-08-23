@@ -147,7 +147,7 @@
 
 	function handleChangeStatus() {
 		goto(`/members/status/${userData._id}`, {
-			state: { userData }
+			state: { userData, returnTo: page.url.pathname + page.url.search }
 		});
 	}
 

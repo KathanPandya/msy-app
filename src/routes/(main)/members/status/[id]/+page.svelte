@@ -5,502 +5,558 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import ImageViewer from '$lib/components/ui/ImageViewer.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
+	import Table from '$lib/components/ui/Table.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import coreApi from '$lib/endpoints/coreApi';
-	import deadMemberApi from '$lib/endpoints/deadMemberApi';
+	import statusLogApi from '$lib/endpoints/statusLogApi';
 	import uploadApi from '$lib/endpoints/uploadApi';
-	import userApi from '$lib/endpoints/userApi';
-	import type { DeadMember } from '$lib/types/deadMember';
-	import type { User } from '$lib/types/user';
-	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import type { StatusLog } from '$lib/types/statusLog';
+	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
-	import { formatString } from '$lib/utilities/stringUtils';
 	import { Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import * as Yup from 'yup';
-
-	// Validation Schema
-	const statusUpdateSchema = Yup.object().shape({
-		userId: Yup.string().required('Member is required'),
-		status: Yup.string()
-			.oneOf(['active', 'removed', 'voluntary-retired', 'dead'])
-			.required('Status is required'),
-
-		// Simple condition: single value
-		date: Yup.date().when('status', {
-			is: (val: any) => ['removed', 'voluntary-retired', 'dead'].includes(val),
-			then: (s) => s.required('Date is required'),
-			otherwise: (s) => s.notRequired()
-		}),
-
-		// Multiple values condition
-		reason: Yup.string().when('status', {
-			is: (val: any) => ['removed', 'voluntary-retired', 'dead'].includes(val),
-			then: (s) => s.required('Reason is required'),
-			otherwise: (s) => s.notRequired()
-		}),
-
-		contribution_amount: Yup.number().when('status', {
-			is: 'dead',
-			then: (s) => s.required('Contribution Amount is required'),
-			otherwise: (s) => s.notRequired()
-		})
-	});
 
 	const memberStatus = APP_CONSTANTS.MEMBER_STATUS;
-	const getDateLabel: Record<string, string> = {
-		dead: 'Death',
-		removed: 'Removal',
-		'voluntary-retired': 'Retirement'
+	// Marking a member dead is only allowed from "active" — the backend rejects
+	// it otherwise, so hide the option before the user can even pick it.
+	const documentTypeByStatus: Record<string, StatusLog.DocumentType> = {
+		removed: 'proof_photo',
+		'voluntary-retired': 'proof_photo',
+		dead: 'death_certificate'
+	};
+	const documentLabelByStatus: Record<string, string> = {
+		removed: 'Proof (Screenshot/Notice)',
+		'voluntary-retired': 'Proof (Screenshot/Notice)',
+		dead: 'Death Certificate'
 	};
 
-	// Load current member on mount
-	onMount(async () => {
-		const userId = page.params.id;
-		if (!userId) return;
+	const statusBadgeClass: Record<string, string> = {
+		active: 'bg-green-100 text-green-800',
+		removed: 'bg-red-100 text-red-800',
+		'voluntary-retired': 'bg-yellow-100 text-yellow-800',
+		dead: 'bg-gray-200 text-gray-800'
+	};
 
-		const userInfo = await coreApi.fetchUserInfo({ userId });
-		const member = userInfo?.user;
-		if (member) {
-			currentMember = member;
-			formData.status = currentMember.status;
-			formData.userId = currentMember._id;
-			if (currentMember.status === 'removed' || currentMember.status === 'voluntary-retired') {
-				if (currentMember.status_details) {
-					formData.reason = currentMember.status_details.remarks;
-					formData.date = formatString(currentMember.status_details.date?.split('T')[0], ['trim']);
-					formData.photo = currentMember.status_details.photo_url;
-				}
-			}
-
-			if (currentMember.status === 'dead') {
-				const res = await deadMemberApi.getAllDeadMembers();
-				const deadMemberDetail = res.data.find((detail) => detail.userId === currentMember?._id);
-				if (deadMemberDetail) {
-					deadMemberId = deadMemberDetail._id;
-					formData.contribution_amount = String(deadMemberDetail.contribution_amount);
-					formData.reason = deadMemberDetail.remarks;
-					formData.date = formatString(deadMemberDetail.date_of_death?.split('T')[0], ['trim']);
-					formData.photo = deadMemberDetail.death_certificate;
-				}
-			}
-		}
-	});
-
-	let deadMemberId = $state('');
-	let currentMember = $state<User.Get>();
-
-	// Form Data
-	let formData = $state({
-		userId: '',
-		memberName: '',
-		status: '',
-		date: '',
-		contribution_amount: '100',
-		reason: '',
-		photo: null as File | null | string
-	});
-
-	// Errors
-	let errors = $state({
-		userId: '',
-		date: '',
-		status: '',
-		contribution_amount: '',
-		reason: '',
-		photo: ''
-	});
-
-	function removeImage() {
-		formData.photo = '';
+	function escapeHtml(value: string): string {
+		return value
+			.replace(/&/g, '&amp;')
+			.replace(/"/g, '&quot;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
 	}
 
-	// Loading state
-	let isLoading = $state(false);
+	function bindEl(node: HTMLInputElement, callback: (el: HTMLInputElement) => void) {
+		callback(node);
+	}
 
-	// Success/Error messages
-	let successMessage = $state('');
-	let errorMessage = $state('');
+	const logColumns = [
+		{
+			key: 'status',
+			label: 'Status',
+			width: 140,
+			render: (value: StatusLog.MemberStatus) =>
+				`<span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+					statusBadgeClass[value] ?? 'bg-gray-100 text-gray-800'
+				}">${value}</span>`
+		},
+		{
+			key: 'date',
+			label: 'Date',
+			width: 120,
+			render: (value: string) => formatDate(value)
+		},
+		{
+			key: 'reason',
+			label: 'Reason',
+			width: 260,
+			tooltip: true
+		},
+		{
+			key: 'document',
+			label: 'Document',
+			width: 120,
+			render: (value: StatusLog.StatusDocument | null) =>
+				value?.url
+					? `<button type="button" onclick="window.openStatusDocument('${escapeHtml(value.url)}')" class="font-medium text-blue-600 hover:underline">View</button>`
+					: '-'
+		},
+		{
+			key: 'createdAt',
+			label: 'Recorded On',
+			width: 140,
+			render: (value: string) => formatDate(value)
+		}
+	];
 
-	// File handling
-	let fileInput = $state(null as HTMLInputElement | null);
-	let fileName = $state('');
+	const userId = page.params.id ?? '';
+	const returnTo = (page.state as any).returnTo || '/members';
 
-	function handleFileChange(event: Event) {
+	let memberName = $state('');
+	let memberIdRaw = $state('');
+	let currentStatus = $state<StatusLog.MemberStatus | null>(null);
+	let revertible = $state(false);
+	let logs = $state<StatusLog.Entry[]>([]);
+	let isLoading = $state(true);
+	let loadError = $state('');
+
+	let viewerOpen = $state(false);
+	let viewerSrc = $state('');
+
+	function openStatusDocument(url: string) {
+		if (url.toLowerCase().endsWith('.pdf')) {
+			window.open(url, '_blank', 'noopener,noreferrer');
+			return;
+		}
+		viewerSrc = url;
+		viewerOpen = true;
+	}
+
+	const newStatusOptions = $derived(
+		currentStatus === 'active' ? memberStatus : memberStatus.filter((o) => o.key !== 'dead')
+	);
+
+	async function loadStatusLog() {
+		loadError = '';
+		try {
+			const res = await statusLogApi.getStatusLog(userId);
+			currentStatus = res.status;
+			revertible = res.revertible;
+			logs = res.logs;
+		} catch (err: any) {
+			loadError = err?.response?.data?.message || 'Failed to load status history';
+		}
+	}
+
+	onMount(async () => {
+		(window as any).openStatusDocument = openStatusDocument;
+		if (!userId) return;
+		isLoading = true;
+		const userInfo = await coreApi.fetchUserInfo({ userId });
+		if (userInfo?.user) {
+			memberName = userInfo.user.name;
+			memberIdRaw = userInfo.user.member_id;
+		}
+		await loadStatusLog();
+		isLoading = false;
+	});
+
+	// New status form
+	let showNewForm = $state(false);
+	let newForm = $state({
+		status: '' as StatusLog.MemberStatus | '',
+		date: '',
+		reason: '',
+		photo: null as File | null
+	});
+	let newFormErrors = $state({ status: '', date: '', photo: '' });
+	let newFormFileName = $state('');
+	let newFormFileInput = $state(null as HTMLInputElement | null);
+	let isSubmittingNew = $state(false);
+	let newFormError = $state('');
+	let newFormSuccess = $state('');
+
+	function resetNewForm() {
+		newForm = { status: '', date: '', reason: '', photo: null };
+		newFormErrors = { status: '', date: '', photo: '' };
+		newFormFileName = '';
+		if (newFormFileInput) newFormFileInput.value = '';
+		newFormError = '';
+	}
+
+	function handleNewFormFile(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
+		if (!file) return;
 
-		if (file) {
-			// Validate file size (5MB max)
-			if (file.size > 5 * 1024 * 1024) {
-				errors.photo = 'File size must be less than 5MB';
-				formData.photo = null;
-				fileName = '';
-				return;
-			}
-
-			// Validate file type
-			const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-			if (!allowedTypes.includes(file.type)) {
-				errors.photo = 'Only JPG, PNG, and PDF files are allowed';
-				formData.photo = null;
-				fileName = '';
-				return;
-			}
-
-			formData.photo = file;
-			fileName = file.name;
-			errors.photo = '';
+		if (file.size > 5 * 1024 * 1024) {
+			newFormErrors.photo = 'File size must be less than 5MB';
+			return;
 		}
-	}
-
-	function removeFile() {
-		formData.photo = null;
-		fileName = '';
-		errors.photo = '';
-		if (fileInput) fileInput.value = '';
-	}
-
-	// Validate individual field
-	async function validateField(field: keyof typeof errors) {
-		if (field === 'photo') return; // Skip file validation here
-
-		try {
-			await statusUpdateSchema.validateAt(field, formData);
-			errors[field] = '';
-		} catch (err: any) {
-			errors[field] = err?.message || 'Invalid';
-		}
-	}
-
-	// Submit form
-	async function submitForm() {
-		if (!currentMember) {
-			errorMessage = 'Current Member Not Found';
+		const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+		if (!allowedTypes.includes(file.type)) {
+			newFormErrors.photo = 'Only JPG, PNG, and PDF files are allowed';
 			return;
 		}
 
-		isLoading = true;
-		successMessage = '';
-		errorMessage = '';
+		newForm.photo = file;
+		newFormFileName = file.name;
+		newFormErrors.photo = '';
+	}
 
-		// Reset errors
-		errors = {
-			userId: '',
-			date: '',
-			status: '',
-			contribution_amount: '',
-			photo: '',
-			reason: ''
-		};
+	function removeNewFormFile() {
+		newForm.photo = null;
+		newFormFileName = '';
+		newFormErrors.photo = '';
+		if (newFormFileInput) newFormFileInput.value = '';
+	}
 
+	async function submitNewStatus() {
+		newFormError = '';
+		newFormSuccess = '';
+		newFormErrors = { status: '', date: '', photo: '' };
+
+		if (!newForm.status) {
+			newFormErrors.status = 'Status is required';
+			return;
+		}
+		if (newForm.status === 'dead' && currentStatus !== 'active') {
+			newFormErrors.status = 'Only an active member can be marked dead';
+			return;
+		}
+		if (!newForm.date) {
+			newFormErrors.date = 'Date is required';
+			return;
+		}
+
+		isSubmittingNew = true;
 		try {
-			// Validate form data
-			await statusUpdateSchema.validate(formData, { abortEarly: false });
-			let fileUrl = '';
-
-			// Check if file is uploaded
-			if (['removed', 'voluntary-retired', 'dead'].includes(formData.status)) {
-				if (!formData.photo) {
-					errors.photo = 'Photo proof is required';
-					errorMessage = 'Please upload photo for proof';
-					return;
-				}
-
-				if (typeof formData.photo === 'string') {
-					fileUrl = formData.photo;
-				} else {
-					// Upload
-					const formDataToSend = new FormData();
-					formDataToSend.append('file', formData.photo);
-
-					const uploadResponse = await uploadApi.file({ file: formDataToSend });
-					fileUrl = uploadResponse.data.fileUrl;
-				}
-			}
-			let apiRes;
-
-			if (currentMember.status === 'dead') {
-				let payload: DeadMember.Create | DeadMember.Update = {
-					userId: formData.userId,
-					date_of_death: formData.date,
-					death_certificate: fileUrl,
-					remarks: formData.reason,
-					contribution_amount: Number(formData.contribution_amount)
+			let document: StatusLog.StatusDocument | null = null;
+			if (newForm.photo) {
+				const formDataToSend = new FormData();
+				formDataToSend.append('file', newForm.photo);
+				const uploadResponse = await uploadApi.file({ file: formDataToSend });
+				document = {
+					type: documentTypeByStatus[newForm.status],
+					url: uploadResponse.data.fileUrl
 				};
-
-				if (deadMemberId) {
-					payload = { ...payload, id: deadMemberId };
-					apiRes = await deadMemberApi.updateDeadMember({
-						payload: payload as DeadMember.Update
-					});
-				} else {
-					apiRes = await deadMemberApi.changeMemberStatusToDead({
-						payload: payload
-					});
-				}
-			} else {
-				const s_details =
-					formData.status === 'active'
-						? null
-						: {
-								date: formatToYYYYMMDD(formData.date),
-								photo_url: fileUrl,
-								remarks: formData.reason,
-								contribution_amount: null
-							};
-
-				apiRes = await userApi.updateUser({
-					userId: formData.userId,
-					payload: {
-						first_name: currentMember.first_name,
-						middle_name: currentMember.middle_name,
-						surname: currentMember.surname,
-						status: currentMember.status,
-						date_of_birth: formatToYYYYMMDD(currentMember.date_of_birth),
-						gender: currentMember.gender,
-						mobile: currentMember.mobile,
-						email: currentMember.email,
-						reference_member_1: currentMember.reference_member_1,
-						reference_member_2: currentMember.reference_member_2,
-						entry_date: formatToYYYYMMDD(currentMember.entry_date),
-						status_details: s_details
-					}
-				});
 			}
 
-			if (apiRes.success) {
-				successMessage = 'Member Status changed successfully! Redirecting...';
-			} else {
-				errorMessage = apiRes.message;
+			const res = await statusLogApi.postStatusLog(userId, {
+				status: newForm.status,
+				date: newForm.date,
+				reason: newForm.reason || undefined,
+				document
+			});
+
+			if (!res.success) {
+				newFormError = res.message;
 				return;
 			}
 
-			// Reset form after delay
-			setTimeout(() => {
-				resetForm();
-				goto(`/members/view/${currentMember?._id}`);
-			}, 1500);
+			newFormSuccess = res.message || 'Status has been updated';
+			resetNewForm();
+			showNewForm = false;
+			setTimeout(() => goto(returnTo), 1000);
 		} catch (err: any) {
-			if (err.inner && Array.isArray(err.inner)) {
-				err.inner.forEach((e: any) => {
-					if (e.path && e.path in errors) {
-						errors[e.path as keyof typeof errors] = e.message;
-					}
-				});
-			}
-			errorMessage = 'Please fix the errors above';
-
-			if (err.response) {
-				errorMessage = err.response.data?.message || 'Request failed';
-				return;
-			}
-
-			errorMessage = 'Something went wrong';
-
-			// Scroll to first error
-			setTimeout(() => {
-				const firstErr = document.querySelector('.text-red-600');
-				if (firstErr) {
-					firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-				}
-			}, 100);
+			newFormError = err?.response?.data?.message || 'Something went wrong';
 		} finally {
-			isLoading = false;
+			isSubmittingNew = false;
 		}
 	}
 
-	// Reset form
-	function resetForm() {
-		if (currentMember) {
-			formData = {
-				userId: currentMember._id,
-				memberName: currentMember.name,
-				status: currentMember.status,
-				date: '',
-				contribution_amount: '',
-				photo: null,
-				reason: ''
-			};
-		} else {
-			console.log('Error while reseting Form');
+	// Edit-log-entry modal (reason/document only)
+	let editEntry = $state<StatusLog.Entry | null>(null);
+	let editForm = $state({ reason: '', photo: null as File | null | string });
+	let editFormFileName = $state('');
+	let editFormFileInput = $state(null as HTMLInputElement | null);
+	let isSubmittingEdit = $state(false);
+	let editError = $state('');
+
+	function startEdit(entry: StatusLog.Entry) {
+		editEntry = entry;
+		editForm = { reason: entry.reason || '', photo: entry.document?.url || null };
+		editFormFileName = '';
+		editError = '';
+	}
+
+	function closeEditModal() {
+		editEntry = null;
+		editError = '';
+	}
+
+	function handleEditFormFile(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file) return;
+		editForm.photo = file;
+		editFormFileName = file.name;
+	}
+
+	function removeEditPhoto() {
+		editForm.photo = null;
+		editFormFileName = '';
+	}
+
+	function removeEditFormFile() {
+		editForm.photo = null;
+		editFormFileName = '';
+		if (editFormFileInput) editFormFileInput.value = '';
+	}
+
+	async function submitEdit() {
+		if (!editEntry) return;
+		editError = '';
+		isSubmittingEdit = true;
+		try {
+			let document: StatusLog.StatusDocument | null | undefined = undefined;
+			if (editForm.photo instanceof File) {
+				const formDataToSend = new FormData();
+				formDataToSend.append('file', editForm.photo);
+				const uploadResponse = await uploadApi.file({ file: formDataToSend });
+				document = {
+					type: editEntry.document?.type ?? documentTypeByStatus[editEntry.status] ?? 'proof_photo',
+					url: uploadResponse.data.fileUrl
+				};
+			} else if (editForm.photo === null) {
+				document = null;
+			}
+
+			const res = await statusLogApi.putStatusLog(userId, editEntry._id, {
+				reason: editForm.reason,
+				document
+			});
+
+			if (!res.success) {
+				editError = res.message;
+				return;
+			}
+
+			closeEditModal();
+			await loadStatusLog();
+		} catch (err: any) {
+			editError = err?.response?.data?.message || 'Something went wrong';
+		} finally {
+			isSubmittingEdit = false;
 		}
-		errors = {
-			userId: '',
-			date: '',
-			contribution_amount: '',
-			status: '',
-			photo: '',
-			reason: ''
-		};
-		fileName = '';
-		if (fileInput) fileInput.value = '';
-		successMessage = '';
-		errorMessage = '';
 	}
 </script>
 
-<div class="mx-auto max-w-3xl p-6">
-	<Card
-		title={`Update User Status (${formatMemberDisplay(
-			currentMember?.name,
-			currentMember?.member_id
-		)})`}
-	>
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-			<!-- Current Member -->
-			<div class="md:col-span-2">
-				<p class="mb-1 block text-sm font-medium text-gray-700">Member</p>
-				<div class="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900">
-					{formatMemberDisplay(currentMember?.name, currentMember?.member_id)}
+{#snippet fileDropzone(props: {
+	id: string;
+	label: string;
+	fileName: string;
+	onchange: (e: Event) => void;
+	onremove: () => void;
+	inputRef: (el: HTMLInputElement) => void;
+	disabled?: boolean;
+	error?: string;
+})}
+	<label for={props.id} class="mb-1 block text-sm font-medium text-gray-700">
+		{props.label}
+	</label>
+
+	{#if !props.fileName}
+		<label
+			for={props.id}
+			class="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-gray-300 px-4 py-6 transition-colors hover:border-gray-400"
+		>
+			<div class="text-center">
+				<Upload class="mx-auto h-8 w-8 text-gray-400" />
+				<p class="mt-2 text-sm text-gray-600">Click to upload or drag and drop</p>
+				<p class="mt-1 text-xs text-gray-500">PNG, JPG, PDF up to 5MB</p>
+			</div>
+		</label>
+		<input
+			id={props.id}
+			type="file"
+			class="hidden"
+			accept=".jpg,.jpeg,.png,.pdf"
+			onchange={props.onchange}
+			use:bindEl={props.inputRef}
+			disabled={props.disabled}
+		/>
+	{:else}
+		<div class="flex items-center justify-between rounded-md border border-gray-300 bg-gray-50 px-4 py-3">
+			<div class="flex items-center space-x-3">
+				<Upload class="h-5 w-5 text-gray-400" />
+				<span class="text-sm text-gray-900">{props.fileName}</span>
+			</div>
+			<button
+				type="button"
+				onclick={props.onremove}
+				class="text-red-600 hover:text-red-800"
+				disabled={props.disabled}
+			>
+				<X class="h-5 w-5" />
+			</button>
+		</div>
+	{/if}
+
+	{#if props.error}
+		<p class="mt-1 text-sm text-red-600">{props.error}</p>
+	{/if}
+{/snippet}
+
+<div class="mx-auto max-w-5xl p-2 lg:p-6">
+	<Card title={`Status History (${formatMemberDisplay(memberName, memberIdRaw)})`}>
+		{#if isLoading}
+			<div class="flex items-center justify-center py-10">
+				<div
+					class="h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
+				></div>
+			</div>
+		{:else if loadError}
+			<div class="rounded-md bg-red-50 p-3 text-sm text-red-800">{loadError}</div>
+		{:else}
+			<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium text-gray-500">Current status:</span>
+					{#if currentStatus}
+						<span
+							class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize {statusBadgeClass[
+								currentStatus
+							] ?? 'bg-gray-100 text-gray-800'}"
+						>
+							{currentStatus}
+						</span>
+					{:else}
+						<span class="text-sm font-semibold text-gray-900">—</span>
+					{/if}
 				</div>
+				{#if revertible}
+					<Button variant="primary" size="sm" onclick={() => (showNewForm = !showNewForm)}>
+						<span class="whitespace-nowrap">{showNewForm ? 'Cancel' : 'Change Status'}</span>
+					</Button>
+				{/if}
 			</div>
 
-			<Select
-				id="status"
-				label="Status"
-				bind:value={formData.status}
-				options={memberStatus}
-				error={errors.status}
-				onchange={() => validateField('status')}
-			/>
-
-			<!-- Date of Death -->
-			{#if formData.status !== 'active'}
-				<Input
-					id="date"
-					label={`Date of ${getDateLabel[formData.status]}`}
-					type="date"
-					bind:value={formData.date}
-					error={errors.date}
-					onblur={() => validateField('date')}
-					required
-					disabled={isLoading}
-				/>
-
-				<div class="md:col-span-2">
-					<Input
-						id="reason"
-						label="Reason"
-						bind:value={formData.reason}
-						error={errors.reason}
-						onblur={() => validateField('reason')}
-						required
-						disabled={isLoading}
-					/>
+			{#if !revertible}
+				<div class="mb-3 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
+					This member is marked dead. Status cannot be changed further.
 				</div>
 			{/if}
 
-			<!-- Contribution Amount -->
+			{#if showNewForm}
+				<div class="mb-4 rounded-md border border-gray-200 p-3">
+					<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+						<Select
+							id="new-status"
+							label="Status"
+							bind:value={newForm.status}
+							options={newStatusOptions}
+							error={newFormErrors.status}
+							required
+						/>
 
-			{#if formData.status == 'dead'}
-				<Input
-					id="contribution_amount"
-					label="Contribution Amount"
-					type="number"
-					bind:value={formData.contribution_amount}
-					error={errors.contribution_amount}
-					onblur={() => validateField('contribution_amount')}
-					placeholder="Enter amount"
-					required
-					disabled={isLoading}
-				/>
-			{/if}
+						<Input
+							id="new-date"
+							label="Effective Date"
+							type="date"
+							bind:value={newForm.date}
+							error={newFormErrors.date}
+							required
+							disabled={isSubmittingNew}
+						/>
 
-			<!-- Death Certificate Upload -->
-
-			{#if typeof formData.photo === 'string' && formData.photo !== ''}
-				<div class="md:col-span-2">
-					<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
-						{formData.status === 'dead' ? 'Death Certificate' : 'Proof (Screenshot/Notice)'}
-						<span class="text-red-500">*</span>
-					</label>
-					<ImageViewer {removeImage} src={formData.photo} alt="Proof Pic" thumbnailSize="large" />
-				</div>
-			{:else if formData.status !== 'active'}
-				<div class="md:col-span-2">
-					<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
-						{formData.status === 'dead' ? 'Death Certificate' : 'Proof (Screenshot/Notice)'}
-						<span class="text-red-500">*</span>
-					</label>
-
-					<div class="mt-1">
-						{#if !fileName}
-							<label
-								for="file-upload"
-								class="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-gray-300 px-4 py-6 transition-colors hover:border-gray-400"
-							>
-								<div class="text-center">
-									<Upload class="mx-auto h-8 w-8 text-gray-400" />
-									<p class="mt-2 text-sm text-gray-600">Click to upload or drag and drop</p>
-									<p class="mt-1 text-xs text-gray-500">PNG, JPG, PDF up to 5MB</p>
-								</div>
-							</label>
-							<input
-								id="file-upload"
-								type="file"
-								class="hidden"
-								accept=".jpg,.jpeg,.png,.pdf"
-								onchange={handleFileChange}
-								bind:this={fileInput}
-								disabled={isLoading}
+						<div class="md:col-span-2">
+							<Input
+								id="new-reason"
+								label="Reason"
+								bind:value={newForm.reason}
+								disabled={isSubmittingNew}
 							/>
-						{:else}
-							<div
-								class="flex items-center justify-between rounded-md border border-gray-300 bg-gray-50 px-4 py-3"
-							>
-								<div class="flex items-center space-x-3">
-									<Upload class="h-5 w-5 text-gray-400" />
-									<span class="text-sm text-gray-900">{fileName}</span>
-								</div>
-								<button
-									type="button"
-									onclick={removeFile}
-									class="text-red-600 hover:text-red-800"
-									disabled={isLoading}
-								>
-									<X class="h-5 w-5" />
-								</button>
+						</div>
+
+						{#if newForm.status === 'dead'}
+							<div class="md:col-span-2 rounded-md bg-red-50 p-3 text-sm text-red-800">
+								Marking a member as dead is permanent and cannot be reverted through this form.
+							</div>
+						{/if}
+
+						{#if newForm.status}
+							<div class="md:col-span-2">
+								{@render fileDropzone({
+									id: 'new-file-upload',
+									label: documentLabelByStatus[newForm.status] ?? 'Document',
+									fileName: newFormFileName,
+									onchange: handleNewFormFile,
+									onremove: removeNewFormFile,
+									inputRef: (el) => (newFormFileInput = el),
+									disabled: isSubmittingNew,
+									error: newFormErrors.photo
+								})}
 							</div>
 						{/if}
 					</div>
 
-					{#if errors.photo}
-						<p class="mt-1 text-sm text-red-600">{errors.photo}</p>
+					{#if newFormError}
+						<div class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">{newFormError}</div>
 					{/if}
+
+					<div class="mt-3 flex justify-end">
+						<Button variant="success" size="sm" onclick={submitNewStatus} disabled={isSubmittingNew}>
+							{isSubmittingNew ? 'Submitting...' : 'Submit'}
+						</Button>
+					</div>
 				</div>
 			{/if}
-		</div>
 
-		<!-- Messages -->
-		{#if errorMessage}
-			<div class="mt-4 rounded-md bg-red-50 p-4">
-				<p class="text-sm text-red-800">{errorMessage}</p>
+			{#if newFormSuccess}
+				<div class="mb-3 rounded-md bg-green-50 p-3 text-sm text-green-800">{newFormSuccess}</div>
+			{/if}
+
+			<!-- History table -->
+			<div style="height: {Math.min(80 + logs.length * 40, 480)}px;">
+				<Table
+					columns={logColumns}
+					data={logs}
+					naturalHeight
+					density="compact"
+					rowMenu={(row) => [{ label: 'Edit', onclick: () => startEdit(row) }]}
+				/>
 			</div>
 		{/if}
-
-		{#if successMessage}
-			<div class="mt-4 rounded-md bg-green-50 p-4">
-				<p class="text-sm text-green-800">{successMessage}</p>
-			</div>
-		{/if}
-
-		<!-- Actions -->
-		<div class="mt-6 flex justify-end gap-3">
-			<!-- <Button variant="secondary" onclick={resetForm} disabled={isLoading}>Reset</Button> -->
-			<Button variant="success" onclick={submitForm} disabled={isLoading}>
-				{#if isLoading}
-					<div class="flex items-center gap-2">
-						<div
-							class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-						></div>
-						<span>Submitting...</span>
-					</div>
-				{:else}
-					Update Status
-				{/if}
-			</Button>
-		</div>
 	</Card>
 </div>
+
+<ImageViewer src={viewerSrc} alt="Document" thumbnail={false} bind:open={viewerOpen} />
+
+<Modal open={editEntry !== null} onClose={closeEditModal} title="Edit status entry">
+	{#if editEntry}
+		<div class="space-y-4">
+			<div class="flex items-center gap-2">
+				<span
+					class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize {statusBadgeClass[
+						editEntry.status
+					] ?? 'bg-gray-100 text-gray-800'}"
+				>
+					{editEntry.status}
+				</span>
+				<span class="text-sm text-gray-500">{formatDate(editEntry.date)}</span>
+			</div>
+			<p class="text-xs text-gray-500">
+				Only the reason and document can be edited here — the status and date for this entry are
+				locked.
+			</p>
+
+			<Input id="edit-reason" label="Reason" bind:value={editForm.reason} />
+
+			{#if typeof editForm.photo === 'string' && editForm.photo}
+				<div>
+					<span class="mb-1 block text-sm font-medium text-gray-700">
+						{documentLabelByStatus[editEntry.status] ?? 'Document'}
+					</span>
+					<ImageViewer
+						src={editForm.photo}
+						alt="Document"
+						thumbnailSize="medium"
+						removeImage={removeEditPhoto}
+					/>
+				</div>
+			{:else}
+				{@render fileDropzone({
+					id: 'edit-file-upload',
+					label: documentLabelByStatus[editEntry.status] ?? 'Document',
+					fileName: editFormFileName,
+					onchange: handleEditFormFile,
+					onremove: removeEditFormFile,
+					inputRef: (el) => (editFormFileInput = el),
+					disabled: isSubmittingEdit
+				})}
+			{/if}
+
+			{#if editError}
+				<p class="text-sm text-red-600">{editError}</p>
+			{/if}
+
+			<div class="flex justify-end gap-2">
+				<Button variant="secondary" size="sm" onclick={closeEditModal}>Cancel</Button>
+				<Button variant="success" size="sm" onclick={submitEdit} disabled={isSubmittingEdit}>
+					{isSubmittingEdit ? 'Saving...' : 'Save'}
+				</Button>
+			</div>
+		</div>
+	{/if}
+</Modal>

@@ -175,7 +175,7 @@
 	const displayMember = $derived(memberId ? formatMemberDisplay(name, memberId) : '');
 </script>
 
-<div class="relative flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+<div class="relative flex min-h-full items-center justify-center bg-gray-50 px-4 py-8">
 	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
 		<div class="mb-6 text-center">
 			<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'memberLogin')}</h1>

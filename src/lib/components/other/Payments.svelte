@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import { t, type Lang } from '$lib/i18n';
 	import { formatDate } from '$lib/utilities/helperFunc';
@@ -114,7 +115,10 @@
 	function editFromView() {
 		if (!viewingRecord) return;
 		goto(`/payins/update/${viewingRecord._id}`, {
-			state: { paymentData: { ...viewingRecord, memberId: viewingRecord.userId } }
+			state: {
+				paymentData: { ...viewingRecord, memberId: viewingRecord.userId },
+				returnTo: page.url.pathname + page.url.search
+			}
 		});
 		closeView();
 	}
@@ -123,7 +127,10 @@
 		const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === id);
 		if (!record) return;
 		goto(`/payins/update/${record._id}`, {
-			state: { paymentData: { ...record, memberId: record.userId } }
+			state: {
+				paymentData: { ...record, memberId: record.userId },
+				returnTo: page.url.pathname + page.url.search
+			}
 		});
 	}
 

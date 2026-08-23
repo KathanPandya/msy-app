@@ -260,7 +260,8 @@
 
 		goto(`/payins/update/${row._id}`, {
 			state: {
-				paymentData: { ...row, ...matchedPayment }
+				paymentData: { ...row, ...matchedPayment },
+				returnTo: page.url.pathname + page.url.search
 			}
 		});
 	}

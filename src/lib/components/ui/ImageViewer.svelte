@@ -7,6 +7,8 @@
 		thumbnailSize?: 'small' | 'medium' | 'large';
 		rounded?: boolean;
 		removeImage?: () => void;
+		thumbnail?: boolean;
+		open?: boolean;
 	};
 
 	let {
@@ -14,10 +16,16 @@
 		alt = 'Image',
 		thumbnailSize = 'medium',
 		rounded = true,
-		removeImage
+		removeImage,
+		thumbnail = true,
+		open = $bindable(false)
 	}: ImageViewerProps = $props();
 
-	let isOpen = $state(false);
+	let isOpen = $state(open);
+
+	$effect(() => {
+		isOpen = open;
+	});
 
 	const sizeClasses = {
 		small: 'w-16 h-16',
@@ -27,12 +35,14 @@
 
 	function openLightbox() {
 		isOpen = true;
+		open = true;
 		// Prevent body scroll when lightbox is open
 		document.body.style.overflow = 'hidden';
 	}
 
 	function closeLightbox() {
 		isOpen = false;
+		open = false;
 		document.body.style.overflow = 'auto';
 	}
 
@@ -58,34 +68,36 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- Thumbnail -->
-<div class="group relative inline-block">
-	<div
-		class="relative overflow-hidden transition-all {sizeClasses[thumbnailSize]} {rounded
-			? 'rounded-lg'
-			: ''} focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-	>
-		<img {src} {alt} class="h-full w-full object-cover" />
-
-		<!-- Main overlay for zoom (covers entire image) -->
-		<button
-			type="button"
-			onclick={openLightbox}
-			class="absolute inset-0 flex items-center justify-center bg-black/0 transition-all group-hover:bg-black/40"
+{#if thumbnail}
+	<!-- Thumbnail -->
+	<div class="group relative inline-block">
+		<div
+			class="relative overflow-hidden transition-all {sizeClasses[thumbnailSize]} {rounded
+				? 'rounded-lg'
+				: ''} focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 		>
-			<ZoomIn class="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
-		</button>
+			<img {src} {alt} class="h-full w-full object-cover" />
 
-		<!-- Close/Remove button (positioned in corner) -->
-		<button
-			type="button"
-			onclick={removeImage}
-			class="absolute top-2 left-2 z-20 opacity-0 transition-opacity group-hover:opacity-100"
-		>
-			<CircleX class="h-6 w-6 text-white transition-colors hover:text-red-500" />
-		</button>
+			<!-- Main overlay for zoom (covers entire image) -->
+			<button
+				type="button"
+				onclick={openLightbox}
+				class="absolute inset-0 flex items-center justify-center bg-black/0 transition-all group-hover:bg-black/40"
+			>
+				<ZoomIn class="h-6 w-6 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+			</button>
+
+			<!-- Close/Remove button (positioned in corner) -->
+			<button
+				type="button"
+				onclick={removeImage}
+				class="absolute top-2 left-2 z-20 opacity-0 transition-opacity group-hover:opacity-100"
+			>
+				<CircleX class="h-6 w-6 text-white transition-colors hover:text-red-500" />
+			</button>
+		</div>
 	</div>
-</div>
+{/if}
 
 <!-- Lightbox Modal -->
 {#if isOpen}

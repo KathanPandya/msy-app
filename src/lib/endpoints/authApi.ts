@@ -1,11 +1,18 @@
 import axios from '$lib/config/axios';
-import type { User } from '$lib/types/user';
+
+export type AdminUser = {
+	id: string;
+	username: string;
+	role: string;
+	createdAt: string;
+	updatedAt: string;
+};
 
 class AuthApi {
 	async userLogin(payload: {
-		email: string;
+		username: string;
 		password: string;
-	}): Promise<{ success: boolean; token: string; user: User.Get }> {
+	}): Promise<{ success: boolean; token: string; user: AdminUser }> {
 		const response = await axios.post(`/api/auth/login`, payload);
 		return response.data;
 	}

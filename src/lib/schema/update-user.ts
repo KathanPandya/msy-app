@@ -46,7 +46,7 @@ export const profileDetailsSchema = Yup.object().shape({
 
 export const addressFormValidationSchema = Yup.object().shape({
 	addressLine1: Yup.string().required('Address Line 1 is required'),
-	addressLine2: Yup.string().required('Address Line 2 is required'),
+	addressLine2: Yup.string(),
 	areaName: Yup.string().required('Area Name is required'),
 	landmark: Yup.string().required('Landmark is required'),
 	city: Yup.string().required('City is required'),

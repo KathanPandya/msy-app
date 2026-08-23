@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Payments from '$lib/components/other/Payments.svelte';
 	import coreApi from '$lib/endpoints/coreApi';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import type { Payment } from '$lib/types/payment';
-	import { ArrowLeft } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let data = $state<Payment.OutstandingData | null>(null);
@@ -36,18 +34,6 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<div class="flex-shrink-0 pb-1.5">
-		<button
-			type="button"
-			onclick={() => goto(`/members/view/${page.params.id}`)}
-			title="Back to member"
-			class="inline-flex items-center gap-1 rounded-md p-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
-		>
-			<ArrowLeft class="h-3.5 w-3.5" />
-			Back to member
-		</button>
-	</div>
-
 	<div class="min-h-0 flex-1">
 		{#if isLoading}
 			<div class="flex h-full items-center justify-center">

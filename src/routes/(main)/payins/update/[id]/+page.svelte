@@ -37,6 +37,7 @@
 	let paymentData = $state<any>();
 
 	paymentData = (page.state as any).paymentData;
+	const returnTo = (page.state as any).returnTo || '/payins';
 	// Load members on mount
 	onMount(() => {
 		if ($memberListStore.members.length === 0) {
@@ -276,7 +277,7 @@
 			// Reset form after delay
 			setTimeout(() => {
 				resetForm();
-				goto('/payins');
+				goto(returnTo);
 			}, 1500);
 		} catch (err: any) {
 			if (err.inner && Array.isArray(err.inner)) {

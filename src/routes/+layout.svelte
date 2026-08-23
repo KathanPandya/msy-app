@@ -59,7 +59,7 @@
 	</div>
 {:else} -->
 	<div class="bg-whit flex h-dvh flex-col overflow-hidden">
-		<main class="min-h-0 flex-1 overflow-hidden">
+		<main class="min-h-0 flex-1 overflow-y-auto">
 			{@render children?.()}
 		</main>
 	</div>

@@ -27,6 +27,12 @@
 	const MIN_COLUMN_WIDTH = 100;
 	const DEFAULT_COLUMN_WIDTH = 150;
 	const ROW_MENU_COLUMN_WIDTH = 28;
+	// The outer wrapper div's own `border` (1px each side). The <table> sits
+	// inside that wrapper's content box, which is this much narrower than the
+	// wrapper's own styled width — so the table has to be sized to fit inside
+	// it, not to the wrapper's own outer width, or it overflows by exactly this
+	// much and forces a false horizontal scrollbar.
+	const WRAPPER_BORDER_WIDTH = 2;
 	const CELL_HORIZONTAL_PADDING = { compact: 32, comfortable: 56 };
 
 	type PaginationConfig = {
@@ -200,14 +206,63 @@
 
 	const hasPagination = $derived(Boolean(pagination?.limit || onNext || onPrevious));
 
-	// The table's own box: sum of its columns, floored (only when pagination is
+	// The sum of column widths is only ever a JS *prediction* of how wide each
+	// header/cell needs to be (canvas text measurement, before the browser has
+	// rendered anything real). Real headers routinely render wider than that
+	// prediction — a sort icon, a rounded badge, letter-spacing on the
+	// uppercase label, the column-resize handle. Separately, when this table
+	// also scrolls vertically (tall data in a bounded box), the vertical
+	// scrollbar itself eats a few px of horizontal width that the fixed pixel
+	// width never accounted for. Rather than keep chasing each of these one at
+	// a time, measure what the browser actually rendered and pad the box to
+	// fit that, below.
+	let tableEl = $state<HTMLTableElement | null>(null);
+	let scrollAreaEl = $state<HTMLDivElement | null>(null);
+	let renderOverflowPx = $state(0);
+
+	$effect(() => {
+		// Re-measure whenever anything that can change rendered header/cell width
+		// or vertical scroll (which steals horizontal space via its scrollbar)
+		// changes. Deliberately does NOT depend on totalTableWidth/renderOverflowPx
+		// itself, so feeding the measured overflow back into the box's own width
+		// can't retrigger this and loop.
+		void columns;
+		void data;
+		void rowMenu;
+		void density;
+		void naturalHeight;
+		for (const column of columns) void columnWidths[column.key];
+		if (typeof window === 'undefined') return;
+		const raf = requestAnimationFrame(() => {
+			if (!tableEl || !scrollAreaEl) return;
+			const contentOverflow = Math.max(
+				0,
+				Math.ceil(tableEl.scrollWidth - tableEl.getBoundingClientRect().width)
+			);
+			const verticalScrollbarWidth = Math.max(0, scrollAreaEl.offsetWidth - scrollAreaEl.clientWidth);
+			const overflow = contentOverflow + verticalScrollbarWidth;
+			// Small safety margin on top of the measured gap — rounding/subpixel
+			// layout can otherwise leave a 1px sliver that still triggers a scrollbar.
+			renderOverflowPx = overflow > 0 ? overflow + 2 : 0;
+		});
+		return () => cancelAnimationFrame(raf);
+	});
+
+	// The <table> element's own width: purely the sum of its columns. This is
+	// NOT where renderOverflowPx belongs — growing the table itself along with
+	// its container just reproduces the same overflow one level up.
+	const columnsWidth = $derived.by(
+		() =>
+			(rowMenu ? ROW_MENU_COLUMN_WIDTH : 0) +
+			columns.reduce((sum, column) => sum + (columnWidths[column.key] ?? column.width ?? DEFAULT_COLUMN_WIDTH), 0)
+	);
+
+	// The table's outer box: sum of its columns, floored (only when pagination is
 	// shown) at PAGINATION_MIN_WIDTH. It is NOT stretched to fill the container —
 	// dragging a column grows this directly, and once it exceeds the container the
 	// scroll area takes over. This is the whole table's width, not any one column's.
 	const totalTableWidth = $derived.by(() => {
-		const contentWidth =
-			(rowMenu ? ROW_MENU_COLUMN_WIDTH : 0) +
-			columns.reduce((sum, column) => sum + (columnWidths[column.key] ?? column.width ?? DEFAULT_COLUMN_WIDTH), 0);
+		const contentWidth = columnsWidth + renderOverflowPx;
 		return hasPagination ? Math.max(contentWidth, PAGINATION_MIN_WIDTH[density]) : contentWidth;
 	});
 
@@ -281,14 +336,18 @@
 <div
 	class="flex {naturalHeight
 		? ''
-		: 'h-full overflow-hidden'} flex-col rounded-lg border border-gray-200 bg-white shadow-sm"
-	style="width: {totalTableWidth}px; max-width: 100%;"
+		: 'h-full'} flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+	style="width: {totalTableWidth + WRAPPER_BORDER_WIDTH}px; max-width: 100%;"
 >
 	<!-- Scrollable Table Area -->
-	<div class="table-scroll-area {naturalHeight ? 'overflow-x-auto' : 'min-h-0 flex-1 overflow-auto'}">
+	<div
+		bind:this={scrollAreaEl}
+		class="table-scroll-area {naturalHeight ? 'overflow-x-auto' : 'min-h-0 flex-1 overflow-auto'}"
+	>
 		<table
-			class="table-fixed border-separate border-spacing-0 border border-gray-200"
-			style="width: {totalTableWidth}px"
+			class="table-fixed border-separate border-spacing-0"
+			style="width: {columnsWidth}px"
+			bind:this={tableEl}
 		>
 			<colgroup>
 				{#if rowMenu}
@@ -303,7 +362,8 @@
 					{#if rowMenu}
 						<th class="{headerPaddingClass} border-b border-gray-200 bg-gray-50"></th>
 					{/if}
-					{#each columns as column}
+					{#each columns as column, columnIndex}
+						{@const isLastColumn = columnIndex === columns.length - 1}
 						<th
 							class="{headerPaddingClass} {getAlignClass(
 								column.align
@@ -327,12 +387,17 @@
 							<!-- Straddles the column border rather than sitting fully inside this
 								 th — the visible seam is the natural place a user's cursor/finger
 								 lands, and it needs to actually be inside the hit zone, not just
-								 adjacent to it. -->
+								 adjacent to it. On the LAST column there's no border to straddle
+								 (nothing beyond the table's own edge), so the handle sits fully
+								 inside instead — straddling there would push it past the table's
+								 own box and force a false horizontal scrollbar. -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
 								role="separator"
 								aria-orientation="vertical"
-								class="absolute top-0 -right-2.5 z-20 flex h-full w-5 cursor-col-resize touch-none
+								class="absolute top-0 {isLastColumn
+									? 'right-0'
+									: '-right-2.5'} z-20 flex h-full w-5 cursor-col-resize touch-none
 									items-center justify-center select-none"
 								style="touch-action: none;"
 								onpointerdown={(e) => startResize(e, column.key)}

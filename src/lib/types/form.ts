@@ -18,7 +18,6 @@ export namespace Form {
 		pincode: string;
 		state: string;
 		country: string;
-		status: string;
 		refNum1: string;
 		refNum2: string;
 	};
