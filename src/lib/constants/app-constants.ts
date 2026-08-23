@@ -78,7 +78,8 @@ export const APP_CONSTANTS = {
 		{ key: 'nach', label: 'NACH' },
 		{ key: 'neft', label: 'NEFT' },
 		{ key: 'imps', label: 'IMPS' },
-		{ key: 'rtgs', label: 'RTGS' }
+		{ key: 'rtgs', label: 'RTGS' },
+		{ key: 'other', label: 'Other' }
 	],
 
 	PAYMENT_TYPES: [
@@ -123,8 +124,7 @@ export const APP_CONSTANTS = {
 			key: '250',
 			label: '250'
 		}
-	],
-
+	]
 };
 
 // The largest page-size the pagination selector offers. Any single

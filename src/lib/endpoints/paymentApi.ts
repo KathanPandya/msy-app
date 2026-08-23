@@ -22,6 +22,11 @@ class PaymentApi {
 		return response.data;
 	}
 
+	async getPaymentById(id: string): Promise<{ data: Payment.Get; success: boolean }> {
+		const response = await axios.get(`api/payment/${id}`);
+		return response.data;
+	}
+
 	async getOutstandingPaymentOfMember(
 		userId: string
 	): Promise<{ data: Payment.OutstandingData; success: boolean }> {
@@ -88,6 +93,47 @@ class PaymentApi {
 		url: string;
 	}): Promise<{ success: boolean; message: string }> {
 		const response = await axios.post('/api/payment-screenshot', { userId, url });
+		return response.data;
+	}
+
+	async getScreenshots(
+		queryParams: {
+			void?: boolean;
+		} = {}
+	): Promise<{ data: Payment.ScreenshotList; success: boolean }> {
+		const response = await axios.get('/api/payment-screenshot', {
+			params: { void: queryParams.void }
+		});
+		return response.data;
+	}
+
+	async generateScreenshotPayment(
+		screenshotId: string
+	): Promise<{ data: Payment.GeneratePreview; success: boolean }> {
+		const response = await axios.post(`/api/payment-screenshot/${screenshotId}/generate-payment`);
+		return response.data;
+	}
+
+	async getScreenshotPayments(
+		screenshotId: string
+	): Promise<{ data: Payment.ScreenshotPaymentList; success: boolean }> {
+		const response = await axios.get(`/api/payment-screenshot/${screenshotId}/payments`);
+		return response.data;
+	}
+
+	async voidScreenshot({
+		screenshotId,
+		reason
+	}: {
+		screenshotId: string;
+		reason: string;
+	}): Promise<{ success: boolean; message?: string }> {
+		const response = await axios.post(`/api/payment-screenshot/${screenshotId}/void`, { reason });
+		return response.data;
+	}
+
+	async unvoidScreenshot(screenshotId: string): Promise<{ success: boolean; message?: string }> {
+		const response = await axios.post(`/api/payment-screenshot/${screenshotId}/unvoid`);
 		return response.data;
 	}
 }

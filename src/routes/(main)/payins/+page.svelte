@@ -253,16 +253,8 @@
 	}
 
 	function goToUpdate(row: any) {
-		const matchedPayment = paymentList.find((payment) => payment._id == row._id);
-		// console.log('matchedPayment', matchedPayment);
-		// console.log({...row, ...matchedPayment})
-		// debugger;
-
 		goto(`/payins/update/${row._id}`, {
-			state: {
-				paymentData: { ...row, ...matchedPayment },
-				returnTo: page.url.pathname + page.url.search
-			}
+			state: { returnTo: page.url.pathname + page.url.search }
 		});
 	}
 

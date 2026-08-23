@@ -113,22 +113,14 @@
 	function editFromView() {
 		if (!viewingRecord) return;
 		goto(`/payins/update/${viewingRecord._id}`, {
-			state: {
-				paymentData: { ...viewingRecord, memberId: viewingRecord.userId },
-				returnTo: page.url.pathname + page.url.search
-			}
+			state: { returnTo: page.url.pathname + page.url.search }
 		});
 		closeView();
 	}
 
 	function editPayment(id: string) {
-		const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === id);
-		if (!record) return;
-		goto(`/payins/update/${record._id}`, {
-			state: {
-				paymentData: { ...record, memberId: record.userId },
-				returnTo: page.url.pathname + page.url.search
-			}
+		goto(`/payins/update/${id}`, {
+			state: { returnTo: page.url.pathname + page.url.search }
 		});
 	}
 

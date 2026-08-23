@@ -9,6 +9,7 @@
 		ChevronLeft,
 		ChevronRight,
 		Home,
+		Image,
 		IndianRupee,
 		LayoutDashboard,
 		LogOut,
@@ -49,7 +50,8 @@
 		{ href: '/members', icon: Users, label: 'Members' },
 		{ href: '/families', icon: Home, label: 'Families' },
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
-		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' }
+		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' },
+		{ href: '/payment-screenshots', icon: Image, label: 'Screenshots' }
 	];
 
 	const pageTitle = $derived.by(() => {
