@@ -104,9 +104,11 @@
 	<div
 		class="bg-opacity-90 animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black"
 		onclick={handleBackdropClick}
+		onkeydown={handleKeydown}
 		role="dialog"
 		aria-modal="true"
 		aria-label="Image viewer"
+		tabindex="-1"
 	>
 		<!-- Close button -->
 		<button
