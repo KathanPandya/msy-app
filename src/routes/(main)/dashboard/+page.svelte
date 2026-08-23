@@ -16,16 +16,8 @@
 		IndianRupee,
 		TriangleAlert
 	} from '@lucide/svelte';
-	import { memberListStore } from '$lib/stores/memberListStore';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
-
-	// Dashboard stats don't include member_id on the outstanding lists — look it
-	// up from the members store (keyed by _id) so the display can still combine
-	// name + MSY id.
-	const memberIdById = $derived(
-		new Map($memberListStore.members.map((m) => [m._id, m.member_id]))
-	);
 	import dashboardApi from '$lib/endpoints/dashboardApi';
 
 	// State
@@ -55,29 +47,22 @@
 				full_name: string;
 				outstanding_amount: number;
 				_id: string;
-				member_id?: string;
+				username?: string;
 			}[],
 			lowest: [] as {
 				full_name: string;
 				outstanding_amount: number;
 				_id: string;
-				member_id?: string;
+				username?: string;
 			}[]
 		}
 	});
 
 	// Fetch dashboard data
 	onMount(async () => {
-		if ($memberListStore.members.length === 0) {
-			memberListStore.fetchAllMembers();
-		}
 		try {
 			const res = await dashboardApi.getDashboardStats();
 			// console.log('res', res);
-
-			// if ($memberListStore.members.length === 0) {
-			// 	memberListStore.fetchAllMembers();
-			// }
 
 			// let uniqueSurnames: Record<string, number> = {};
 
@@ -376,11 +361,8 @@
 									<a
 										href={`/members/view/${user._id}`}
 										class="cursor-pointer text-sm font-medium text-gray-900"
-										>{formatMemberDisplay(
-											user.full_name,
-											user.member_id ?? memberIdById.get(user._id)
-										)}</a
-									>
+										>{formatMemberDisplay(user.full_name, user.username)}</a
+										>
 								</div>
 								<span class="text-sm font-bold text-red-600">{user.outstanding_amount}</span>
 							</div>
@@ -406,11 +388,8 @@
 									<a
 										href={`/members/view/${user._id}`}
 										class="cursor-pointer text-sm font-medium text-gray-900"
-										>{formatMemberDisplay(
-											user.full_name,
-											user.member_id ?? memberIdById.get(user._id)
-										)}</a
-									>
+										>{formatMemberDisplay(user.full_name, user.username)}</a
+										>
 								</div>
 								<span class="text-sm font-bold text-green-600"
 									>{Math.abs(user.outstanding_amount)}</span
