@@ -18,7 +18,8 @@
 	let visible = $state(false);
 	// Arrow orientation only now (position is computed in px, see below) —
 	// still flips to the opposite side if the requested one can't fit.
-	let side = $state(position);
+	// Don't seed from `position` here — that would freeze the prop's initial value.
+	let side = $state<'top' | 'bottom' | 'left' | 'right'>('top');
 	let coords = $state({ top: 0, left: 0 });
 	// Held hidden for one frame while we measure, so it never flashes at
 	// (0, 0) before the real position is computed.

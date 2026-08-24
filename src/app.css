@@ -1,7 +1,22 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
-@plugin "daisyui";
+/* Exclude nested @property from daisyUI — lightningcss warns when @property is inside @layer. */
+@plugin "daisyui" {
+	exclude: properties;
+}
+
+/* Re-declare at top level so radial-progress / aura still work without build warnings. */
+@property --radialprogress {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 0%;
+}
+@property --aura-angle {
+	syntax: '<angle>';
+	inherits: false;
+	initial-value: 0deg;
+}
 
 .error-message {
 	color: red;

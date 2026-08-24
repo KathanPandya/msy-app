@@ -20,7 +20,6 @@
 	import type { Payment } from '$lib/types/payment';
 	import type { Family } from '$lib/types/family';
 	import { Upload, QrCode, ChevronRight, Copy, Check } from '@lucide/svelte';
-	import QRCode from 'qrcode';
 	import { fade } from 'svelte/transition';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
@@ -203,7 +202,9 @@
 			return;
 		}
 		let cancelled = false;
-		QRCode.toDataURL(upiLink, { margin: 1, width: 220 })
+		// Dynamic import keeps qrcode out of the SSR graph (avoids Vite's unused-default warning).
+		import('qrcode')
+			.then(({ default: QRCode }) => QRCode.toDataURL(upiLink, { margin: 1, width: 220 }))
 			.then((url) => {
 				if (!cancelled) qrDataUrl = url;
 			})

@@ -1,1 +1,0 @@
-const t=new Map;function s(e){return t.get(e)}function r(e,a){t.set(e,a)}function i(){t.clear()}const n=new Map,c=new Map;function u(e){return n.get(e)}function o(e,a){n.set(e,a)}function h(e){return c.get(e)}function d(e,a){c.set(e,a)}function f(){n.clear(),c.clear()}export{f as a,u as b,i as c,o as d,h as e,d as f,s as g,r as s};

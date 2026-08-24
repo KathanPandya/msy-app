@@ -229,7 +229,13 @@
 	}
 </script>
 
-<svelte:window onkeydown={(e) => showBreakdown && e.key === 'Escape' && (showBreakdown = false)} />
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key !== 'Escape') return;
+		if (showBreakdown) showBreakdown = false;
+		else if (showCreateAllModal && !isCreatingAll) showCreateAllModal = false;
+	}}
+/>
 
 <div class="mx-auto flex h-full max-w-6xl flex-col p-4 lg:overflow-hidden">
 	<div class="mb-3 flex flex-shrink-0 items-center gap-2">
@@ -418,6 +424,7 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 		onclick={(e) => e.target === e.currentTarget && (showBreakdown = false)}
+		onkeydown={(e) => e.key === 'Escape' && (showBreakdown = false)}
 		role="dialog"
 		aria-modal="true"
 		aria-label="Payment Breakdown"
@@ -546,6 +553,7 @@
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 		onclick={(e) => e.target === e.currentTarget && !isCreatingAll && (showCreateAllModal = false)}
+		onkeydown={(e) => e.key === 'Escape' && !isCreatingAll && (showCreateAllModal = false)}
 		role="dialog"
 		aria-modal="true"
 		aria-label="Creating Payments"
