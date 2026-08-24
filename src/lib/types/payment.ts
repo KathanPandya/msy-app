@@ -82,7 +82,7 @@ export namespace Payment {
 	export type ScreenshotPayment = {
 		paymentId: string;
 		userId: string;
-		username: string;
+		member_id_num: number;
 		name: string;
 		amount: number;
 		date: string;
@@ -92,7 +92,7 @@ export namespace Payment {
 
 	export type ScreenshotUser = {
 		_id: string;
-		username: string;
+		member_id_num: number;
 		first_name?: string;
 		middle_name?: string;
 		surname?: string;
@@ -116,20 +116,20 @@ export namespace Payment {
 
 	export type FamilyMember = {
 		userId: string;
-		username: string;
+		member_id_num: number;
 		name: string;
 		outstanding_before: number;
 	};
 
 	export type Payer = {
 		userId: string;
-		username: string;
+		member_id_num: number;
 		name: string;
 	};
 
 	export type Settlement = {
 		userId: string;
-		username: string;
+		member_id_num: number;
 		name: string;
 		isPayer: boolean;
 		outstanding_before: number;
@@ -146,7 +146,7 @@ export namespace Payment {
 		amountUsedToClearDues: number;
 		leftoverAmount: number;
 		leftoverSplitAcross: number;
-		settlementOrder: string[];
+		settlementOrder: number[];
 	};
 
 	export type GeneratePreview = {

@@ -1,4 +1,4 @@
-<script lang="ts">
+go<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import {
@@ -47,13 +47,13 @@
 				full_name: string;
 				outstanding_amount: number;
 				_id: string;
-				username?: string;
+				member_id_num?: number;
 			}[],
 			lowest: [] as {
 				full_name: string;
 				outstanding_amount: number;
 				_id: string;
-				username?: string;
+				member_id_num?: number;
 			}[]
 		}
 	});
@@ -361,7 +361,7 @@
 									<a
 										href={`/members/view/${user._id}`}
 										class="cursor-pointer text-sm font-medium text-gray-900"
-										>{formatMemberDisplay(user.full_name, user.username)}</a
+										>{formatMemberDisplay(user.full_name, user.member_id_num)}</a
 										>
 								</div>
 								<span class="text-sm font-bold text-red-600">{user.outstanding_amount}</span>
@@ -388,7 +388,7 @@
 									<a
 										href={`/members/view/${user._id}`}
 										class="cursor-pointer text-sm font-medium text-gray-900"
-										>{formatMemberDisplay(user.full_name, user.username)}</a
+										>{formatMemberDisplay(user.full_name, user.member_id_num)}</a
 										>
 								</div>
 								<span class="text-sm font-bold text-green-600"

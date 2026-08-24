@@ -10,6 +10,7 @@
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate, formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import { formatMemberId } from '$lib/utilities/memberId';
 	import { ArrowLeft, Check, Info, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
@@ -38,7 +39,7 @@
 
 	type RowForm = {
 		userId: string;
-		username: string;
+		member_id_num: number;
 		name: string;
 		isPayer: boolean;
 		from_outstanding: number;
@@ -64,7 +65,7 @@
 			preview = res.data;
 			rows = res.data.settlements.map((s) => ({
 				userId: s.userId,
-				username: s.username,
+				member_id_num: s.member_id_num,
 				name: s.name,
 				isPayer: s.isPayer,
 				from_outstanding: s.from_outstanding,
@@ -143,9 +144,9 @@
 	// ---------- Visual breakdown ----------
 	let showBreakdown = $state(false);
 
-	function colorFor(username: string): string {
+	function colorFor(memberIdNum: number): string {
 		if (!preview) return 'bg-gray-400';
-		const idx = preview.family.findIndex((m) => m.username === username);
+		const idx = preview.family.findIndex((m) => m.member_id_num === memberIdNum);
 		return MEMBER_COLORS[idx % MEMBER_COLORS.length] ?? 'bg-gray-400';
 	}
 
@@ -155,16 +156,16 @@
 	const dueSteps = $derived.by(() => {
 		if (!preview) return [];
 		let running = preview.summary.amountReceived;
-		return preview.summary.settlementOrder.map((username) => {
-			const s = preview!.settlements.find((x) => x.username === username);
+		return preview.summary.settlementOrder.map((memberIdNum) => {
+			const s = preview!.settlements.find((x) => x.member_id_num === memberIdNum);
 			const amount = s?.from_outstanding ?? 0;
 			running -= amount;
 			return {
-				username,
-				name: s?.name ?? username,
+				member_id_num: memberIdNum,
+				name: s?.name ?? String(memberIdNum),
 				amount,
 				runningAfter: running,
-				color: colorFor(username)
+				color: colorFor(memberIdNum)
 			};
 		});
 	});
@@ -174,10 +175,10 @@
 		return preview.settlements
 			.filter((s) => s.from_equal_split > 0)
 			.map((s) => ({
-				username: s.username,
+				member_id_num: s.member_id_num,
 				name: s.name,
 				amount: s.from_equal_split,
-				color: colorFor(s.username)
+				color: colorFor(s.member_id_num)
 			}));
 	});
 
@@ -195,11 +196,11 @@
 	const finalTotals = $derived.by(() => {
 		if (!preview) return [];
 		return preview.settlements.map((s) => ({
-			username: s.username,
+			member_id_num: s.member_id_num,
 			name: s.name,
 			amount: s.amount,
 			reason: s.reason,
-			color: colorFor(s.username)
+			color: colorFor(s.member_id_num)
 		}));
 	});
 
@@ -289,7 +290,7 @@
 					<div class="mt-1 flex items-center justify-between">
 						<span class="text-xs text-gray-500">Paid By</span>
 						<span class="font-medium text-gray-900"
-							>{preview.payer.name} ({preview.payer.username})</span
+							>{preview.payer.name} ({formatMemberId(preview.payer.member_id_num)})</span
 						>
 					</div>
 				</div>
@@ -329,7 +330,7 @@
 				</div>
 
 				{#each rows as row}
-					<Card title="{row.name} ({row.username}){row.isPayer ? ' — Payer' : ''}">
+					<Card title="{row.name} ({formatMemberId(row.member_id_num)}){row.isPayer ? ' — Payer' : ''}">
 						<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 							<Input
 								id="amount-{row.userId}"
@@ -450,7 +451,7 @@
 					 followed by the equal-split segments, in the order they happened. -->
 				<div>
 					<div class="flex h-8 w-full overflow-hidden rounded-md border border-gray-200">
-						{#each barSegments as seg (seg.username + '-' + seg.amount)}
+						{#each barSegments as seg (seg.member_id_num + '-' + seg.amount)}
 							<div
 								class="{seg.color} flex items-center justify-center border-r border-white text-[10px] font-medium text-white last:border-r-0"
 								style="width: {seg.pct}%"
@@ -581,7 +582,9 @@
 					<div
 						class="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm"
 					>
-						<span class="min-w-0 truncate text-gray-900">{row.name} ({row.username})</span>
+						<span class="min-w-0 truncate text-gray-900"
+							>{row.name} ({formatMemberId(row.member_id_num)})</span
+						>
 						{#if row.isCreated}
 							<span
 								class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-100"
