@@ -1,4 +1,4 @@
-go<script lang="ts">
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import {
@@ -362,7 +362,7 @@ go<script lang="ts">
 										href={`/members/view/${user._id}`}
 										class="cursor-pointer text-sm font-medium text-gray-900"
 										>{formatMemberDisplay(user.full_name, user.member_id_num)}</a
-										>
+									>
 								</div>
 								<span class="text-sm font-bold text-red-600">{user.outstanding_amount}</span>
 							</div>
@@ -389,7 +389,7 @@ go<script lang="ts">
 										href={`/members/view/${user._id}`}
 										class="cursor-pointer text-sm font-medium text-gray-900"
 										>{formatMemberDisplay(user.full_name, user.member_id_num)}</a
-										>
+									>
 								</div>
 								<span class="text-sm font-bold text-green-600"
 									>{Math.abs(user.outstanding_amount)}</span

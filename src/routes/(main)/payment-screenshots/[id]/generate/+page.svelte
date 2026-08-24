@@ -155,16 +155,14 @@
 	// per-settlement from_outstanding/from_equal_split the backend computed.
 	const dueSteps = $derived.by(() => {
 		if (!preview) return [];
-		let running = preview.summary.amountReceived;
 		return preview.summary.settlementOrder.map((memberIdNum) => {
 			const s = preview!.settlements.find((x) => x.member_id_num === memberIdNum);
-			const amount = s?.from_outstanding ?? 0;
-			running -= amount;
 			return {
 				member_id_num: memberIdNum,
 				name: s?.name ?? String(memberIdNum),
-				amount,
-				runningAfter: running,
+				amount: s?.from_outstanding ?? 0,
+				outstandingBefore: s?.outstanding_before ?? 0,
+				outstandingAfter: s?.outstanding_after ?? 0,
 				color: colorFor(memberIdNum)
 			};
 		});
@@ -193,16 +191,26 @@
 		}));
 	});
 
-	const finalTotals = $derived.by(() => {
+	// Full family roster, including members the payment never touched — so
+	// it's obvious who was affected vs. not, not just who's in `settlements`.
+	const allMemberRows = $derived.by(() => {
 		if (!preview) return [];
-		return preview.settlements.map((s) => ({
-			member_id_num: s.member_id_num,
-			name: s.name,
-			amount: s.amount,
-			reason: s.reason,
-			color: colorFor(s.member_id_num)
-		}));
+		return preview.family.map((m) => {
+			const s = preview!.settlements.find((x) => x.member_id_num === m.member_id_num);
+			const affected = !!s && s.amount > 0;
+			return {
+				member_id_num: m.member_id_num,
+				name: m.name,
+				outstandingBefore: m.outstanding_before,
+				outstandingAfter: s ? s.outstanding_after : m.outstanding_before,
+				affected,
+				isPayer: s?.isPayer ?? false,
+				reason: s?.reason ?? 'Not affected — this payment did not touch this member.',
+				color: colorFor(m.member_id_num)
+			};
+		});
 	});
+	const affectedCount = $derived(allMemberRows.filter((m) => m.affected).length);
 
 	// ---------- Single submit ----------
 	const allCreated = $derived(rows.length > 0 && rows.every((r) => r.isCreated));
@@ -490,7 +498,9 @@
 								<p class="text-sm text-gray-900">{step.name}'s due cleared</p>
 								<p class="text-sm font-semibold text-red-600">−₹{step.amount.toLocaleString()}</p>
 							</div>
-							<p class="text-[11px] text-gray-400">Balance ₹{step.runningAfter.toLocaleString()}</p>
+							<p class="text-[11px] text-gray-400">
+								Outstanding ₹{step.outstandingBefore.toLocaleString()} → ₹{step.outstandingAfter.toLocaleString()}
+							</p>
 						</div>
 					{/each}
 
@@ -521,24 +531,52 @@
 					{/each}
 				</div>
 
-				<!-- Final total per member -->
+				<!-- Full family roster: everyone, not just who the payment touched -->
 				<div class="rounded-lg border border-gray-200">
-					<div class="border-b border-gray-200 bg-gray-50 px-3 py-1.5">
+					<div
+						class="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-1.5"
+					>
 						<p class="text-[10px] font-medium tracking-wide text-gray-500 uppercase">
-							Final amount per member
+							Family members
+						</p>
+						<p class="text-[10px] font-medium text-gray-500">
+							{affectedCount} of {allMemberRows.length} affected
 						</p>
 					</div>
 					<div class="divide-y divide-gray-100">
-						{#each finalTotals as total}
-							<div class="flex items-center justify-between px-3 py-1.5 text-sm">
-								<span class="flex items-center gap-1.5 text-gray-800">
-									<span class="{total.color} h-2.5 w-2.5 flex-shrink-0 rounded-full"></span>
-									{total.name}
-									<Tooltip text={total.reason} position="right">
-										<Info class="h-3.5 w-3.5 text-gray-400" />
+						{#each allMemberRows as m}
+							<div class="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+								<span class="flex min-w-0 items-center gap-1.5 text-gray-800">
+									<span class="{m.color} h-2.5 w-2.5 flex-shrink-0 rounded-full"></span>
+									<span class="truncate">{m.name}</span>
+									<span class="flex-shrink-0 text-[11px] text-gray-400"
+										>{formatMemberId(m.member_id_num)}</span
+									>
+									{#if m.isPayer}
+										<span
+											class="flex-shrink-0 rounded bg-blue-50 px-1 py-0.5 text-[9px] font-medium text-blue-600"
+											>Payer</span
+										>
+									{/if}
+									<Tooltip text={m.reason} position="right">
+										<Info class="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
 									</Tooltip>
 								</span>
-								<span class="font-semibold text-gray-900">₹{total.amount.toLocaleString()}</span>
+								{#if m.affected}
+									<span class="flex-shrink-0 text-right">
+										<span class="text-gray-400 line-through">₹{m.outstandingBefore.toLocaleString()}</span>
+										<span class="font-semibold text-gray-900"
+											> → ₹{m.outstandingAfter.toLocaleString()}</span
+										>
+									</span>
+								{:else}
+									<span class="flex-shrink-0 text-right text-gray-400">
+										₹{m.outstandingBefore.toLocaleString()}
+										<span class="ml-1 rounded bg-gray-100 px-1 py-0.5 text-[9px] font-medium"
+											>Unaffected</span
+										>
+									</span>
+								{/if}
 							</div>
 						{/each}
 					</div>
