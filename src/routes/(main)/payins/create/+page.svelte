@@ -22,11 +22,11 @@
 			.required('Amount is required')
 			.positive('Amount must be positive')
 			.typeError('Amount must be a number'),
-		description: Yup.string().required('Description is required'),
+		description: Yup.string(),
 		paymentMode: Yup.string().required('Payment Mode is required'),
 		paymentType: Yup.string().required('Payment Type is required'),
 		referenceNumber: Yup.string().required('Reference Number is required'),
-		receiptNumber: Yup.string().required('Receipt Number is required'),
+		receiptNumber: Yup.string(),
 		paymentDate: Yup.date()
 			.typeError('Payment Date is required')
 			.required('Payment Date is required')
@@ -245,14 +245,14 @@
 			}
 
 			const payload: Payment.Create = {
-				amount: formData.amount,
+				amount: Number(formData.amount),
 				date: formatToYYYYMMDD(formData.paymentDate),
 				payment_reference: formData.referenceNumber,
 				payment_mode: formData.paymentMode,
 				payment_type: formData.paymentType,
-				reciept_number: formData.receiptNumber,
-				photo: fileUrl,
-				remarks: formData.description,
+				reciept_number: formData.receiptNumber.trim() || null,
+				photo: fileUrl || null,
+				remarks: formData.description.trim() || null,
 				userId: formData.memberId
 			};
 
@@ -467,7 +467,6 @@
 				error={errors.receiptNumber}
 				onblur={() => validateField('receiptNumber')}
 				placeholder="Receipt book number"
-				required
 				disabled={isLoading}
 			/>
 
@@ -480,7 +479,6 @@
 					error={errors.description}
 					onblur={() => validateField('description')}
 					placeholder="Payment description or notes"
-					required
 					disabled={isLoading}
 				/>
 			</div>

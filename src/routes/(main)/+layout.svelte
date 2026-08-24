@@ -3,12 +3,14 @@
 	import { page } from '$app/state';
 	import { authStore } from '$lib/stores/authStore';
 	import { requireAdmin, requireAuth } from '$lib/utilities/authGuard';
+	import dashboardApi from '$lib/endpoints/dashboardApi';
 	import {
 		ArrowDownRight,
-		Bell,
 		ChevronLeft,
 		ChevronRight,
+		Download,
 		Home,
+		Image,
 		IndianRupee,
 		LayoutDashboard,
 		LogOut,
@@ -17,6 +19,7 @@
 
 	let isSidebarOpen = $state(false);
 	let isAuthorized = $state(false);
+	let isDownloadingBackup = $state(false);
 
 	$effect(() => {
 		if (!$authStore.isLoading) {
@@ -39,6 +42,26 @@
 		authStore.logout();
 	}
 
+	async function handleDownloadBackup() {
+		if (isDownloadingBackup) return;
+		isDownloadingBackup = true;
+		try {
+			const { blob, filename } = await dashboardApi.downloadBackup();
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+		} catch (error) {
+			console.error('Failed to download backup:', error);
+		} finally {
+			isDownloadingBackup = false;
+		}
+	}
+
 	let currentUser = $derived({
 		name: $authStore.userAllInfo?.user?.username || 'Admin'
 	});
@@ -49,7 +72,8 @@
 		{ href: '/members', icon: Users, label: 'Members' },
 		{ href: '/families', icon: Home, label: 'Families' },
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
-		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' }
+		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' },
+		{ href: '/payment-screenshots', icon: Image, label: 'Screenshots' }
 	];
 
 	const pageTitle = $derived.by(() => {
@@ -198,13 +222,22 @@
 
 				<!-- Right: User Actions -->
 				<div class="flex items-center space-x-2">
-					<!-- Notifications (Optional) -->
+					<!-- Download Backup -->
 					<button
 						type="button"
-						class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-						aria-label="Notifications"
+						onclick={handleDownloadBackup}
+						disabled={isDownloadingBackup}
+						class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+						aria-label="Download backup"
+						title="Download backup"
 					>
-						<Bell size={18} />
+						{#if isDownloadingBackup}
+							<span
+								class="inline-block h-[18px] w-[18px] animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent"
+							></span>
+						{:else}
+							<Download size={18} />
+						{/if}
 					</button>
 
 					<!-- User Menu -->

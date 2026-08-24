@@ -7,69 +7,71 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import coreApi from '$lib/endpoints/coreApi';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import uploadApi from '$lib/endpoints/uploadApi';
-	import { memberListStore } from '$lib/stores/memberListStore';
 	import type { Payment } from '$lib/types/payment';
 	import { formatToYYYYMMDD } from '$lib/utilities/helperFunc';
-	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
-	import { ChevronDown, Search, Upload, X } from '@lucide/svelte';
+	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import { Search, Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import * as Yup from 'yup';
 
 	// Validation Schema
 	const paymentDetailsSchema = Yup.object().shape({
-		memberId: Yup.string().required('Member is required'),
 		amount: Yup.number()
 			.required('Amount is required')
 			.positive('Amount must be positive')
 			.typeError('Amount must be a number'),
-		description: Yup.string().required('Description is required'),
+		description: Yup.string(),
 		paymentMode: Yup.string().required('Payment Mode is required'),
 		paymentType: Yup.string().required('Payment Type is required'),
-		receiptNumber: Yup.string().required('Receipt Number is required'),
+		receiptNumber: Yup.string(),
 		paymentReference: Yup.string().required('Payment Reference Number is required'),
 		paymentDate: Yup.date()
 			.typeError('Payment Date is required')
 			.required('Payment Date is required')
 	});
 
-	let paymentData = $state<any>();
+	const returnTo = (page.state as any)?.returnTo || '/payins';
 
-	paymentData = (page.state as any).paymentData;
-	const returnTo = (page.state as any).returnTo || '/payins';
-	// Load members on mount
-	onMount(() => {
-		if ($memberListStore.members.length === 0) {
-			memberListStore.fetchAllMembers();
-		}
-	});
-
-	// console.log(paymentData);
+	let paymentData = $state<Payment.Get | null>(null);
+	let memberName = $state('');
+	let memberDisplayId = $state('');
+	let isLoadingPayment = $state(true);
+	let loadError = $state('');
 
 	// Form Data
 	let formData = $state<any>({});
 
-	$effect(() => {
-		if (paymentData) {
+	onMount(async () => {
+		try {
+			const paymentRes = await paymentApi.getPaymentById(page.params.id as string);
+			paymentData = paymentRes.data;
+
+			const userInfo = await coreApi.fetchUserInfo({ userId: paymentData.userId });
+			memberName = userInfo.user.name;
+			memberDisplayId = userInfo.user.member_id;
+
 			formData = {
-				memberId: paymentData.memberId || '',
-				memberName: paymentData.memberName || '',
-				amount: paymentData.amount || '',
+				amount: paymentData.amount,
 				description: paymentData.remarks || '',
-				paymentMode: paymentData.payment_mode || '',
+				paymentMode: paymentData.payment_mode,
 				receiptNumber: paymentData.reciept_number || '',
 				paymentDate: paymentData.date?.split('T')[0] || '',
-				paymentType: paymentData.payment_type || '',
-				paymentReference: paymentData.payment_reference || '',
+				paymentType: paymentData.payment_type,
+				paymentReference: paymentData.payment_reference,
 				file: paymentData.photo || ''
 			};
+		} catch {
+			loadError = 'Failed to load payment.';
+		} finally {
+			isLoadingPayment = false;
 		}
 	});
 
 	// Errors
 	let errors = $state({
-		memberId: '',
 		amount: '',
 		description: '',
 		paymentMode: '',
@@ -78,62 +80,6 @@
 		paymentType: '',
 		paymentReference: '',
 		file: ''
-	});
-
-	// Member dropdown state
-	let memberSearchQuery = $derived(
-		formatMemberDisplay(paymentData.memberName, paymentData.memberId)
-	);
-	let showMemberDropdown = $state(false);
-	let memberDropdownRef: HTMLDivElement;
-
-	// Filtered members based on search
-	const filteredMembers = $derived(
-		$memberListStore.members
-			.filter((member) => {
-				const searchLower = memberSearchQuery.toLowerCase();
-				const fullName = (member.name || '').toLowerCase();
-				// const mobile = member.mobile || '';
-				const member_id = (member.member_id ?? '').toLowerCase();
-				return (
-					fullName.includes(searchLower) ||
-					// mobile.includes(searchLower) ||
-					member_id.includes(searchLower)
-				);
-			})
-			.sort(
-				(a, b) => (memberIdDigits(a.member_id) ?? 0) - (memberIdDigits(b.member_id) ?? 0)
-			)
-	);
-
-	// Select member
-	function selectMember(member: any) {
-		formData.memberId = member._id;
-		formData.memberName = member.name;
-		memberSearchQuery = formatMemberDisplay(formData.memberName, member.member_id);
-		showMemberDropdown = false;
-		errors.memberId = '';
-	}
-
-	// Clear member selection
-	function clearMemberSelection() {
-		formData.memberId = '';
-		formData.memberName = '';
-		memberSearchQuery = '';
-	}
-
-	// Click outside to close dropdown
-	function handleClickOutside(event: MouseEvent) {
-		if (memberDropdownRef && !memberDropdownRef.contains(event.target as Node)) {
-			showMemberDropdown = false;
-		}
-	}
-
-	onMount(() => {
-		document.addEventListener('click', handleClickOutside);
-		return () => {
-			document.removeEventListener('click', handleClickOutside);
-		};
 	});
 
 	// Loading state
@@ -197,25 +143,14 @@
 		}
 	}
 
-	// Handle member search input
-	function handleMemberSearch(event: Event) {
-		const target = event.target as HTMLInputElement;
-		memberSearchQuery = target.value;
-		showMemberDropdown = true;
-
-		// Clear selection if user types
-		if (formData.memberId) {
-			formData.memberId = '';
-			formData.memberName = '';
-		}
-	}
-
 	function removeImage() {
 		formData.file = '';
 	}
 
 	// Submit form
 	async function submitForm() {
+		if (!paymentData) return;
+
 		isLoading = true;
 		successMessage = '';
 		errorMessage = '';
@@ -228,7 +163,6 @@
 			receiptNumber: '',
 			paymentDate: '',
 			file: '',
-			memberId: '',
 			paymentType: '',
 			paymentReference: ''
 		};
@@ -237,24 +171,18 @@
 			// Validate form data
 			await paymentDetailsSchema.validate(formData, { abortEarly: false });
 
-			let fileUrl = paymentData.photo || '';
+			let fileUrl: string | null = null;
 
-			// Check if file is uploaded
-			// if (!formData.file) {
-			// 	errors.file = 'Photo proof is required';
-			// 	errorMessage = 'Please upload photo for proof';
-			// 	return;
-			// }
-
-			if (fileUrl !== formData.file && formData.file instanceof File) {
-				// Upload new file only if it's changed
+			if (formData.file instanceof File) {
+				// New file picked — upload it
 				const formDataToSend = new FormData();
 				formDataToSend.append('file', formData.file);
 
 				const uploadResponse = await uploadApi.file({ file: formDataToSend });
 				fileUrl = uploadResponse.data.fileUrl;
-			} else {
-				fileUrl = '';
+			} else if (typeof formData.file === 'string' && formData.file) {
+				// Unchanged existing photo
+				fileUrl = formData.file;
 			}
 
 			const payload: Payment.Update = {
@@ -264,9 +192,9 @@
 				payment_reference: formData.paymentReference,
 				payment_mode: formData.paymentMode,
 				payment_type: formData.paymentType,
-				reciept_number: formData.receiptNumber,
+				reciept_number: formData.receiptNumber.trim() || null,
 				photo: fileUrl,
-				remarks: formData.description,
+				remarks: formData.description.trim() || null,
 				userId: paymentData.userId
 			};
 
@@ -276,7 +204,6 @@
 
 			// Reset form after delay
 			setTimeout(() => {
-				resetForm();
 				goto(returnTo);
 			}, 1500);
 		} catch (err: any) {
@@ -300,290 +227,202 @@
 			isLoading = false;
 		}
 	}
-
-	// Reset form
-	function resetForm() {
-		formData = {
-			memberId: '',
-			memberName: '',
-			amount: '',
-			description: '',
-			paymentMode: '',
-			receiptNumber: '',
-			paymentDate: '',
-			paymentType: '',
-			paymentReference: '',
-			file: ''
-		};
-		errors = {
-			memberId: '',
-			amount: '',
-			description: '',
-			paymentMode: '',
-			receiptNumber: '',
-			paymentDate: '',
-			paymentType: '',
-			paymentReference: '',
-			file: ''
-		};
-		memberSearchQuery = '';
-		fileName = '';
-		if (fileInput) fileInput.value = '';
-		successMessage = '';
-		errorMessage = '';
-	}
 </script>
 
 <div class="mx-auto max-w-5xl p-4">
 	<Card title="Update Payment">
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-			<!-- Member Selection with Search -->
-			<div class="md:col-span-2 lg:col-span-3">
-				<label for="" class="mb-1 block text-sm font-medium text-gray-700">
-					Member
-					<span class="text-red-500">*</span>
-				</label>
-
-				<div class="relative" bind:this={memberDropdownRef}>
+		{#if isLoadingPayment}
+			<p class="text-sm text-gray-500">Loading payment...</p>
+		{:else if loadError}
+			<p class="text-sm text-red-600">{loadError}</p>
+		{:else}
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+				<!-- Member (read-only) -->
+				<div class="md:col-span-2 lg:col-span-3">
+					<label for="" class="mb-1 block text-sm font-medium text-gray-700">Member</label>
 					<div class="relative">
 						<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 							<Search class="h-5 w-5 text-gray-400" />
 						</div>
 						<input
 							type="text"
-							value={memberSearchQuery}
-							oninput={handleMemberSearch}
-							onfocus={() => (showMemberDropdown = true)}
-							placeholder="Search member by name or mobile..."
-							class={`w-full rounded-md border px-3 py-2 pr-10 pl-10 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-								errors.memberId ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-							} cursor-not-allowed bg-gray-100 text-gray-500`}
+							value={formatMemberDisplay(memberName, memberDisplayId)}
+							class="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 px-3 py-2 pl-10 text-gray-500"
 							disabled={true}
 						/>
-						{#if formData.memberId}
-							<button
-								type="button"
-								onclick={clearMemberSelection}
-								class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-							>
-								<X class="h-5 w-5" />
-							</button>
-						{:else}
-							<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-								<ChevronDown class="h-5 w-5 text-gray-400" />
-							</div>
-						{/if}
 					</div>
+				</div>
 
-					<!-- Dropdown -->
-					{#if showMemberDropdown && !isLoading}
-						<div
-							class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-300 bg-white shadow-lg"
-						>
-							{#if $memberListStore.isLoading}
-								<div class="px-4 py-3 text-center text-sm text-gray-500">Loading members...</div>
-							{:else if filteredMembers.length === 0}
-								<div class="px-4 py-3 text-center text-sm text-gray-500">No members found</div>
+				<!-- Amount -->
+				<Input
+					id="amount"
+					label="Amount"
+					type="number"
+					bind:value={formData.amount}
+					error={errors.amount}
+					onblur={() => validateField('amount')}
+					placeholder="Enter amount"
+					required
+					disabled={isLoading}
+				/>
+
+				<!-- Payment Date -->
+				<Input
+					id="paymentDate"
+					label="Payment Date"
+					type="date"
+					bind:value={formData.paymentDate}
+					error={errors.paymentDate}
+					onblur={() => validateField('paymentDate')}
+					required
+					disabled={isLoading}
+				/>
+
+				<!-- Payment Mode -->
+				<Select
+					id="paymentMode"
+					label="Payment Mode"
+					bind:value={formData.paymentMode}
+					options={paymentModes}
+					error={errors.paymentMode}
+					onchange={() => validateField('paymentMode')}
+					required
+					disabled={isLoading}
+				/>
+
+				<!-- Payment Type -->
+				<Select
+					id="paymentType"
+					label="Payment Type"
+					bind:value={formData.paymentType}
+					options={paymentTypes}
+					error={errors.paymentType}
+					onchange={() => validateField('paymentType')}
+					required
+					disabled={isLoading}
+				/>
+
+				<!-- Receipt Number -->
+				<Input
+					id="receiptNumber"
+					label="Receipt Number"
+					bind:value={formData.receiptNumber}
+					error={errors.receiptNumber}
+					onblur={() => validateField('receiptNumber')}
+					placeholder="Receipt Book number"
+					disabled={isLoading}
+				/>
+
+				<Input
+					id="paymentReference"
+					label="Reference Number"
+					bind:value={formData.paymentReference}
+					error={errors.paymentReference}
+					onblur={() => validateField('paymentReference')}
+					placeholder="Transaction/Cheque/upi number"
+					required
+					disabled={isLoading}
+				/>
+
+				<!-- Description -->
+				<div class="md:col-span-2 lg:col-span-3">
+					<Input
+						id="description"
+						label="Description"
+						bind:value={formData.description}
+						error={errors.description}
+						onblur={() => validateField('description')}
+						placeholder="Payment description or notes"
+						disabled={isLoading}
+					/>
+				</div>
+
+				<!-- File Upload -->
+				<div class="md:col-span-2 lg:col-span-3">
+					<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
+						Payment Receipt
+					</label>
+
+					{#if formData.file !== '' && typeof formData.file === 'string'}
+						<ImageViewer
+							{removeImage}
+							src={formData.file}
+							alt="Payment Receipt"
+							thumbnailSize="large"
+						/>
+					{:else}
+						<div class="mt-1">
+							{#if !fileName}
+								<label
+									for="file-upload"
+									class="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-gray-300 px-4 py-6 transition-colors hover:border-gray-400"
+								>
+									<div class="text-center">
+										<Upload class="mx-auto h-8 w-8 text-gray-400" />
+										<p class="mt-2 text-sm text-gray-600">Click to upload or drag and drop</p>
+										<p class="mt-1 text-xs text-gray-500">PNG, JPG, PDF up to 5MB</p>
+									</div>
+								</label>
+								<input
+									id="file-upload"
+									type="file"
+									class="hidden"
+									accept=".jpg,.jpeg,.png,.pdf"
+									onchange={handleFileChange}
+									bind:this={fileInput}
+									disabled={isLoading}
+								/>
 							{:else}
-								{#each filteredMembers as member}
+								<div
+									class="flex items-center justify-between rounded-md border border-gray-300 bg-gray-50 px-4 py-3"
+								>
+									<div class="flex items-center space-x-3">
+										<Upload class="h-5 w-5 text-gray-400" />
+										<span class="text-sm text-gray-900">{fileName}</span>
+									</div>
 									<button
 										type="button"
-										onclick={() => selectMember(member)}
-										class="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+										onclick={removeFile}
+										class="text-red-600 hover:text-red-800"
+										disabled={isLoading}
 									>
-										<div class="font-medium text-gray-900">
-											{formatMemberDisplay(member.name, member.member_id)}
-										</div>
-										<div class="text-sm text-gray-500">
-											{member.mobile}
-										</div>
+										<X class="h-5 w-5" />
 									</button>
-								{/each}
+								</div>
 							{/if}
 						</div>
 					{/if}
 				</div>
-
-				{#if errors.memberId}
-					<p class="mt-1 text-sm text-red-600">{errors.memberId}</p>
-				{/if}
 			</div>
 
-			<!-- Amount -->
-			<Input
-				id="amount"
-				label="Amount"
-				type="number"
-				bind:value={formData.amount}
-				error={errors.amount}
-				onblur={() => validateField('amount')}
-				placeholder="Enter amount"
-				required
-				disabled={isLoading}
-			/>
+			<!-- Messages -->
+			{#if errorMessage}
+				<div class="mt-4 rounded-md bg-red-50 p-3">
+					<p class="text-sm text-red-800">{errorMessage}</p>
+				</div>
+			{/if}
 
-			<!-- Payment Date -->
-			<Input
-				id="paymentDate"
-				label="Payment Date"
-				type="date"
-				bind:value={formData.paymentDate}
-				error={errors.paymentDate}
-				onblur={() => validateField('paymentDate')}
-				required
-				disabled={isLoading}
-			/>
+			{#if successMessage}
+				<div class="mt-4 rounded-md bg-green-50 p-3">
+					<p class="text-sm text-green-800">{successMessage}</p>
+				</div>
+			{/if}
 
-			<!-- Payment Mode -->
-			<Select
-				id="paymentMode"
-				label="Payment Mode"
-				bind:value={formData.paymentMode}
-				options={paymentModes}
-				error={errors.paymentMode}
-				onchange={() => validateField('paymentMode')}
-				required
-				disabled={isLoading}
-			/>
-
-			<!-- Payment Type -->
-			<Select
-				id="paymentType"
-				label="Payment Type"
-				bind:value={formData.paymentType}
-				options={paymentTypes}
-				error={errors.paymentType}
-				onchange={() => validateField('paymentType')}
-				required
-				disabled={isLoading}
-			/>
-
-			<!-- Receipt Number -->
-			<Input
-				id="receiptNumber"
-				label="Receipt Number"
-				bind:value={formData.receiptNumber}
-				error={errors.receiptNumber}
-				onblur={() => validateField('receiptNumber')}
-				placeholder="Receipt Book number"
-				required
-				disabled={isLoading}
-			/>
-
-			<Input
-				id="paymentReference"
-				label="Reference Number"
-				bind:value={formData.paymentReference}
-				error={errors.paymentReference}
-				onblur={() => validateField('paymentReference')}
-				placeholder="Transaction/Cheque/upi number"
-				required
-				disabled={isLoading}
-			/>
-
-			<!-- Description -->
-			<div class="md:col-span-2 lg:col-span-3">
-				<Input
-					id="description"
-					label="Description"
-					bind:value={formData.description}
-					error={errors.description}
-					onblur={() => validateField('description')}
-					placeholder="Payment description or notes"
-					required
-					disabled={isLoading}
-				/>
-			</div>
-
-			<!-- File Upload -->
-			<div class="md:col-span-2 lg:col-span-3">
-				<label for="file-upload" class="mb-1 block text-sm font-medium text-gray-700">
-					Payment Receipt
-					<!-- <span class="text-red-500">*</span> -->
-				</label>
-
-				{#if formData.file !== '' && typeof formData.file === 'string'}
-					<ImageViewer
-						{removeImage}
-						src={formData.file}
-						alt="Payment Receipt"
-						thumbnailSize="large"
-					/>
-				{:else}
-					<!-- <p class="text-gray-400">No file Uploaded</p> -->
-
-					<div class="mt-1">
-						{#if !fileName}
-							<label
-								for="file-upload"
-								class="flex w-full cursor-pointer items-center justify-center rounded-md border-2 border-dashed border-gray-300 px-4 py-6 transition-colors hover:border-gray-400"
-							>
-								<div class="text-center">
-									<Upload class="mx-auto h-8 w-8 text-gray-400" />
-									<p class="mt-2 text-sm text-gray-600">Click to upload or drag and drop</p>
-									<p class="mt-1 text-xs text-gray-500">PNG, JPG, PDF up to 5MB</p>
-								</div>
-							</label>
-							<input
-								id="file-upload"
-								type="file"
-								class="hidden"
-								accept=".jpg,.jpeg,.png,.pdf"
-								onchange={handleFileChange}
-								bind:this={fileInput}
-								disabled={isLoading}
-							/>
-						{:else}
+			<!-- Actions -->
+			<div class="mt-6 flex justify-end gap-3">
+				<Button variant="success" onclick={submitForm} disabled={isLoading}>
+					{#if isLoading}
+						<div class="flex items-center gap-2">
 							<div
-								class="flex items-center justify-between rounded-md border border-gray-300 bg-gray-50 px-4 py-3"
-							>
-								<div class="flex items-center space-x-3">
-									<Upload class="h-5 w-5 text-gray-400" />
-									<span class="text-sm text-gray-900">{fileName}</span>
-								</div>
-								<button
-									type="button"
-									onclick={removeFile}
-									class="text-red-600 hover:text-red-800"
-									disabled={isLoading}
-								>
-									<X class="h-5 w-5" />
-								</button>
-							</div>
-						{/if}
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		<!-- Messages -->
-		{#if errorMessage}
-			<div class="mt-4 rounded-md bg-red-50 p-3">
-				<p class="text-sm text-red-800">{errorMessage}</p>
+								class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+							></div>
+							<span>Saving...</span>
+						</div>
+					{:else}
+						Update Payment
+					{/if}
+				</Button>
 			</div>
 		{/if}
-
-		{#if successMessage}
-			<div class="mt-4 rounded-md bg-green-50 p-3">
-				<p class="text-sm text-green-800">{successMessage}</p>
-			</div>
-		{/if}
-
-		<!-- Actions -->
-		<div class="mt-6 flex justify-end gap-3">
-			<!-- <Button variant="secondary" onclick={resetForm} disabled={isLoading}>Reset</Button> -->
-			<Button variant="success" onclick={submitForm} disabled={isLoading}>
-				{#if isLoading}
-					<div class="flex items-center gap-2">
-						<div
-							class="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
-						></div>
-						<span>Saving...</span>
-					</div>
-				{:else}
-					Update Payment
-				{/if}
-			</Button>
-		</div>
 	</Card>
 </div>
