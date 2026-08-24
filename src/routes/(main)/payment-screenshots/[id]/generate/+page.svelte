@@ -10,6 +10,7 @@
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate, formatToYYYYMMDD } from '$lib/utilities/helperFunc';
+	import { formatMemberId } from '$lib/utilities/memberId';
 	import { ArrowLeft, Check, Info, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
@@ -38,7 +39,7 @@
 
 	type RowForm = {
 		userId: string;
-		username: string;
+		member_id_num: number;
 		name: string;
 		isPayer: boolean;
 		from_outstanding: number;
@@ -64,7 +65,7 @@
 			preview = res.data;
 			rows = res.data.settlements.map((s) => ({
 				userId: s.userId,
-				username: s.username,
+				member_id_num: s.member_id_num,
 				name: s.name,
 				isPayer: s.isPayer,
 				from_outstanding: s.from_outstanding,
@@ -143,9 +144,9 @@
 	// ---------- Visual breakdown ----------
 	let showBreakdown = $state(false);
 
-	function colorFor(username: string): string {
+	function colorFor(memberIdNum: number): string {
 		if (!preview) return 'bg-gray-400';
-		const idx = preview.family.findIndex((m) => m.username === username);
+		const idx = preview.family.findIndex((m) => m.member_id_num === memberIdNum);
 		return MEMBER_COLORS[idx % MEMBER_COLORS.length] ?? 'bg-gray-400';
 	}
 
@@ -154,17 +155,15 @@
 	// per-settlement from_outstanding/from_equal_split the backend computed.
 	const dueSteps = $derived.by(() => {
 		if (!preview) return [];
-		let running = preview.summary.amountReceived;
-		return preview.summary.settlementOrder.map((username) => {
-			const s = preview!.settlements.find((x) => x.username === username);
-			const amount = s?.from_outstanding ?? 0;
-			running -= amount;
+		return preview.summary.settlementOrder.map((memberIdNum) => {
+			const s = preview!.settlements.find((x) => x.member_id_num === memberIdNum);
 			return {
-				username,
-				name: s?.name ?? username,
-				amount,
-				runningAfter: running,
-				color: colorFor(username)
+				member_id_num: memberIdNum,
+				name: s?.name ?? String(memberIdNum),
+				amount: s?.from_outstanding ?? 0,
+				outstandingBefore: s?.outstanding_before ?? 0,
+				outstandingAfter: s?.outstanding_after ?? 0,
+				color: colorFor(memberIdNum)
 			};
 		});
 	});
@@ -174,10 +173,10 @@
 		return preview.settlements
 			.filter((s) => s.from_equal_split > 0)
 			.map((s) => ({
-				username: s.username,
+				member_id_num: s.member_id_num,
 				name: s.name,
 				amount: s.from_equal_split,
-				color: colorFor(s.username)
+				color: colorFor(s.member_id_num)
 			}));
 	});
 
@@ -192,16 +191,26 @@
 		}));
 	});
 
-	const finalTotals = $derived.by(() => {
+	// Full family roster, including members the payment never touched — so
+	// it's obvious who was affected vs. not, not just who's in `settlements`.
+	const allMemberRows = $derived.by(() => {
 		if (!preview) return [];
-		return preview.settlements.map((s) => ({
-			username: s.username,
-			name: s.name,
-			amount: s.amount,
-			reason: s.reason,
-			color: colorFor(s.username)
-		}));
+		return preview.family.map((m) => {
+			const s = preview!.settlements.find((x) => x.member_id_num === m.member_id_num);
+			const affected = !!s && s.amount > 0;
+			return {
+				member_id_num: m.member_id_num,
+				name: m.name,
+				outstandingBefore: m.outstanding_before,
+				outstandingAfter: s ? s.outstanding_after : m.outstanding_before,
+				affected,
+				isPayer: s?.isPayer ?? false,
+				reason: s?.reason ?? 'Not affected — this payment did not touch this member.',
+				color: colorFor(m.member_id_num)
+			};
+		});
 	});
+	const affectedCount = $derived(allMemberRows.filter((m) => m.affected).length);
 
 	// ---------- Single submit ----------
 	const allCreated = $derived(rows.length > 0 && rows.every((r) => r.isCreated));
@@ -289,7 +298,7 @@
 					<div class="mt-1 flex items-center justify-between">
 						<span class="text-xs text-gray-500">Paid By</span>
 						<span class="font-medium text-gray-900"
-							>{preview.payer.name} ({preview.payer.username})</span
+							>{preview.payer.name} ({formatMemberId(preview.payer.member_id_num)})</span
 						>
 					</div>
 				</div>
@@ -329,7 +338,7 @@
 				</div>
 
 				{#each rows as row}
-					<Card title="{row.name} ({row.username}){row.isPayer ? ' — Payer' : ''}">
+					<Card title="{row.name} ({formatMemberId(row.member_id_num)}){row.isPayer ? ' — Payer' : ''}">
 						<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 							<Input
 								id="amount-{row.userId}"
@@ -450,7 +459,7 @@
 					 followed by the equal-split segments, in the order they happened. -->
 				<div>
 					<div class="flex h-8 w-full overflow-hidden rounded-md border border-gray-200">
-						{#each barSegments as seg (seg.username + '-' + seg.amount)}
+						{#each barSegments as seg (seg.member_id_num + '-' + seg.amount)}
 							<div
 								class="{seg.color} flex items-center justify-center border-r border-white text-[10px] font-medium text-white last:border-r-0"
 								style="width: {seg.pct}%"
@@ -489,7 +498,9 @@
 								<p class="text-sm text-gray-900">{step.name}'s due cleared</p>
 								<p class="text-sm font-semibold text-red-600">−₹{step.amount.toLocaleString()}</p>
 							</div>
-							<p class="text-[11px] text-gray-400">Balance ₹{step.runningAfter.toLocaleString()}</p>
+							<p class="text-[11px] text-gray-400">
+								Outstanding ₹{step.outstandingBefore.toLocaleString()} → ₹{step.outstandingAfter.toLocaleString()}
+							</p>
 						</div>
 					{/each}
 
@@ -520,24 +531,52 @@
 					{/each}
 				</div>
 
-				<!-- Final total per member -->
+				<!-- Full family roster: everyone, not just who the payment touched -->
 				<div class="rounded-lg border border-gray-200">
-					<div class="border-b border-gray-200 bg-gray-50 px-3 py-1.5">
+					<div
+						class="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-1.5"
+					>
 						<p class="text-[10px] font-medium tracking-wide text-gray-500 uppercase">
-							Final amount per member
+							Family members
+						</p>
+						<p class="text-[10px] font-medium text-gray-500">
+							{affectedCount} of {allMemberRows.length} affected
 						</p>
 					</div>
 					<div class="divide-y divide-gray-100">
-						{#each finalTotals as total}
-							<div class="flex items-center justify-between px-3 py-1.5 text-sm">
-								<span class="flex items-center gap-1.5 text-gray-800">
-									<span class="{total.color} h-2.5 w-2.5 flex-shrink-0 rounded-full"></span>
-									{total.name}
-									<Tooltip text={total.reason} position="right">
-										<Info class="h-3.5 w-3.5 text-gray-400" />
+						{#each allMemberRows as m}
+							<div class="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+								<span class="flex min-w-0 items-center gap-1.5 text-gray-800">
+									<span class="{m.color} h-2.5 w-2.5 flex-shrink-0 rounded-full"></span>
+									<span class="truncate">{m.name}</span>
+									<span class="flex-shrink-0 text-[11px] text-gray-400"
+										>{formatMemberId(m.member_id_num)}</span
+									>
+									{#if m.isPayer}
+										<span
+											class="flex-shrink-0 rounded bg-blue-50 px-1 py-0.5 text-[9px] font-medium text-blue-600"
+											>Payer</span
+										>
+									{/if}
+									<Tooltip text={m.reason} position="right">
+										<Info class="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
 									</Tooltip>
 								</span>
-								<span class="font-semibold text-gray-900">₹{total.amount.toLocaleString()}</span>
+								{#if m.affected}
+									<span class="flex-shrink-0 text-right">
+										<span class="text-gray-400 line-through">₹{m.outstandingBefore.toLocaleString()}</span>
+										<span class="font-semibold text-gray-900"
+											> → ₹{m.outstandingAfter.toLocaleString()}</span
+										>
+									</span>
+								{:else}
+									<span class="flex-shrink-0 text-right text-gray-400">
+										₹{m.outstandingBefore.toLocaleString()}
+										<span class="ml-1 rounded bg-gray-100 px-1 py-0.5 text-[9px] font-medium"
+											>Unaffected</span
+										>
+									</span>
+								{/if}
 							</div>
 						{/each}
 					</div>
@@ -581,7 +620,9 @@
 					<div
 						class="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2 text-sm"
 					>
-						<span class="min-w-0 truncate text-gray-900">{row.name} ({row.username})</span>
+						<span class="min-w-0 truncate text-gray-900"
+							>{row.name} ({formatMemberId(row.member_id_num)})</span
+						>
 						{#if row.isCreated}
 							<span
 								class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-100"

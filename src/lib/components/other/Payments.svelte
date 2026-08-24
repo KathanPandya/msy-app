@@ -326,9 +326,16 @@
 			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : naturalHeight ? '' : 'h-[60vh]'}`}
 		>
 			<div class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 px-3 py-1.5 sm:px-4 sm:py-2">
-				<h2 class="text-xs font-semibold text-gray-900 sm:text-sm">
-					{t(lang, 'paymentHistory')} ({tableData.length})
-				</h2>
+				<div class="flex min-w-0 items-baseline gap-2">
+					<h2 class="text-xs font-semibold text-gray-900 sm:text-sm">
+						{t(lang, 'paymentHistory')} ({tableData.length})
+					</h2>
+					{#if memberName || memberId}
+						<span class="truncate text-[11px] text-gray-500">
+							{formatMemberDisplay(memberName, memberId)}
+						</span>
+					{/if}
+				</div>
 				<div class="flex items-center gap-1.5">
 					<select
 						bind:value={filters.status}

@@ -10,6 +10,7 @@
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
+	import { formatMemberId } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { LayoutGrid, Rows3 } from '@lucide/svelte';
 	import { onMount } from 'svelte';
@@ -33,7 +34,7 @@
 
 	function uploaderName(user: Payment.ScreenshotUser): string {
 		const fullName = [user.first_name, user.middle_name, user.surname].filter(Boolean).join(' ');
-		return fullName || user.username || '-';
+		return fullName || (user.member_id_num != null ? formatMemberId(user.member_id_num) : '-');
 	}
 
 	function escapeHtml(value: string): string {
@@ -391,7 +392,7 @@
 				>
 					<div class="min-w-0">
 						<p class="truncate font-medium text-gray-900">{payment.name}</p>
-						<p class="text-xs text-gray-500">{payment.username}</p>
+						<p class="text-xs text-gray-500">{formatMemberId(payment.member_id_num)}</p>
 					</div>
 					<div class="flex flex-shrink-0 items-center gap-3">
 						<div class="text-right">
