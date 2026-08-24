@@ -26,6 +26,11 @@
 		naturalHeight = false,
 		readOnly = false,
 		showSearch = true,
+		// The admin views this table for a member they picked, so the table
+		// header repeats who it's for. A member viewing their own (or a family
+		// member's) payments already sees that name above the table (avatar
+		// switcher / page header), so repeating it here is redundant.
+		showMemberLabel = true,
 		lang = undefined
 	}: {
 		outstandingTableData: any;
@@ -35,12 +40,15 @@
 		naturalHeight?: boolean;
 		readOnly?: boolean;
 		showSearch?: boolean;
+		showMemberLabel?: boolean;
 		lang?: Lang;
 	} = $props();
 	let searchQuery = $state('');
 
 	let isSummaryOpen = $state(
-		typeof localStorage !== 'undefined' ? localStorage.getItem('payments_summary_open') !== '0' : true
+		typeof localStorage !== 'undefined'
+			? localStorage.getItem('payments_summary_open') !== '0'
+			: true
 	);
 	let density = $state<'comfortable' | 'compact'>(
 		(typeof localStorage !== 'undefined' &&
@@ -196,12 +204,16 @@
 		];
 	});
 
+	function formatAmount(amount: number | undefined | null): string {
+		return amount || amount === 0 ? `₹${amount}` : '-';
+	}
+
 	const tableData = $derived.by(() => {
 		if (filters.status === 'payments') {
 			return sortRecords(outstandingTableData?.paymentRecords ?? []).map((payment: any) => ({
 				_id: payment._id,
 				date: formatDate(payment.date) || '-',
-				amount: payment.amount || '-',
+				amount: formatAmount(payment.amount),
 				payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
 				payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-',
 				remarks: payment.remarks || '-'
@@ -214,7 +226,7 @@
 				return {
 					_id: payment._id,
 					date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
-					amount: payment.amount || '-',
+					amount: formatAmount(payment.amount),
 					name: memberName ? formatMemberDisplay(memberName, payment.userDetails?.member_id) : '-'
 				};
 			});
@@ -231,7 +243,7 @@
 			return {
 				_id: payment._id,
 				date: date ? formatDate(date) : '-',
-				amount: payment.amount ?? -100,
+				amount: formatAmount(payment.amount ?? -100),
 				remarks: payment.remarks || '-',
 				type
 			};
@@ -250,17 +262,21 @@
 		class={`w-full max-w-none ${fitHeight ? 'flex min-h-0 flex-1 flex-col gap-1.5 sm:gap-2' : 'space-y-1.5 sm:space-y-2'}`}
 	>
 		<!-- Summary + Search + Filter -->
-		<div class="flex w-full flex-shrink-0 flex-wrap items-start justify-start gap-2 sm:flex-nowrap sm:gap-3">
+		<div
+			class="flex w-full flex-shrink-0 flex-wrap items-start justify-start gap-2 sm:flex-nowrap sm:gap-3"
+		>
 			<!-- Payment Summary -->
 			<div
-				class="w-full min-w-0 flex-none rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 sm:max-w-[400px] sm:shrink sm:basis-[400px] sm:grow-0"
+				class="w-full min-w-0 flex-none rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 sm:max-w-[400px] sm:shrink sm:grow-0 sm:basis-[400px]"
 			>
 				<button
 					type="button"
 					onclick={toggleSummary}
 					class="flex w-full items-center justify-between gap-2 px-3 py-2 lg:px-4"
 				>
-					<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">{t(lang, 'paymentSummary')}</h3>
+					<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">
+						{t(lang, 'paymentSummary')}
+					</h3>
 					{#if !isSummaryOpen}
 						<span class="min-w-0 flex-1 truncate text-right text-xs text-gray-500">
 							₹{totalAmount} · {t(lang, 'paid')} ₹{amountPaid} ·
@@ -307,7 +323,7 @@
 			{#if showSearch}
 				<!-- Search -->
 				<div
-					class="relative min-w-0 flex-1 sm:ml-auto sm:max-w-[315px] sm:shrink sm:basis-[315px] sm:grow-0"
+					class="relative min-w-0 flex-1 sm:ml-auto sm:max-w-[315px] sm:shrink sm:grow-0 sm:basis-[315px]"
 				>
 					<div class="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-3">
 						<Search class="h-5 w-5 text-gray-400" />
@@ -325,12 +341,14 @@
 		<div
 			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : naturalHeight ? '' : 'h-[60vh]'}`}
 		>
-			<div class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 px-3 py-1.5 sm:px-4 sm:py-2">
+			<div
+				class="flex flex-shrink-0 items-center justify-between border-b border-gray-200 px-3 py-1.5 sm:px-4 sm:py-2"
+			>
 				<div class="flex min-w-0 items-baseline gap-2">
 					<h2 class="text-xs font-semibold text-gray-900 sm:text-sm">
 						{t(lang, 'paymentHistory')} ({tableData.length})
 					</h2>
-					{#if memberName || memberId}
+					{#if showMemberLabel && (memberName || memberId)}
 						<span class="truncate text-[11px] text-gray-500">
 							{formatMemberDisplay(memberName, memberId)}
 						</span>
@@ -339,7 +357,7 @@
 				<div class="flex items-center gap-1.5">
 					<select
 						bind:value={filters.status}
-						class="w-24 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-28 sm:px-2"
+						class="w-28 rounded-md border border-gray-300 bg-white py-1 pr-6 pl-1.5 text-xs text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-36 sm:pr-7 sm:pl-2"
 					>
 						{#each statusOptions as option}
 							<option value={option.key}>{option.label}</option>
