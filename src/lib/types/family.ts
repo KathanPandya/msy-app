@@ -43,6 +43,6 @@ export namespace Family {
 
 	export type MeResponse = {
 		success: boolean;
-		family: { clubId: string; members: MemberSummary[] } | null;
+		family: { clubId: string; isHead: boolean; headId: string; members: MemberSummary[] } | null;
 	};
 }
