@@ -7,7 +7,9 @@ export const dict = {
 	loading: { en: 'Loading…', guj: 'લોડ થઈ રહ્યું છે…' },
 	logOut: { en: 'Log out', guj: 'લૉગ આઉટ' },
 	head: { en: 'Head', guj: 'વડા' },
+	greeting: { en: 'Hi, {name}', guj: 'નમસ્તે, {name}' },
 	amountDue: { en: 'Amount due', guj: 'બાકી રકમ' },
+	creditBalance: { en: 'Credit balance', guj: 'જમા રકમ' },
 	toBePaid: { en: 'to be paid', guj: 'ચૂકવવાની બાકી' },
 	inCredit: { en: 'in credit', guj: 'જમા' },
 	allSettled: { en: 'All settled ✓', guj: 'સંપૂર્ણ ચૂકવેલ ✓' },
@@ -47,7 +49,12 @@ export const dict = {
 		en: 'Only JPG or PNG screenshots are allowed',
 		guj: 'ફક્ત JPG અથવા PNG સ્ક્રીનશોટની મંજૂરી છે'
 	},
-	errUploadFailed: { en: 'Upload failed. Please try again.', guj: 'અપલોડ નિષ્ફળ થયું. ફરી પ્રયાસ કરો.' },
+	errUploadFailed: {
+		en: 'Upload failed. Please try again.',
+		guj: 'અપલોડ નિષ્ફળ થયું. ફરી પ્રયાસ કરો.'
+	},
+	home: { en: 'Home', guj: 'હોમ' },
+	profile: { en: 'Profile', guj: 'પ્રોફાઇલ' },
 	familyMembers: { en: 'Family members', guj: 'પરિવારના સભ્યો' },
 	you: { en: 'you', guj: 'તમે' },
 	due: { en: 'due', guj: 'બાકી' },
@@ -66,6 +73,39 @@ export const dict = {
 	status: { en: 'Status', guj: 'સ્થિતિ' },
 	fatherHusband: { en: 'Father/Husband', guj: 'પિતા/પતિ' },
 	mobile: { en: 'Mobile', guj: 'મોબાઇલ' },
+	general: { en: 'General', guj: 'સામાન્ય' },
+	address: { en: 'Address', guj: 'સરનામું' },
+	save: { en: 'Save', guj: 'સાચવો' },
+	cancel: { en: 'Cancel', guj: 'રદ કરો' },
+	firstName: { en: 'First Name', guj: 'પ્રથમ નામ' },
+	middleName: { en: 'Middle Name', guj: 'મધ્યમ નામ' },
+	surname: { en: 'Surname', guj: 'અટક' },
+	email: { en: 'Email', guj: 'ઇમેલ' },
+	gender: { en: 'Gender', guj: 'લિંગ' },
+	referenceMember1: { en: 'Reference Number 1', guj: 'સંદર્ભ નંબર 1' },
+	referenceMember2: { en: 'Reference Number 2', guj: 'સંદર્ભ નંબર 2' },
+	nativePlace: { en: 'Native Place', guj: 'મૂળ સ્થળ' },
+	gotra: { en: 'Gotra', guj: 'ગોત્ર' },
+	maritalStatus: { en: 'Marital Status', guj: 'વૈવાહિક સ્થિતિ' },
+	addressLine1: { en: 'Address Line 1', guj: 'સરનામું લાઇન 1' },
+	addressLine2: { en: 'Address Line 2', guj: 'સરનામું લાઇન 2' },
+	areaName: { en: 'Area Name', guj: 'વિસ્તારનું નામ' },
+	landmark: { en: 'Landmark', guj: 'લેન્ડમાર્ક' },
+	city: { en: 'City', guj: 'શહેર' },
+	pincode: { en: 'Pincode', guj: 'પિનકોડ' },
+	state: { en: 'State', guj: 'રાજ્ય' },
+	country: { en: 'Country', guj: 'દેશ' },
+	updateSuccess: { en: 'Updated successfully.', guj: 'સફળતાપૂર્વક અપડેટ થયું.' },
+	updateFailed: {
+		en: 'Could not update. Please try again.',
+		guj: 'અપડેટ કરી શકાયું નહીં. ફરી પ્રયાસ કરો.'
+	},
+	noAddressOnFile: { en: 'No address on file.', guj: 'કોઈ સરનામું નથી.' },
+	noProfileData: { en: 'No profile data.', guj: 'કોઈ પ્રોફાઇલ ડેટા નથી.' },
+	unsavedChangesConfirm: {
+		en: 'You have unsaved changes. Leave without saving?',
+		guj: 'તમારા ફેરફારો સાચવ્યા નથી. સાચવ્યા વિના જવું છે?'
+	},
 	viewOnlyNotice: {
 		en: 'View-only. Payments and changes are handled by the admin.',
 		guj: 'ફક્ત જોવા માટે. ચુકવણી અને ફેરફારો એડમિન દ્વારા સંભાળવામાં આવે છે.'
