@@ -15,6 +15,12 @@ export const dict = {
 	allSettled: { en: 'All settled ✓', guj: 'સંપૂર્ણ ચૂકવેલ ✓' },
 	amountToPay: { en: 'Amount to pay', guj: 'ચૂકવવાની રકમ' },
 	pay: { en: 'Pay', guj: 'ચૂકવો' },
+	chooseUpiApp: { en: 'Choose a UPI app', guj: 'UPI એપ પસંદ કરો' },
+	close: { en: 'Close', guj: 'બંધ કરો' },
+	appNotInstalled: {
+		en: "isn't installed on your device",
+		guj: 'તમારા ડિવાઇસમાં ઇન્સ્ટોલ કરેલ નથી'
+	},
 	hideQr: { en: 'Hide QR code', guj: 'QR કોડ છુપાવો' },
 	scanQrInstead: {
 		en: "UPI app didn't open? Scan QR instead",

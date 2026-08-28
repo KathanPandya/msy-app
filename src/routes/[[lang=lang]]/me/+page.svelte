@@ -8,7 +8,7 @@
 	import ImageViewer from '$lib/components/ui/ImageViewer.svelte';
 	import { getMemberShellContext } from '$lib/context/memberShell';
 	import { authStore } from '$lib/stores/authStore';
-	import { Upload, QrCode, ChevronRight, Copy, Check } from '@lucide/svelte';
+	import { Upload, QrCode, ChevronRight, Copy, Check, X } from '@lucide/svelte';
 	import { fade } from 'svelte/transition';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
@@ -64,7 +64,7 @@
 	}
 	const payAmount = $derived(Math.max(0, Math.round(Number(payAmountInput) || 0)));
 
-	const UPI_VPA = 'boim-202082680266@boi';
+	const UPI_VPA = 'boim-202073804429@boi';
 	const UPI_PAYEE_NAME = 'MSY';
 
 	let showCopiedToast = $state(false);
@@ -107,18 +107,112 @@
 		}
 	}
 
-	const upiLink = $derived(
+	const upiQueryString = $derived(
 		payAmount > 0
-			? 'upi://pay?' +
-					new URLSearchParams({
-						pa: UPI_VPA,
-						pn: UPI_PAYEE_NAME,
-						am: String(payAmount),
-						cu: 'INR',
-						tn: `Dues - ${formatMemberDisplay(displayName, user?.member_id)}`
-					})
+			? new URLSearchParams({
+					pa: UPI_VPA,
+					pn: UPI_PAYEE_NAME,
+					am: String(payAmount),
+					cu: 'INR',
+					tn: `Dues - ${formatMemberDisplay(displayName, user?.member_id)}`
+				}).toString()
 			: ''
 	);
+	const upiLink = $derived(upiQueryString ? 'upi://pay?' + upiQueryString : '');
+
+	let showAppPicker = $state(false);
+
+	// Market-share ordered (PhonePe/GPay/Paytm dominate, long tail after) —
+	// each prefix already ends in "pay?" so the shared UPI query string can be
+	// appended directly to build that app's own deep link.
+	const UPI_APPS = [
+		{ name: 'PhonePe', prefix: 'phonepe://pay?', color: '#5f259f', letter: 'Pe' },
+		{ name: 'Google Pay', prefix: 'tez://upi/pay?', color: '#4285f4', letter: 'G' },
+		{ name: 'Paytm', prefix: 'paytmmp://pay?', color: '#00baf2', letter: 'P' },
+		{ name: 'Navi', prefix: 'navipay://upi/pay?', color: '#ff5e3a', letter: 'N' },
+		{ name: 'Super Money', prefix: 'super://upi/pay?', color: '#6c3ce9', letter: 'S' },
+		{ name: 'BHIM', prefix: 'bhim://pay?', color: '#00a651', letter: 'B' },
+		{ name: 'FamPay', prefix: 'fampay://upi/pay?', color: '#7c4dff', letter: 'F' },
+		{ name: 'CRED', prefix: 'credpay://upi/pay?', color: '#1c1c1e', letter: 'C' },
+		{ name: 'Amazon Pay', prefix: 'amazonpay://upi/pay?', color: '#ff9900', letter: 'A' },
+		{ name: 'WhatsApp', prefix: 'whatsapp://upi/pay?', color: '#25d366', letter: 'W' }
+	];
+	const upiApps = $derived(
+		upiQueryString ? UPI_APPS.map((app) => ({ ...app, href: app.prefix + upiQueryString })) : []
+	);
+
+	function handlePayClick(event: MouseEvent) {
+		if (payAmount <= 0) return;
+		event.preventDefault();
+		showAppPicker = true;
+	}
+
+	// Custom URL schemes fail silently — if the app isn't installed, nothing
+	// happens and the member is left staring at the page. We'd like to detect
+	// that by checking whether the tab lost visibility (i.e. the app actually
+	// opened), but the browser's own "open in app?" prompt (e.g. the
+	// incognito-mode "leave private browsing?" bar) neither hides the tab nor
+	// blocks script execution while the user is deciding — it only blurs the
+	// window. So: a plain timer would fire the "not installed" toast while
+	// that prompt is still sitting there unanswered. Instead, a blur pauses
+	// the check (the user is looking at *something*), and only once focus
+	// returns — with no app having opened — do we conclude it's missing.
+	let appNotFoundName = $state('');
+	function openUpiApp(app: { name: string; href: string }) {
+		showAppPicker = false;
+		let opened = false;
+		let dialogPending = false;
+		let notFoundTimer: ReturnType<typeof setTimeout> | undefined;
+
+		function showNotFound() {
+			appNotFoundName = app.name;
+			setTimeout(() => {
+				if (!opened) appNotFoundName = '';
+			}, 3000);
+		}
+
+		function cleanup() {
+			opened = true;
+			clearTimeout(notFoundTimer);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+			window.removeEventListener('blur', onBlur);
+			window.removeEventListener('focus', onFocus);
+		}
+
+		function onVisibilityChange() {
+			if (!document.hidden) return;
+			appNotFoundName = '';
+			cleanup();
+		}
+
+		function onBlur() {
+			dialogPending = true;
+			clearTimeout(notFoundTimer);
+		}
+
+		function onFocus() {
+			if (!dialogPending) return;
+			dialogPending = false;
+			if (opened || document.hidden) return;
+			// The user just dismissed a prompt (e.g. declined to leave
+			// incognito) and the app never opened — safe to conclude now.
+			notFoundTimer = setTimeout(() => {
+				if (!opened && !document.hidden) showNotFound();
+			}, 800);
+		}
+
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		window.addEventListener('blur', onBlur);
+		window.addEventListener('focus', onFocus);
+
+		window.location.href = app.href;
+
+		notFoundTimer = setTimeout(() => {
+			if (!opened && !document.hidden && !dialogPending) showNotFound();
+		}, 2500);
+
+		setTimeout(cleanup, 15000);
+	}
 
 	// QR fallback — some devices/browsers fail to open the upi:// deep link
 	// (e.g. desktop, or no UPI app installed), so scanning must always work too.
@@ -252,6 +346,7 @@
 				</label>
 				<a
 					href={payAmount > 0 ? upiLink : undefined}
+					onclick={handlePayClick}
 					aria-disabled={payAmount <= 0}
 					class={`flex flex-shrink-0 items-center justify-center rounded-md px-4 py-1.5 text-sm font-semibold text-white ${
 						payAmount > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'pointer-events-none bg-gray-300'
@@ -260,6 +355,63 @@
 					{t(lang, 'pay')} ₹{payAmount}
 				</a>
 			</div>
+
+			{#if showAppPicker}
+				<div
+					transition:fade={{ duration: 150 }}
+					class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+					role="button"
+					tabindex="0"
+					onclick={() => (showAppPicker = false)}
+					onkeydown={(e) => e.key === 'Escape' && (showAppPicker = false)}
+				>
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-label={t(lang, 'chooseUpiApp')}
+						class="w-full max-w-sm rounded-t-xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg sm:rounded-xl sm:pb-4"
+						onclick={(e) => e.stopPropagation()}
+					>
+						<div class="mb-3 flex items-center justify-between">
+							<p class="text-sm font-semibold text-gray-900">{t(lang, 'chooseUpiApp')}</p>
+							<button
+								type="button"
+								onclick={() => (showAppPicker = false)}
+								class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+								aria-label={t(lang, 'close')}
+							>
+								<X class="h-4 w-4" />
+							</button>
+						</div>
+						<div class="grid grid-cols-5 gap-3">
+							{#each upiApps as app (app.name)}
+								<button
+									type="button"
+									onclick={() => openUpiApp(app)}
+									class="flex flex-col items-center gap-1 text-center"
+								>
+									<span
+										class="flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-bold text-white"
+										style={`background-color:${app.color}`}
+									>
+										{app.letter}
+									</span>
+									<span class="text-[10px] leading-tight text-gray-600">{app.name}</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			{#if appNotFoundName}
+				<div
+					transition:fade={{ duration: 150 }}
+					class="fixed inset-x-4 bottom-6 z-50 mx-auto max-w-xs rounded-md bg-gray-900 px-3 py-2 text-center text-xs font-medium text-white shadow-lg"
+				>
+					{appNotFoundName} {t(lang, 'appNotInstalled')}
+				</div>
+			{/if}
 
 			<button
 				type="button"
