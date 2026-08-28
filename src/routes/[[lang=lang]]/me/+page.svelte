@@ -15,7 +15,6 @@
 	const shell = getMemberShellContext();
 
 	const user = $derived($authStore.userAllInfo?.user);
-	const displayName = $derived(user?.name || t(lang, 'member'));
 
 	function amountLabel(n: number) {
 		if (n > 0) return { value: `₹${n}`, sub: t(lang, 'toBePaid'), color: 'text-red-700' };
@@ -64,8 +63,24 @@
 	}
 	const payAmount = $derived(Math.max(0, Math.round(Number(payAmountInput) || 0)));
 
+	// These match the fields encoded in the bank-issued merchant QR exactly
+	// (decoded from the physical QR) — dropping any of them (mc/mid/mtid/
+	// orgId/mg/purpose/mode) makes the intent look like a plain P2P payment
+	// to what the receiving bank has registered as a merchant account, which
+	// trips UPI apps' risk rule and fails the payment even though a raw scan
+	// of the same QR works fine.
 	const UPI_VPA = 'boim-202073804429@boi';
-	const UPI_PAYEE_NAME = 'MSY';
+	const UPI_PAYEE_NAME = 'AKHIL HIND BHATT MEVADA BRAHMSAMAJ FEDERATION';
+	const UPI_MERCHANT_FIELDS = {
+		orgId: '159013',
+		url: 'https://www.bankofindia.co.in',
+		mc: '8398',
+		mid: '0402020119523510',
+		mtid: '71808897',
+		mg: 'ONLINE',
+		purpose: '00',
+		mode: '01'
+	};
 
 	let showCopiedToast = $state(false);
 	let copiedToastTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -110,11 +125,12 @@
 	const upiQueryString = $derived(
 		payAmount > 0
 			? new URLSearchParams({
+					...UPI_MERCHANT_FIELDS,
 					pa: UPI_VPA,
 					pn: UPI_PAYEE_NAME,
-					am: String(payAmount),
+					am: payAmount.toFixed(2),
 					cu: 'INR',
-					tn: `Dues - ${formatMemberDisplay(displayName, user?.member_id)}`
+					tn: `MSY ${user?.member_id ?? ''}`
 				}).toString()
 			: ''
 	);
