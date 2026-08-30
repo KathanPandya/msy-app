@@ -238,6 +238,7 @@
 			return [
 				{ key: 'date', label: t(lang, 'date') },
 				{ key: 'amount', label: t(lang, 'amount') },
+				{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
 				{ key: 'payment_mode', label: t(lang, 'paymentMode') },
 				{ key: 'payment_type', label: t(lang, 'paymentType') },
 				{ key: 'remarks', label: t(lang, 'remarks') }
@@ -252,6 +253,7 @@
 		return [
 			{ key: 'date', label: t(lang, 'date') },
 			{ key: 'amount', label: t(lang, 'amount') },
+			{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
 			{ key: 'remarks', label: t(lang, 'remarks') }
 		];
 	});
@@ -266,8 +268,12 @@
 				_id: payment._id,
 				date: formatDate(payment.date) || '-',
 				amount: formatAmount(payment.amount),
+				reciept_number: payment.reciept_number || '-',
 				payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-				payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-',
+				payment_type:
+					payment.payment_type === 'msy_contribution'
+						? 'MSY Contribution'
+						: formatString(payment.payment_type, ['capitalize-first']) || '-',
 				remarks: payment.remarks || '-'
 			}));
 		}
@@ -296,6 +302,7 @@
 				_id: payment._id,
 				date: date ? formatDate(date) : '-',
 				amount: formatAmount(payment.amount ?? -100),
+				reciept_number: payment.reciept_number || '-',
 				remarks: payment.remarks || '-',
 				type
 			};
@@ -389,6 +396,23 @@
 			{/if}
 		</div>
 
+		<!-- Status Tabs -->
+		<div class="flex flex-shrink-0 items-center gap-0.5 rounded-md border border-gray-300 bg-white p-0.5 text-xs">
+			{#each statusOptions as option}
+				<button
+					type="button"
+					onclick={() => (filters.status = option.key)}
+					class={`flex-1 rounded px-2 py-1 font-medium whitespace-nowrap transition-colors ${
+						filters.status === option.key
+							? 'bg-blue-600 text-white'
+							: 'text-gray-700 hover:bg-gray-50'
+					}`}
+				>
+					{option.label}
+				</button>
+			{/each}
+		</div>
+
 		<!-- Payment History -->
 		<div
 			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : naturalHeight ? '' : 'h-[60vh]'}`}
@@ -407,14 +431,6 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-1.5">
-					<select
-						bind:value={filters.status}
-						class="w-28 rounded-md border border-gray-300 bg-white py-1 pr-6 pl-1.5 text-xs text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-36 sm:pr-7 sm:pl-2"
-					>
-						{#each statusOptions as option}
-							<option value={option.key}>{option.label}</option>
-						{/each}
-					</select>
 					<button
 						type="button"
 						onclick={toggleDensity}
