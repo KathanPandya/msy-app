@@ -12,7 +12,7 @@
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 
-	onMount(async () => {
+	async function loadPayments() {
 		const userId = page.params.id;
 		if (!userId) return;
 		try {
@@ -30,7 +30,9 @@
 		} finally {
 			isLoading = false;
 		}
-	});
+	}
+
+	onMount(loadPayments);
 </script>
 
 <div class="flex h-full flex-col">
@@ -47,7 +49,13 @@
 		{:else if errorMessage}
 			<div class="m-3 rounded-md bg-red-50 p-4 text-sm text-red-800">{errorMessage}</div>
 		{:else if data}
-			<Payments outstandingTableData={data} {memberName} {memberId} fitHeight={true} />
+			<Payments
+				outstandingTableData={data}
+				{memberName}
+				{memberId}
+				fitHeight={true}
+				onDeleted={loadPayments}
+			/>
 		{/if}
 	</div>
 </div>

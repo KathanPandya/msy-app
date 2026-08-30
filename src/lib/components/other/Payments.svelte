@@ -3,12 +3,14 @@
 	import { page } from '$app/state';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import { t, type Lang } from '$lib/i18n';
+	import paymentApi from '$lib/endpoints/paymentApi';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, Download, LayoutGrid, Rows3, Search } from '@lucide/svelte';
 	import Button from '../ui/Button.svelte';
 	import ImageViewer from '../ui/ImageViewer.svelte';
+	import Input from '../ui/Input.svelte';
 	import Modal from '../ui/Modal.svelte';
 	import SearchInput from '../ui/SearchInput.svelte';
 	import Table from '../ui/Table.svelte';
@@ -31,7 +33,11 @@
 		// member's) payments already sees that name above the table (avatar
 		// switcher / page header), so repeating it here is redundant.
 		showMemberLabel = true,
-		lang = undefined
+		lang = undefined,
+		// Called after a payment is deleted (success or already-gone) so the
+		// parent can re-fetch the outstanding data from the backend — this
+		// component never recomputes totals itself.
+		onDeleted = undefined
 	}: {
 		outstandingTableData: any;
 		memberName?: string;
@@ -42,6 +48,7 @@
 		showSearch?: boolean;
 		showMemberLabel?: boolean;
 		lang?: Lang;
+		onDeleted?: () => void;
 	} = $props();
 	let searchQuery = $state('');
 
@@ -134,12 +141,57 @@
 		});
 	}
 
+	// ---------- Delete flow ----------
+	let deletingId = $state<string | null>(null);
+	let deleteReason = $state('');
+	let deleteLoading = $state(false);
+	let deleteResponse = $state<{ success: boolean; message: string } | null>(null);
+	let deleteAutoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function openDelete(id: string) {
+		if (deleteAutoCloseTimer) clearTimeout(deleteAutoCloseTimer);
+		deletingId = id;
+		deleteReason = '';
+		deleteResponse = null;
+	}
+
+	function closeDelete() {
+		if (deleteAutoCloseTimer) clearTimeout(deleteAutoCloseTimer);
+		if (deleteResponse?.success || deleteResponse?.message === 'Payment not found') {
+			onDeleted?.();
+		}
+		deletingId = null;
+	}
+
+	async function confirmDelete() {
+		if (!deletingId || !deleteReason.trim()) return;
+		deleteLoading = true;
+		try {
+			const res = await paymentApi.deletePayment({ id: deletingId, reason: deleteReason.trim() });
+			deleteResponse = { success: res.success, message: res.message };
+			if (res.success) deleteAutoCloseTimer = setTimeout(closeDelete, 2000);
+		} catch (err: any) {
+			const data = err.response?.data;
+			deleteResponse = {
+				success: false,
+				message: data?.message || data?.errors?.map((e: any) => e.msg).join(', ') || err.message
+			};
+		} finally {
+			deleteLoading = false;
+		}
+	}
+
 	// Dead-member rows aren't payments, so they get no row menu.
-	// readOnly (member self-view) drops the Edit action — members can look but not change records.
+	// readOnly (member self-view) drops the Edit/Delete actions — members can look but not change records.
 	function getRowMenuActions(row: any) {
 		if (!paymentIds.has(row._id)) return [];
-		const actions = [{ label: t(lang, 'view'), onclick: () => openView(row._id) }];
-		if (!readOnly) actions.push({ label: t(lang, 'edit'), onclick: () => editPayment(row._id) });
+		const actions: { label: string; onclick: () => void; danger?: boolean }[] = [
+			{ label: t(lang, 'view'), onclick: () => openView(row._id) }
+		];
+		if (!readOnly) {
+			actions.push({ label: t(lang, 'edit'), onclick: () => editPayment(row._id) });
+			actions.push({ label: 'Delete', onclick: () => openDelete(row._id), danger: true });
+		}
 		return actions;
 	}
 
@@ -461,4 +513,40 @@
 			</div>
 		{/if}
 	{/if}
+</Modal>
+
+<!-- Delete confirmation modal -->
+<Modal open={!!deletingId} onClose={closeDelete} title="Delete Payment">
+	<div class="space-y-3 text-sm">
+		{#if !deleteResponse}
+			<p class="text-gray-700">This is a sensitive action — please double-check before deleting.</p>
+			<Input
+				id="delete-payment-reason"
+				label="Reason"
+				bind:value={deleteReason}
+				required
+				disabled={deleteLoading}
+			/>
+			<div class="flex justify-end gap-2 border-t border-gray-200 pt-3">
+				<Button variant="secondary" size="sm" onclick={closeDelete} disabled={deleteLoading}
+					>Cancel</Button
+				>
+				<Button
+					variant="danger"
+					size="sm"
+					onclick={confirmDelete}
+					disabled={deleteLoading || !deleteReason.trim()}
+				>
+					{deleteLoading ? 'Deleting...' : 'Delete'}
+				</Button>
+			</div>
+		{:else}
+			<p class={deleteResponse.success ? 'text-green-700' : 'text-red-600'}>
+				{deleteResponse.message}
+			</p>
+			<div class="flex justify-end border-t border-gray-200 pt-3">
+				<Button variant="secondary" size="sm" onclick={closeDelete}>Close</Button>
+			</div>
+		{/if}
+	</div>
 </Modal>

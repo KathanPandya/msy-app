@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { withLang } from '$lib/i18n';
+	import LoadingBar from '$lib/components/ui/LoadingBar.svelte';
 	let { children } = $props();
 
 	onMount(() => {
@@ -47,6 +48,8 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
+
+<LoadingBar />
 
 <!-- {#if $authStore.isLoading}
 	<div class="flex min-h-screen items-center justify-center bg-gray-50">
