@@ -92,7 +92,6 @@
 					readOnly={true}
 					showSearch={false}
 					showMemberLabel={false}
-					naturalHeight={true}
 					{lang}
 				/>
 			</div>
