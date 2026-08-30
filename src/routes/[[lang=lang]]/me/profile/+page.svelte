@@ -39,6 +39,9 @@
 		if (!id || infoFetchedFor === id) return;
 		infoFetchedFor = id;
 		clearSectionStatuses();
+		generalEditing = false;
+		profileEditing = false;
+		addressEditing = false;
 
 		const cached = getCachedUserInfo(id);
 		if (cached) {

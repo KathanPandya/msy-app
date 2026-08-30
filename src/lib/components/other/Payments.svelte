@@ -3,12 +3,14 @@
 	import { page } from '$app/state';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import { t, type Lang } from '$lib/i18n';
+	import paymentApi from '$lib/endpoints/paymentApi';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, Download, LayoutGrid, Rows3, Search } from '@lucide/svelte';
 	import Button from '../ui/Button.svelte';
 	import ImageViewer from '../ui/ImageViewer.svelte';
+	import Input from '../ui/Input.svelte';
 	import Modal from '../ui/Modal.svelte';
 	import SearchInput from '../ui/SearchInput.svelte';
 	import Table from '../ui/Table.svelte';
@@ -31,7 +33,11 @@
 		// member's) payments already sees that name above the table (avatar
 		// switcher / page header), so repeating it here is redundant.
 		showMemberLabel = true,
-		lang = undefined
+		lang = undefined,
+		// Called after a payment is deleted (success or already-gone) so the
+		// parent can re-fetch the outstanding data from the backend — this
+		// component never recomputes totals itself.
+		onDeleted = undefined
 	}: {
 		outstandingTableData: any;
 		memberName?: string;
@@ -42,6 +48,7 @@
 		showSearch?: boolean;
 		showMemberLabel?: boolean;
 		lang?: Lang;
+		onDeleted?: () => void;
 	} = $props();
 	let searchQuery = $state('');
 
@@ -134,12 +141,57 @@
 		});
 	}
 
+	// ---------- Delete flow ----------
+	let deletingId = $state<string | null>(null);
+	let deleteReason = $state('');
+	let deleteLoading = $state(false);
+	let deleteResponse = $state<{ success: boolean; message: string } | null>(null);
+	let deleteAutoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function openDelete(id: string) {
+		if (deleteAutoCloseTimer) clearTimeout(deleteAutoCloseTimer);
+		deletingId = id;
+		deleteReason = '';
+		deleteResponse = null;
+	}
+
+	function closeDelete() {
+		if (deleteAutoCloseTimer) clearTimeout(deleteAutoCloseTimer);
+		if (deleteResponse?.success || deleteResponse?.message === 'Payment not found') {
+			onDeleted?.();
+		}
+		deletingId = null;
+	}
+
+	async function confirmDelete() {
+		if (!deletingId || !deleteReason.trim()) return;
+		deleteLoading = true;
+		try {
+			const res = await paymentApi.deletePayment({ id: deletingId, reason: deleteReason.trim() });
+			deleteResponse = { success: res.success, message: res.message };
+			if (res.success) deleteAutoCloseTimer = setTimeout(closeDelete, 2000);
+		} catch (err: any) {
+			const data = err.response?.data;
+			deleteResponse = {
+				success: false,
+				message: data?.message || data?.errors?.map((e: any) => e.msg).join(', ') || err.message
+			};
+		} finally {
+			deleteLoading = false;
+		}
+	}
+
 	// Dead-member rows aren't payments, so they get no row menu.
-	// readOnly (member self-view) drops the Edit action — members can look but not change records.
+	// readOnly (member self-view) drops the Edit/Delete actions — members can look but not change records.
 	function getRowMenuActions(row: any) {
 		if (!paymentIds.has(row._id)) return [];
-		const actions = [{ label: t(lang, 'view'), onclick: () => openView(row._id) }];
-		if (!readOnly) actions.push({ label: t(lang, 'edit'), onclick: () => editPayment(row._id) });
+		const actions: { label: string; onclick: () => void; danger?: boolean }[] = [
+			{ label: t(lang, 'view'), onclick: () => openView(row._id) }
+		];
+		if (!readOnly) {
+			actions.push({ label: t(lang, 'edit'), onclick: () => editPayment(row._id) });
+			actions.push({ label: 'Delete', onclick: () => openDelete(row._id), danger: true });
+		}
 		return actions;
 	}
 
@@ -186,6 +238,7 @@
 			return [
 				{ key: 'date', label: t(lang, 'date') },
 				{ key: 'amount', label: t(lang, 'amount') },
+				{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
 				{ key: 'payment_mode', label: t(lang, 'paymentMode') },
 				{ key: 'payment_type', label: t(lang, 'paymentType') },
 				{ key: 'remarks', label: t(lang, 'remarks') }
@@ -200,6 +253,7 @@
 		return [
 			{ key: 'date', label: t(lang, 'date') },
 			{ key: 'amount', label: t(lang, 'amount') },
+			{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
 			{ key: 'remarks', label: t(lang, 'remarks') }
 		];
 	});
@@ -214,8 +268,12 @@
 				_id: payment._id,
 				date: formatDate(payment.date) || '-',
 				amount: formatAmount(payment.amount),
+				reciept_number: payment.reciept_number || '-',
 				payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-				payment_type: formatString(payment.payment_type, ['capitalize-first']) || '-',
+				payment_type:
+					payment.payment_type === 'msy_contribution'
+						? 'MSY Contribution'
+						: formatString(payment.payment_type, ['capitalize-first']) || '-',
 				remarks: payment.remarks || '-'
 			}));
 		}
@@ -244,6 +302,7 @@
 				_id: payment._id,
 				date: date ? formatDate(date) : '-',
 				amount: formatAmount(payment.amount ?? -100),
+				reciept_number: payment.reciept_number || '-',
 				remarks: payment.remarks || '-',
 				type
 			};
@@ -337,6 +396,23 @@
 			{/if}
 		</div>
 
+		<!-- Status Tabs -->
+		<div class="flex flex-shrink-0 items-center gap-0.5 rounded-md border border-gray-300 bg-white p-0.5 text-xs">
+			{#each statusOptions as option}
+				<button
+					type="button"
+					onclick={() => (filters.status = option.key)}
+					class={`flex-1 rounded px-2 py-1 font-medium whitespace-nowrap transition-colors ${
+						filters.status === option.key
+							? 'bg-blue-600 text-white'
+							: 'text-gray-700 hover:bg-gray-50'
+					}`}
+				>
+					{option.label}
+				</button>
+			{/each}
+		</div>
+
 		<!-- Payment History -->
 		<div
 			class={`flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm ${fitHeight ? 'min-h-0 flex-1' : naturalHeight ? '' : 'h-[60vh]'}`}
@@ -355,14 +431,6 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-1.5">
-					<select
-						bind:value={filters.status}
-						class="w-28 rounded-md border border-gray-300 bg-white py-1 pr-6 pl-1.5 text-xs text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-36 sm:pr-7 sm:pl-2"
-					>
-						{#each statusOptions as option}
-							<option value={option.key}>{option.label}</option>
-						{/each}
-					</select>
 					<button
 						type="button"
 						onclick={toggleDensity}
@@ -461,4 +529,40 @@
 			</div>
 		{/if}
 	{/if}
+</Modal>
+
+<!-- Delete confirmation modal -->
+<Modal open={!!deletingId} onClose={closeDelete} title="Delete Payment">
+	<div class="space-y-3 text-sm">
+		{#if !deleteResponse}
+			<p class="text-gray-700">This is a sensitive action — please double-check before deleting.</p>
+			<Input
+				id="delete-payment-reason"
+				label="Reason"
+				bind:value={deleteReason}
+				required
+				disabled={deleteLoading}
+			/>
+			<div class="flex justify-end gap-2 border-t border-gray-200 pt-3">
+				<Button variant="secondary" size="sm" onclick={closeDelete} disabled={deleteLoading}
+					>Cancel</Button
+				>
+				<Button
+					variant="danger"
+					size="sm"
+					onclick={confirmDelete}
+					disabled={deleteLoading || !deleteReason.trim()}
+				>
+					{deleteLoading ? 'Deleting...' : 'Delete'}
+				</Button>
+			</div>
+		{:else}
+			<p class={deleteResponse.success ? 'text-green-700' : 'text-red-600'}>
+				{deleteResponse.message}
+			</p>
+			<div class="flex justify-end border-t border-gray-200 pt-3">
+				<Button variant="secondary" size="sm" onclick={closeDelete}>Close</Button>
+			</div>
+		{/if}
+	</div>
 </Modal>

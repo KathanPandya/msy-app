@@ -252,6 +252,48 @@
 		showFilters = !showFilters;
 	}
 
+	// ---------- Delete flow ----------
+	let deletingRow = $state<any | null>(null);
+	let deleteReason = $state('');
+	let deleteLoading = $state(false);
+	let deleteResponse = $state<{ success: boolean; message: string } | null>(null);
+	let deleteAutoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function openDelete(row: any) {
+		if (deleteAutoCloseTimer) clearTimeout(deleteAutoCloseTimer);
+		deletingRow = row;
+		deleteReason = '';
+		deleteResponse = null;
+	}
+
+	function closeDelete() {
+		if (deleteAutoCloseTimer) clearTimeout(deleteAutoCloseTimer);
+		const shouldReload = deleteResponse?.success || deleteResponse?.message === 'Payment not found';
+		deletingRow = null;
+		if (shouldReload) loadInitial();
+	}
+
+	async function confirmDelete() {
+		if (!deletingRow || !deleteReason.trim()) return;
+		deleteLoading = true;
+		try {
+			const res = await paymentApi.deletePayment({
+				id: deletingRow._id,
+				reason: deleteReason.trim()
+			});
+			deleteResponse = { success: res.success, message: res.message };
+			if (res.success) deleteAutoCloseTimer = setTimeout(closeDelete, 2000);
+		} catch (err: any) {
+			const data = err.response?.data;
+			deleteResponse = {
+				success: false,
+				message: data?.message || data?.errors?.map((e: any) => e.msg).join(', ') || err.message
+			};
+		} finally {
+			deleteLoading = false;
+		}
+	}
+
 	function goToUpdate(row: any) {
 		goto(`/payins/update/${row._id}`, {
 			state: { returnTo: page.url.pathname + page.url.search }
@@ -279,10 +321,6 @@
 		if (!viewingRow) return;
 		goToUpdate(viewingRow);
 		closeView();
-	}
-
-	if (typeof window !== 'undefined') {
-		(window as any).openPaymentView = openView;
 	}
 
 	function validateDates() {
@@ -313,28 +351,16 @@
 		{ key: 'amount', label: 'Amount' },
 		{ key: 'date', label: 'Date' },
 		{ key: 'paymentMode', label: 'Mode' },
-		{ key: 'paymentType', label: 'Type' },
-		{
-			key: 'actions',
-			label: 'Actions',
-			align: 'right' as const,
-			render: (value: any, row: any) => {
-				const rowDataJson = encodeURIComponent(JSON.stringify(row));
-
-				return `
-				<div class='flex justify-content-start'>
-		<button
-			class="px-3 py-1.5 text-xs rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
-				bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500"
-			onclick="window.openPaymentView(JSON.parse(decodeURIComponent('${rowDataJson}')))"
-		>
-			View
-		</button>
-		</div>
-	`;
-			}
-		}
+		{ key: 'paymentType', label: 'Type' }
 	];
+
+	function rowMenu(row: any) {
+		return [
+			{ label: 'View', onclick: () => openView(row) },
+			{ label: 'Edit', onclick: () => goToUpdate(row) },
+			{ label: 'Delete', onclick: () => openDelete(row), danger: true }
+		];
+	}
 
 	// Transform user data for table — sliced to the current page's window,
 	// same as the members list (paymentList accumulates every page fetched
@@ -352,8 +378,7 @@
 				amount: payment.amount,
 				date: formatDate(payment.date),
 				paymentMode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-				paymentType: backendMapping[payment.payment_type],
-				actions: '' // Placeholder, actual rendering handled by column.render
+				paymentType: backendMapping[payment.payment_type]
 			};
 		})
 	);
@@ -590,6 +615,7 @@
 				pagination={paginationConfig}
 				{columns}
 				data={tableData}
+				{rowMenu}
 				onNext={goNext}
 				onPrevious={goPrevious}
 				onLimitChange={changeLimit}
@@ -657,4 +683,40 @@
 			<Button variant="primary" size="sm" onclick={editFromView}>Edit</Button>
 		</div>
 	{/if}
+</Modal>
+
+<!-- Delete confirmation modal -->
+<Modal open={!!deletingRow} onClose={closeDelete} title="Delete Payment">
+	<div class="space-y-3 text-sm">
+		{#if !deleteResponse}
+			<p class="text-gray-700">This is a sensitive action — please double-check before deleting.</p>
+			<Input
+				id="delete-reason"
+				label="Reason"
+				bind:value={deleteReason}
+				required
+				disabled={deleteLoading}
+			/>
+			<div class="flex justify-end gap-2 border-t border-gray-200 pt-3">
+				<Button variant="secondary" size="sm" onclick={closeDelete} disabled={deleteLoading}
+					>Cancel</Button
+				>
+				<Button
+					variant="danger"
+					size="sm"
+					onclick={confirmDelete}
+					disabled={deleteLoading || !deleteReason.trim()}
+				>
+					{deleteLoading ? 'Deleting...' : 'Delete'}
+				</Button>
+			</div>
+		{:else}
+			<p class={deleteResponse.success ? 'text-green-700' : 'text-red-600'}>
+				{deleteResponse.message}
+			</p>
+			<div class="flex justify-end border-t border-gray-200 pt-3">
+				<Button variant="secondary" size="sm" onclick={closeDelete}>Close</Button>
+			</div>
+		{/if}
+	</div>
 </Modal>

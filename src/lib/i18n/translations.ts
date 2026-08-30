@@ -14,29 +14,19 @@ export const dict = {
 	inCredit: { en: 'in credit', guj: 'જમા' },
 	allSettled: { en: 'All settled ✓', guj: 'સંપૂર્ણ ચૂકવેલ ✓' },
 	amountToPay: { en: 'Amount to pay', guj: 'ચૂકવવાની રકમ' },
+	quickSelectAmount: { en: 'Or pick an amount', guj: 'અથવા રકમ પસંદ કરો' },
 	pay: { en: 'Pay', guj: 'ચૂકવો' },
 	chooseUpiApp: { en: 'Choose a UPI app', guj: 'UPI એપ પસંદ કરો' },
 	close: { en: 'Close', guj: 'બંધ કરો' },
+	useAnotherApp: { en: 'Use another payment app', guj: 'બીજી ચુકવણી એપ વાપરો' },
 	appNotInstalled: {
 		en: "isn't installed on your device",
 		guj: 'તમારા ડિવાઇસમાં ઇન્સ્ટોલ કરેલ નથી'
 	},
-	hideQr: { en: 'Hide QR code', guj: 'QR કોડ છુપાવો' },
-	scanQrInstead: {
-		en: "UPI app didn't open? Scan QR instead",
-		guj: 'UPI એપ ન ખૂલી? તેના બદલે QR સ્કેન કરો'
-	},
-	scanWithUpi: {
-		en: 'Scan with any UPI app, or pay manually to',
-		guj: 'કોઈપણ UPI એપથી સ્કેન કરો, અથવા જાતે ચૂકવો'
-	},
+	uploadScreenshotHeading: { en: 'Upload payment screenshot', guj: 'ચુકવણીનો સ્ક્રીનશોટ અપલોડ કરો' },
 	paidAlreadyNotice: {
 		en: "Paid already? Your due will be updated within 24–48 hours — it doesn't happen automatically.",
 		guj: 'પહેલેથી ચૂકવ્યું છે? તમારી બાકી રકમ 24-48 કલાકમાં અપડેટ થશે — તે આપમેળે થતું નથી.'
-	},
-	uploadToSpeedUp: {
-		en: 'Upload a screenshot below to speed up the process.',
-		guj: 'પ્રક્રિયા ઝડપી બનાવવા નીચે સ્ક્રીનશોટ અપલોડ કરો.'
 	},
 	screenshotSubmitted: {
 		en: "Submitted — thanks, we'll verify it.",
@@ -69,7 +59,45 @@ export const dict = {
 	view: { en: 'View', guj: 'જુઓ' },
 	details: { en: 'Details', guj: 'વિગતો' },
 	joined: { en: 'Joined', guj: 'જોડાયા' },
+	payingVia: { en: 'Paying via', guj: 'આના દ્વારા ચૂકવણી' },
+	change: { en: 'Change', guj: 'બદલો' },
+	openApp: { en: 'Open {app}', guj: '{app} ખોલો' },
+	downloadQr: { en: 'Download QR', guj: 'QR ડાઉનલોડ કરો' },
+	copyUpiId: { en: 'Copy UPI ID', guj: 'UPI ID કૉપિ કરો' },
 	upiIdCopied: { en: 'UPI ID copied', guj: 'UPI ID કૉપિ થયું' },
+	howToPayVia: { en: 'How to pay via {app}', guj: '{app} દ્વારા કેવી રીતે ચૂકવવું' },
+	payStep1: {
+		en: 'Set the amount, then download the QR',
+		guj: 'રકમ સેટ કરો, પછી QR ડાઉનલોડ કરો'
+	},
+	payStep2: {
+		en: 'Open PhonePe and tap the Scan icon at the bottom of the home screen. On the scan screen that opens, do NOT point your camera at anything — instead tap "Upload QR" near the bottom to choose the QR image from your gallery.',
+		guj: 'PhonePe ખોલો અને હોમ સ્ક્રીનની નીચે આપેલા Scan આઇકન પર ટૅપ કરો. જે સ્કેન સ્ક્રીન ખૂલે તેમાં કેમેરાથી કંઈ સ્કેન ન કરો — તેના બદલે નીચે આપેલા "Upload QR" પર ટૅપ કરી ગેલેરીમાંથી QR ઇમેજ પસંદ કરો.'
+	},
+	payStep3: {
+		en: 'From your gallery, select the QR code image you downloaded in step 1',
+		guj: 'તમારી ગેલેરીમાંથી, સ્ટેપ 1માં ડાઉનલોડ કરેલી QR કોડ ઇમેજ પસંદ કરો'
+	},
+	payStep4: {
+		en: 'Check the amount and tap Pay',
+		guj: 'રકમ ચકાસો અને Pay પર ટૅપ કરો'
+	},
+	payStep5: {
+		en: 'Come back and upload your payment screenshot',
+		guj: 'પાછા આવો અને તમારો ચુકવણી સ્ક્રીનશોટ અપલોડ કરો'
+	},
+	orScanQr: {
+		en: 'Or scan this QR with any UPI app',
+		guj: 'અથવા આ QR ને કોઈપણ UPI એપથી સ્કેન કરો'
+	},
+	editAmountHint: {
+		en: 'You can change the amount above — the QR updates automatically.',
+		guj: 'તમે ઉપર રકમ બદલી શકો છો — QR આપમેળે અપડેટ થશે.'
+	},
+	invalidAppNotice: {
+		en: "That app isn't recognized.",
+		guj: 'તે એપ ઓળખાઈ નથી.'
+	},
 	member: { en: 'Member', guj: 'સભ્ય' },
 	myPage: { en: '← My page', guj: '← મારું પેજ' },
 	notAllowedToView: {
