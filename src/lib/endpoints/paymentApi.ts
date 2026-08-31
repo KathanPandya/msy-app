@@ -76,6 +76,20 @@ class PaymentApi {
 		return response.data;
 	}
 
+	async deletePayment({
+		id,
+		reason
+	}: {
+		id: string;
+		reason: string;
+	}): Promise<{ success: boolean; message: string }> {
+		const response = await axios.delete(`/api/payment/delete/${id}`, { data: { reason } });
+		clearMembersCache();
+		clearPaymentsCache();
+		clearMeCache();
+		return response.data;
+	}
+
 	async addPayout({
 		payload
 	}: {

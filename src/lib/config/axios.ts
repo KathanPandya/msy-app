@@ -4,6 +4,7 @@
 // import { getExternalLogout } from '../UserContext';
 
 import { authStore } from '$lib/stores/authStore';
+import { endHttpRequest, startHttpRequest } from '$lib/stores/httpLoadingStore';
 import type { AxiosInstance } from 'axios';
 import axios from 'axios';
 
@@ -14,6 +15,7 @@ const instance: AxiosInstance = axios.create({
 // Request Interceptor
 instance.interceptors.request.use(
 	(config: any) => {
+		startHttpRequest();
 		const customToken = config.headers?.['X-Custom-Authorization'];
 		const token = localStorage.getItem('authToken');
 		const tokenToUse = customToken || token;
@@ -32,13 +34,20 @@ instance.interceptors.request.use(
 		}
 		return config;
 	},
-	(error) => Promise.reject(error)
+	(error) => {
+		endHttpRequest();
+		return Promise.reject(error);
+	}
 );
 
 // Response Interceptor
 instance.interceptors.response.use(
-	(response) => response,
+	(response) => {
+		endHttpRequest();
+		return response;
+	},
 	async (error) => {
+		endHttpRequest();
 		const status = error.response?.status ?? error.status;
 		// Only force logout on 403 when a session token was present (avoid PIN public 403s)
 		if (status === 403 && localStorage.getItem('authToken')) {
