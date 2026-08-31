@@ -21,17 +21,15 @@
 <div
 	transition:fade={{ duration: 150 }}
 	class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
-	role="button"
-	tabindex="0"
-	onclick={onclose}
+	role="dialog"
+	aria-modal="true"
+	aria-label={t(lang, 'chooseUpiApp')}
+	tabindex="-1"
+	onclick={(e) => e.target === e.currentTarget && onclose()}
 	onkeydown={(e) => e.key === 'Escape' && onclose()}
 >
 	<div
-		role="dialog"
-		aria-modal="true"
-		aria-label={t(lang, 'chooseUpiApp')}
 		class="w-full max-w-sm rounded-t-xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg sm:rounded-xl sm:pb-4"
-		onclick={(e) => e.stopPropagation()}
 	>
 		<div class="mb-3 flex items-center justify-between">
 			<p class="text-sm font-semibold text-gray-900">{t(lang, 'chooseUpiApp')}</p>
