@@ -196,6 +196,22 @@
 		}
 	}
 
+	function blockSpaceKey(event: KeyboardEvent) {
+		if (event.key === ' ') {
+			event.preventDefault();
+		}
+	}
+
+	function trimPastedSpaces(index: number, event: ClipboardEvent) {
+		event.preventDefault();
+		const pasted = (event.clipboardData?.getData('text') ?? '').replace(/\s+/g, '');
+		const input = event.target as HTMLInputElement;
+		const start = input.selectionStart ?? input.value.length;
+		const end = input.selectionEnd ?? input.value.length;
+		const current = entries[index].referenceNumber ?? '';
+		entries[index].referenceNumber = current.slice(0, start) + pasted + current.slice(end);
+	}
+
 	function handlePaymentModeChange(index: number, e: any) {
 		const mode = e.target.value;
 
@@ -539,6 +555,8 @@
 							bind:value={entry.referenceNumber}
 							error={errors[index].referenceNumber}
 							onblur={() => validateField(index, 'referenceNumber')}
+							onkeydown={blockSpaceKey}
+							onpaste={(e) => trimPastedSpaces(index, e)}
 							placeholder="Transaction/Cheque number"
 							required
 							disabled={isLoading || entry.paymentMode === 'cash'}

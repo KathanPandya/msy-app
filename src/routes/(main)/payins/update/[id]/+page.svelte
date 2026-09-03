@@ -60,7 +60,7 @@
 				receiptNumber: paymentData.reciept_number || '',
 				paymentDate: paymentData.date?.split('T')[0] || '',
 				paymentType: paymentData.payment_type,
-				paymentReference: paymentData.payment_reference,
+				paymentReference: (paymentData.payment_reference || '').replace(/\s+/g, ''),
 				file: paymentData.photo || ''
 			};
 		} catch {
@@ -141,6 +141,22 @@
 		} catch (err: any) {
 			errors[field] = err?.message || 'Invalid';
 		}
+	}
+
+	function blockSpaceKey(event: KeyboardEvent) {
+		if (event.key === ' ') {
+			event.preventDefault();
+		}
+	}
+
+	function trimPastedSpaces(event: ClipboardEvent) {
+		event.preventDefault();
+		const pasted = (event.clipboardData?.getData('text') ?? '').replace(/\s+/g, '');
+		const input = event.target as HTMLInputElement;
+		const start = input.selectionStart ?? input.value.length;
+		const end = input.selectionEnd ?? input.value.length;
+		const current = formData.paymentReference ?? '';
+		formData.paymentReference = current.slice(0, start) + pasted + current.slice(end);
 	}
 
 	function removeImage() {
@@ -319,6 +335,8 @@
 					bind:value={formData.paymentReference}
 					error={errors.paymentReference}
 					onblur={() => validateField('paymentReference')}
+					onkeydown={blockSpaceKey}
+					onpaste={trimPastedSpaces}
 					placeholder="Transaction/Cheque/upi number"
 					required
 					disabled={isLoading}
