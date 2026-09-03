@@ -159,7 +159,7 @@ export const dict = {
 	paymentHistory: { en: 'Payment History', guj: 'ચુકવણી ઇતિહાસ' },
 	allEntries: { en: 'All Entries', guj: 'બધી નોંધો' },
 	payments: { en: 'Payments', guj: 'ચુકવણીઓ' },
-	deadMembers: { en: 'Dead Members', guj: 'મૃત સભ્યો' },
+	deadMembers: { en: 'Deceased Members', guj: 'નિધન પામેલા સભ્યો' },
 	switchToCompact: { en: 'Switch to compact view', guj: 'કોમ્પેક્ટ વ્યુ પર સ્વિચ કરો' },
 	switchToComfortable: { en: 'Switch to comfortable view', guj: 'આરામદાયક વ્યુ પર સ્વિચ કરો' },
 	compact: { en: 'Compact', guj: 'કોમ્પેક્ટ' },
@@ -178,6 +178,26 @@ export const dict = {
 	receipt: { en: 'Receipt', guj: 'રસીદ' },
 	edit: { en: 'Edit', guj: 'સંપાદિત કરો' },
 
+	// /me/payments/v2 (PaymentDonut.svelte, PaymentYearlyBars.svelte)
+	yearlyChartTitle: {
+		en: 'Yearly payments vs. contributions',
+		guj: 'વર્ષવાર ચુકવણી અને ફાળો'
+	},
+	contributionLegend: {
+		en: 'Contribution (deceased member)',
+		guj: 'ફાળો (નિધન પામેલ સભ્ય)'
+	},
+	noPaymentHistoryYet: { en: 'No payment history yet.', guj: 'હજુ સુધી કોઈ ચુકવણી ઇતિહાસ નથી.' },
+	paidInYear: { en: 'Paid in {year}', guj: '{year} માં ચૂકવેલ' },
+	noPayments: { en: 'No payments.', guj: 'કોઈ ચુકવણી નથી.' },
+	contributionAmountInYear: {
+		en: 'Contribution amount in {year}',
+		guj: '{year} માં ફાળાની રકમ'
+	},
+	noContributionsThisYear: { en: 'No contributions this year.', guj: 'આ વર્ષે કોઈ ફાળો નથી.' },
+	hideCharts: { en: 'Hide charts', guj: 'ચાર્ટ છુપાવો' },
+	showCharts: { en: 'Show charts', guj: 'ચાર્ટ બતાવો' },
+
 	// login page
 	memberLogin: { en: 'Member login', guj: 'સભ્ય લૉગિન' },
 	welcomeBack: { en: 'Welcome back,', guj: 'ફરી સ્વાગત છે,' },
@@ -192,6 +212,7 @@ export const dict = {
 	},
 	attemptsLeft: { en: 'attempt(s) left.', guj: 'પ્રયાસ(ો) બાકી છે.' },
 	memberId: { en: 'Member ID', guj: 'સભ્ય ID' },
+	errEnterIdFirst: { en: 'Please enter your ID.', guj: 'કૃપા કરી તમારું ID દાખલ કરો.' },
 	fourDigitPin: { en: '4-digit PIN', guj: '4-અંકનો PIN' },
 	continueLabel: { en: 'Continue', guj: 'આગળ વધો' },
 	checking: { en: 'Checking…', guj: 'ચકાસી રહ્યા છીએ…' },
@@ -235,7 +256,32 @@ export const dict = {
 		en: 'New PIN and Confirm PIN should be the same.',
 		guj: 'નવો PIN અને પુષ્ટિ કરેલ PIN સરખા હોવા જોઈએ.'
 	},
-	errCouldNotUpdatePin: { en: 'Could not update PIN.', guj: 'PIN અપડેટ કરી શકાયો નહીં.' }
+	errCouldNotUpdatePin: { en: 'Could not update PIN.', guj: 'PIN અપડેટ કરી શકાયો નહીં.' },
+
+	// other-schemes page
+	knowOtherSchemes: { en: 'Know about our other schemes', guj: 'અમારી અન્ય યોજનાઓ' },
+	annapurnaSchemeParagraph1: {
+		en: 'Twice a year, we conduct an Anaj Sahay program aimed at providing essential food supplies to around 55 economically needy families. These families often struggle to meet their basic needs, and we offer them some relief without compromising their dignity. We understand the importance of maintaining the self-respect of those we assist, so we ensure that the distribution is conducted discreetly and respectfully. No public announcements or advertisements are made about this program; instead, we work quietly behind the scenes to ensure that the families receive the support they need in a manner that preserves their privacy.',
+		guj: 'વર્ષમાં બે વાર, અમે આશરે 55 આર્થિક રીતે જરૂરિયાતમંદ પરિવારોને આવશ્યક અનાજ સહાય પૂરી પાડવા માટે "અનાજ સહાય" કાર્યક્રમનું આયોજન કરીએ છીએ. આ પરિવારો ઘણીવાર તેમની મૂળભૂત જરૂરિયાતો પૂરી કરવા માટે સંઘર્ષ કરે છે, અને અમે તેમના ગૌરવ સાથે સમાધાન કર્યા વિના તેમને થોડી રાહત આપીએ છીએ. અમે જેમને સહાય કરીએ છીએ તેમના આત્મસન્માન જાળવવાનું મહત્વ સમજીએ છીએ, તેથી અમે ખાતરી કરીએ છીએ કે વિતરણ સમજદારીપૂર્વક અને આદરપૂર્વક કરવામાં આવે. આ કાર્યક્રમ વિશે કોઈ જાહેરાતો કરવામાં આવતી નથી; તેના બદલે, અમે પડદા પાછળ શાંતિથી કામ કરીએ છીએ જેથી પરિવારોને જરૂરી સહાય મળી રહે તેની ખાતરી કરી શકાય - અને તેમની ગોપનીયતા જળવાઈ રહે.'
+	},
+	annapurnaSchemeParagraph2: {
+		en: 'The Anaj Sahay packages typically include staple food items such as rice, wheat, lentils, and cooking oil, which are crucial for daily sustenance. By providing these essentials, we aim to alleviate the immediate financial burden on these families, allowing them to focus on other aspects of their lives without the added stress of securing food. The distribution process is handled with care and sensitivity, ensuring that the families feel supported and valued.',
+		guj: 'અનાજ સહાયમાં સામાન્ય રીતે ચોખા, ઘઉં, દાળ, ગોળ, ચા, ખાંડ, ઘી અને રસોઈ તેલ જેવી મુખ્ય ખાદ્ય ચીજોનો સમાવેશ થાય છે, જે રોજિંદા જીવન માટે મહત્વપૂર્ણ છે. આ ઉપરાંત ઘરખર્ચ માટે ₹૨,૦૦૦/- રોકડ પણ આપવામાં આવે છે. આ આવશ્યક ચીજવસ્તુઓ પૂરી પાડીને, અમે આ પરિવારો પર તાત્કાલિક નાણાકીય બોજ ઘટાડવાનો હેતુ રાખીએ છીએ, જેથી તેઓ ખોરાક સુરક્ષિત કરવાના વધારાના તણાવ વિના તેમના જીવનના અન્ય પાસાઓ પર ધ્યાન કેન્દ્રિત કરી શકે. વિતરણ પ્રક્રિયા કાળજી અને સંવેદનશીલતા સાથે હાથ ધરવામાં આવે છે, ખાતરી કરે છે કે પરિવારો ટેકો અને મૂલ્યવાન અનુભવે છે.'
+	},
+	contributeUseBankDetails: {
+		en: 'To contribute in this scheme, use below bank details',
+		guj: 'આ યોજનામાં યોગદાન આપવા માટે, નીચેની બેંક વિગતોનો ઉપયોગ કરો'
+	},
+	shikshanSchemeParagraph: {
+		en: 'Under this scheme, we provide scholarships and interest-free loans to students who require additional financial support. These loans are intended to cover educational expenses that are not fully met by scholarships or other sources of funding. The application process for these loans ensures that assistance is provided to those who truly need it.',
+		guj: 'આ યોજના હેઠળ, અમે એવા વિદ્યાર્થીઓને શિષ્યવૃત્તિ અને વ્યાજમુક્ત લોન પ્રદાન કરીએ છીએ જેમને વધારાની નાણાકીય સહાયની જરૂર હોય છે. આ લોનનો હેતુ એવા શૈક્ષણિક ખર્ચાઓને આવરી લેવાનો છે જે શિષ્યવૃત્તિ અથવા ભંડોળના અન્ય સ્ત્રોતો દ્વારા સંપૂર્ણપણે પૂર્ણ થતા નથી. આ લોન માટેની અરજી પ્રક્રિયા ખાતરી કરે છે કે જેમને ખરેખર તેની જરૂર હોય તેમને સહાય પૂરી પાડવામાં આવે. આ યોજનામાં યોગદાન આપવા માટે, નીચેની બેંક વિગતોનો ઉપયોગ કરો.'
+	},
+	bankLabel: { en: 'Bank', guj: 'બેંક' },
+	bankNameBoi: { en: 'Bank Of India', guj: 'બેંક ઓફ ઇન્ડિયા' },
+	accountNumberLabel: { en: 'Account number', guj: 'ખાતા નંબર' },
+	ifscCodeLabel: { en: 'IFSC code', guj: 'IFSC કોડ' },
+	copy: { en: 'Copy', guj: 'કૉપિ કરો' },
+	copied: { en: 'Copied!', guj: 'કૉપિ થયું!' }
 } as const;
 
 export type DictKey = keyof typeof dict;

@@ -33,6 +33,9 @@
 		// member's) payments already sees that name above the table (avatar
 		// switcher / page header), so repeating it here is redundant.
 		showMemberLabel = true,
+		// v2 payments page shows its own donut summary above, so the boxed
+		// stat-card summary here would just repeat the same three numbers.
+		hideSummary = false,
 		lang = undefined,
 		// Called after a payment is deleted (success or already-gone) so the
 		// parent can re-fetch the outstanding data from the backend — this
@@ -47,6 +50,7 @@
 		readOnly?: boolean;
 		showSearch?: boolean;
 		showMemberLabel?: boolean;
+		hideSummary?: boolean;
 		lang?: Lang;
 		onDeleted?: () => void;
 	} = $props();
@@ -325,6 +329,7 @@
 			class="flex w-full flex-shrink-0 flex-wrap items-start justify-start gap-2 sm:flex-nowrap sm:gap-3"
 		>
 			<!-- Payment Summary -->
+			{#if !hideSummary}
 			<div
 				class="w-full min-w-0 flex-none rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 sm:max-w-[400px] sm:shrink sm:grow-0 sm:basis-[400px]"
 			>
@@ -378,6 +383,7 @@
 					</div>
 				{/if}
 			</div>
+			{/if}
 
 			{#if showSearch}
 				<!-- Search -->

@@ -8,6 +8,7 @@
 	import type { PinAuth } from '$lib/types/pinAuth';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { onMount } from 'svelte';
+	import { HandHeart } from '@lucide/svelte';
 
 	type Stage = PinAuth.Stage | 'identify';
 
@@ -62,11 +63,15 @@
 
 	async function handleIdentify(e: Event) {
 		e.preventDefault();
+		if (!rawMemberId) {
+			errorMessage = t(lang, 'errEnterIdFirst');
+			return;
+		}
 		isLoading = true;
 		errorMessage = '';
 		attemptsLeft = null;
 		try {
-			const data = await pinAuthApi.identify({ memberId: rawMemberId });
+			const data = await pinAuthApi.identify({ memberId: `MSY-${rawMemberId}` });
 			applyStageResult(data);
 			resetFormFields();
 			if (data.memberId) memberId = data.memberId;
@@ -173,9 +178,67 @@
 	}
 
 	const displayMember = $derived(memberId ? formatMemberDisplay(name, memberId) : '');
+
+	const MEMBER_ID_PREFIX = 'MSY-';
+
+	function handleMemberIdInput(e: Event) {
+		const target = e.currentTarget as HTMLInputElement;
+		let val = target.value;
+		if (!val.startsWith(MEMBER_ID_PREFIX)) {
+			val = MEMBER_ID_PREFIX + val.replace(/\D/g, '');
+		}
+		const digits = val.slice(MEMBER_ID_PREFIX.length).replace(/\D/g, '');
+		rawMemberId = digits;
+		target.value = MEMBER_ID_PREFIX + digits;
+	}
+
+	function handleMemberIdKeydown(e: KeyboardEvent) {
+		const target = e.currentTarget as HTMLInputElement;
+		const cursorAtPrefix =
+			target.selectionStart !== null && target.selectionStart <= MEMBER_ID_PREFIX.length;
+		if ((e.key === 'Backspace' || e.key === 'Delete') && cursorAtPrefix) {
+			e.preventDefault();
+		}
+	}
+
+	function handleMemberIdFocus(e: Event) {
+		const target = e.currentTarget as HTMLInputElement;
+		if (target.selectionStart !== null && target.selectionStart < MEMBER_ID_PREFIX.length) {
+			const end = target.value.length;
+			target.setSelectionRange(end, end);
+		}
+	}
+
+	// English → offer Gujarati (label itself in Gujarati, since that's the
+	// language being offered); Gujarati → offer English, label in English.
+	const langSwitchHref = $derived(
+		lang === 'guj' ? page.url.pathname.replace(/^\/guj/, '') || '/' : `/guj${page.url.pathname}`
+	);
+	const langSwitchLabel = $derived(
+		lang === 'guj' ? 'Use this website in English' : 'આ વેબસાઇટ ગુજરાતીમાં વાપરો'
+	);
 </script>
 
-<div class="relative flex min-h-full items-center justify-center bg-gray-50 px-4 py-8">
+<div
+	class="relative grid min-h-full grid-rows-[1fr_auto_1fr] items-center justify-items-center overflow-y-auto bg-gray-50 px-4 py-8"
+>
+	<a
+		href={langSwitchHref}
+		class="absolute top-3 right-3 text-xs font-medium text-blue-600 hover:underline"
+	>
+		{langSwitchLabel}
+	</a>
+	<div class="w-full max-w-md self-end pb-6 text-center" style="transform: translateY(-17px);">
+		<p class="mb-2 text-2xl font-bold text-blue-600">Welcome,</p>
+		<p class="text-xs font-normal text-gray-800">
+			શ્રી અખિલ હિંદ ભટ્ટ મેવાડા બ્રહ્મ સમાજ ફેડરેશન સંચાલિત
+			<br />
+			<strong class="font-bold">
+				શ્રીમતી નિરંજનાબેન ભરતકુમાર ભટ્ટ સમસ્ત ભટ્ટ મેવાડા પરિવાર કલ્યાણ (મૃત્યુ સહાય) યોજના
+			</strong>
+			માં આપનું સ્વાગત છે 🙏
+		</p>
+	</div>
 	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
 		<div class="mb-6 text-center">
 			<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'memberLogin')}</h1>
@@ -206,13 +269,24 @@
 
 		{#if stage === 'identify'}
 			<form onsubmit={handleIdentify} class="space-y-4">
-				<Input
-					id="memberId"
-					label={t(lang, 'memberId')}
-					bind:value={rawMemberId}
-					placeholder="MSY-1"
-					required
-				/>
+				<div>
+					<label for="memberId" class="mb-1 block text-sm font-medium text-gray-700">
+						{t(lang, 'memberId')}
+						<span class="text-red-500">*</span>
+					</label>
+					<input
+						id="memberId"
+						type="text"
+						inputmode="numeric"
+						value={MEMBER_ID_PREFIX + rawMemberId}
+						oninput={handleMemberIdInput}
+						onkeydown={handleMemberIdKeydown}
+						onfocus={handleMemberIdFocus}
+						onclick={handleMemberIdFocus}
+						required
+						class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+					/>
+				</div>
 				<button
 					type="submit"
 					disabled={isLoading}
@@ -357,6 +431,16 @@
 				{t(lang, 'contactSupport')}
 			</a>
 		</p>
+	</div>
+
+	<div class="w-full max-w-md self-start pt-4 text-center">
+		<a
+			href={withLang(lang, '/other-schemes')}
+			class="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
+		>
+			{t(lang, 'knowOtherSchemes')}
+			<HandHeart class="h-5 w-5" />
+		</a>
 	</div>
 
 	<a

@@ -7,6 +7,8 @@
 	import { getCachedOutstanding, setCachedOutstanding } from '$lib/utilities/meCache';
 	import { getMemberShellContext } from '$lib/context/memberShell';
 	import Payments from '$lib/components/other/Payments.svelte';
+	import PaymentDonut from '$lib/components/other/PaymentDonut.svelte';
+	import PaymentYearlyBars from '$lib/components/other/PaymentYearlyBars.svelte';
 	import MemberAvatarSwitcher from '$lib/components/other/MemberAvatarSwitcher.svelte';
 	import type { Payment } from '$lib/types/payment';
 	import { fade } from 'svelte/transition';
@@ -60,6 +62,20 @@
 				isLoadingPayments = false;
 			});
 	});
+
+	const totalAmount = $derived(
+		(paymentsData?.outstandingAmount ?? 0) + (paymentsData?.totalPayment ?? 0)
+	);
+	const amountPaid = $derived(paymentsData?.totalPayment ?? 0);
+	const remainingAmount = $derived(totalAmount - amountPaid);
+
+	let showCharts = $state(
+		typeof localStorage !== 'undefined' ? localStorage.getItem('payments_charts_visible') !== '0' : true
+	);
+	function toggleCharts() {
+		showCharts = !showCharts;
+		localStorage.setItem('payments_charts_visible', showCharts ? '1' : '0');
+	}
 </script>
 
 {#if user}
@@ -84,7 +100,27 @@
 		     instantly, so without this the view would swap with no visible
 		     change and switching would feel like it silently did nothing. -->
 		{#key selectedId}
-			<div in:fade={{ duration: 180 }}>
+			<div in:fade={{ duration: 180 }} class="space-y-2">
+				<div class="flex justify-end">
+					<button
+						type="button"
+						onclick={toggleCharts}
+						class="text-xs font-medium text-blue-600 hover:underline"
+					>
+						{showCharts ? t(lang, 'hideCharts') : t(lang, 'showCharts')}
+					</button>
+				</div>
+
+				{#if showCharts}
+					<PaymentDonut {totalAmount} {amountPaid} {remainingAmount} {lang} />
+
+					<PaymentYearlyBars
+						paymentRecords={paymentsData.paymentRecords}
+						deadMemberRecords={paymentsData.deadMemberRecords}
+						{lang}
+					/>
+				{/if}
+
 				<Payments
 					outstandingTableData={paymentsData}
 					memberName={selectedMember.name}
@@ -92,6 +128,7 @@
 					readOnly={true}
 					showSearch={false}
 					showMemberLabel={false}
+					hideSummary={true}
 					{lang}
 				/>
 			</div>
