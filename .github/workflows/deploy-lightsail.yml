@@ -45,7 +45,12 @@ jobs:
           rm: true
           overwrite: true
 
-      - name: Publish staging build to web root
+      - name: Resolve deploy path
+        run: |
+          echo "LIGHTSAIL_DEPLOY_PATH (variable)='${{ vars.LIGHTSAIL_DEPLOY_PATH }}'"
+          echo "If that is empty, the path was not found as a repository Variable. Add it under Settings → Secrets and variables → Actions → Variables (not Secrets)."
+
+      - name: Publish staging build
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
@@ -57,9 +62,19 @@ jobs:
             STAGING="/tmp/msy-app-release"
             DEST="${{ vars.LIGHTSAIL_DEPLOY_PATH }}"
             if [ -z "$DEST" ]; then
+              DEST="${{ secrets.LIGHTSAIL_DEPLOY_PATH }}"
+            fi
+            if [ -z "$DEST" ]; then
               DEST="/var/www/html"
             fi
 
+            DEST="${DEST%/}"
+            case "$DEST" in
+              */build) ;;
+              *) DEST="$DEST/build" ;;
+            esac
+
+            echo "Publishing to $DEST"
             sudo -n mkdir -p "$DEST"
 
             if command -v rsync >/dev/null 2>&1; then
@@ -68,3 +83,6 @@ jobs:
               sudo -n find "$DEST" -mindepth 1 -delete
               sudo -n cp -a "$STAGING"/. "$DEST"/
             fi
+
+            echo "Files in $DEST:"
+            sudo -n ls -la "$DEST"
