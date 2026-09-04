@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install dependencies
         run: npm install
@@ -32,7 +32,7 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.PROD_API_URL }}
 
-      - name: Deploy build to Lightsail
+      - name: Upload build to staging
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
@@ -40,7 +40,31 @@ jobs:
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: ${{ secrets.LIGHTSAIL_SSH_PORT || 22 }}
           source: build/
-          target: ${{ vars.LIGHTSAIL_DEPLOY_PATH || '/var/www/html' }}
+          target: /tmp/msy-app-release
           strip_components: 1
           rm: true
           overwrite: true
+
+      - name: Publish staging build to web root
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USERNAME }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          port: ${{ secrets.LIGHTSAIL_SSH_PORT || 22 }}
+          script: |
+            set -eu
+            STAGING="/tmp/msy-app-release"
+            DEST="${{ vars.LIGHTSAIL_DEPLOY_PATH }}"
+            if [ -z "$DEST" ]; then
+              DEST="/var/www/html"
+            fi
+
+            sudo -n mkdir -p "$DEST"
+
+            if command -v rsync >/dev/null 2>&1; then
+              sudo -n rsync -a --delete "$STAGING"/ "$DEST"/
+            else
+              sudo -n find "$DEST" -mindepth 1 -delete
+              sudo -n cp -a "$STAGING"/. "$DEST"/
+            fi
