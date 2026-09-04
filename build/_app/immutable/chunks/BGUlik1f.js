@@ -1,1 +1,0 @@
-import{i as e}from"./B8hgcfzT.js";class r{async updateAddress({addressId:s,payload:a}){return(await e.put(`/api/address/update/${s}`,a)).data}async createAddress({userToken:s,payload:a}){return(await e.post("/api/address/create",a,s?{headers:{"X-Custom-Authorization":s}}:{})).data}}const p=new r;export{p as a};
