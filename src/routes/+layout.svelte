@@ -16,7 +16,14 @@
 
 	// Redirect to login if not authenticated (except for public routes)
 	$effect(() => {
-		const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/admin', '/unauthorized'];
+		const publicRoutes = [
+			'/login',
+			'/forgot-password',
+			'/reset-password',
+			'/admin',
+			'/unauthorized',
+			'/other-schemes'
+		];
 		const lang = page.params.lang as 'guj' | undefined;
 		const currentPath = page.url.pathname;
 		// The /login route lives under the optional [[lang]] segment, so strip
@@ -43,9 +50,23 @@
 			goto(withLang(lang, '/me'));
 		}
 	});
+
+	const appHeading = $derived.by(() => {
+		const lang = page.params.lang as 'guj' | undefined;
+		const currentPath = page.url.pathname;
+		const pathWithoutLang = lang
+			? currentPath.replace(new RegExp(`^/${lang}`), '') || '/'
+			: currentPath;
+
+		return pathWithoutLang === '/login' || pathWithoutLang.startsWith('/login/') ||
+			pathWithoutLang === '/me' || pathWithoutLang.startsWith('/me/')
+			? 'MSY'
+			: 'MSY Admin';
+	});
 </script>
 
 <svelte:head>
+	<title>{appHeading}</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 

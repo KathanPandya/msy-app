@@ -62,7 +62,7 @@ export const APP_CONSTANTS = {
 	MEMBER_STATUS: [
 		{ key: '', label: 'Select status' },
 		{ key: 'active', label: 'Active' },
-		{ key: 'dead', label: 'Dead' },
+		{ key: 'dead', label: 'Deceased' },
 		{ key: 'voluntary-retired', label: 'Voluntary Retired' },
 		{ key: 'removed', label: 'Removed' }
 	],
