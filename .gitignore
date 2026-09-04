@@ -7,8 +7,7 @@ npm-debug.log
 .netlify
 .wrangler
 /.svelte-kit
-# /build 
-# added to git due to not able to build on server instance
+/build
 
 # OS
 .DS_Store

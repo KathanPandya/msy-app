@@ -1,9 +1,8 @@
+# Disabled — production deploys via deploy-lightsail.yml instead.
+# Keep this file for an emergency Hostinger rollback (Actions → Run workflow).
 name: Deploy to Hostinger
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
