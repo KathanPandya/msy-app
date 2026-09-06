@@ -142,6 +142,13 @@ export const APP_CONSTANTS = {
 	]
 };
 
+// Single source of truth for how a member status key is displayed.
+// Change the label here (e.g. 'dead' -> 'Deceased') and it updates everywhere.
+export function getMemberStatusLabel(status: string | null | undefined): string {
+	if (!status) return '-';
+	return APP_CONSTANTS.MEMBER_STATUS.find((o) => o.key === status)?.label ?? status;
+}
+
 // The largest page-size the pagination selector offers. Any single
 // `getAllUsers` request should be capped at this — never ask the API for
 // more rows than the biggest step size the UI itself allows.

@@ -6,7 +6,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import SearchInput from '$lib/components/ui/SearchInput.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
-	import { APP_CONSTANTS, MAX_PAGE_SIZE } from '$lib/constants/app-constants';
+	import { APP_CONSTANTS, MAX_PAGE_SIZE, getMemberStatusLabel } from '$lib/constants/app-constants';
 	import userApi from '$lib/endpoints/userApi';
 	// import { memberListStore } from '$lib/stores/memberListStore';
 	import type { User } from '$lib/types/user';
@@ -14,7 +14,6 @@
 	import { formatMemberDisplay, memberIdDigits } from '$lib/utilities/memberId';
 	import { getCachedMembers, setCachedMembers } from '$lib/utilities/membersCache';
 	import { GenericSort } from '$lib/utilities/sortingUtil';
-	import { formatString } from '$lib/utilities/stringUtils';
 	import {
 		ChevronDown,
 		ChevronUp,
@@ -313,7 +312,7 @@
 					return `<span style="${pill}color:oklch(45% 0.13 150);background:oklch(95% 0.05 150)">+${Math.abs(n)}</span>`;
 				if (n > 0)
 					return `<span style="${pill}color:oklch(50% 0.2 27);background:oklch(95% 0.045 27)">-${n}</span>`;
-				return `<span style="color:oklch(65% 0.01 264)">—</span>`;
+				return `<span style="${pill}color:oklch(45% 0.01 264);background:oklch(95% 0.005 264)">0</span>`;
 			},
 			sorting: (row: any) => {
 				sortType = sortType === '' ? 'desc' : sortType === 'desc' ? 'asc' : '';
@@ -336,7 +335,7 @@
 			key: 'status',
 			label: 'Status',
 			render: (value: any) => {
-				const label = formatString(value, ['capitalize-first']) || '-';
+				const label = getMemberStatusLabel(value);
 				const pill =
 					'display:inline-block;min-width:2.5rem;text-align:center;padding:0.125rem 0.5rem;border-radius:999px;font-weight:600;font-size:0.75rem;';
 				// Mirrors the balance pill's OKLCH scheme: dead/removed = red, active = green, everything else neutral.
@@ -525,6 +524,20 @@
 	// "Save" tap (Safari only — see confirmDownload).
 	let readyFile: File | null = $state(null);
 
+	// Mirrors the visible table columns (same key order as `columns` above) so
+	// the picker and the export never drift apart.
+	const CSV_COLUMNS = [
+		{ key: 'Member', label: 'Member' },
+		{ key: 'Balance', label: 'Balance' },
+		{ key: 'Mobile', label: 'Mobile' },
+		{ key: 'Gender', label: 'Gender' },
+		{ key: 'Status', label: 'Status' }
+	] as const;
+	let selectedCsvColumns: Record<string, boolean> = $state(
+		Object.fromEntries(CSV_COLUMNS.map((c) => [c.key, true]))
+	);
+	let hasSelectedCsvColumn = $derived(CSV_COLUMNS.some((c) => selectedCsvColumns[c.key]));
+
 	const isSafari =
 		typeof navigator !== 'undefined' &&
 		/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
@@ -559,6 +572,7 @@
 		isDownloading = false;
 		downloadStage = '';
 		readyFile = null;
+		selectedCsvColumns = Object.fromEntries(CSV_COLUMNS.map((c) => [c.key, true]));
 		showDownloadModal = true;
 	}
 
@@ -639,6 +653,7 @@
 	async function confirmDownload() {
 		fileNameError = validateFileName(downloadFileName);
 		if (fileNameError) return;
+		if (!hasSelectedCsvColumn) return;
 
 		isDownloading = true;
 		try {
@@ -646,24 +661,32 @@
 			const allMembers = await fetchAllMembersForExport();
 
 			downloadStage = 'Generating CSV…';
-			const rows = allMembers.map((user) => ({
-				Member: user.name,
-				Status: formatString(user.status, ['capitalize-first']),
-				// Mirrors the table pill: negative outstanding = credit (green, "+"),
-				// positive = debit (red, "-"), zero stays plain. Forced to text so
-				// spreadsheet apps don't silently drop the "+" on open.
-				Balance: csvForceText(
-					(Number(user.outstanding_amount) || 0) < 0
-						? `+${Math.abs(user.outstanding_amount)}`
-						: (Number(user.outstanding_amount) || 0) > 0
-							? `-${user.outstanding_amount}`
-							: '0'
-				),
-				Mobile: user.mobile || '-',
-				Gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-'
-			}));
+			const activeColumns = CSV_COLUMNS.filter((c) => selectedCsvColumns[c.key]);
+			const rows = allMembers.map((user) => {
+				const full: Record<string, string> = {
+					// Same "(MSY-42) Full Name" form the table shows — keeps the CSV
+					// and the UI in sync instead of exporting the bare name.
+					Member: formatMemberDisplay(user.name, user.member_id),
+					// Mirrors the table pill: negative outstanding = credit (green, "+"),
+					// positive = debit (red, "-"), zero stays plain. Forced to text so
+					// spreadsheet apps don't silently drop the "+" on open.
+					Balance: csvForceText(
+						(Number(user.outstanding_amount) || 0) < 0
+							? `+${Math.abs(user.outstanding_amount)}`
+							: (Number(user.outstanding_amount) || 0) > 0
+								? `-${user.outstanding_amount}`
+								: '0'
+					),
+					Mobile: user.mobile || '-',
+					Gender: user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : '-',
+					Status: getMemberStatusLabel(user.status)
+				};
+				const row: Record<string, string> = {};
+				for (const c of activeColumns) row[c.key] = full[c.key];
+				return row;
+			});
 
-			const titleKeys = rows.length ? Object.keys(rows[0]) : ['Member', 'Status', 'Balance', 'Mobile', 'Gender'];
+			const titleKeys = activeColumns.map((c) => c.label);
 			const csvLines = [titleKeys, ...rows.map((r) => Object.values(r))].map((row) =>
 				row.map(csvEscape).join(',')
 			);
@@ -1009,6 +1032,30 @@
 		/>
 		<p class="t-muted text-xs">.csv will be added automatically</p>
 
+		<div class="flex flex-col gap-1.5">
+			<span class="text-sm font-medium">Columns to include</span>
+			<div class="flex flex-wrap gap-x-4 gap-y-2">
+				{#each CSV_COLUMNS as col (col.key)}
+					<label class="flex items-center gap-1.5 text-sm">
+						<input
+							type="checkbox"
+							checked={selectedCsvColumns[col.key]}
+							onchange={(e) =>
+								(selectedCsvColumns = {
+									...selectedCsvColumns,
+									[col.key]: e.currentTarget.checked
+								})}
+							disabled={isDownloading}
+						/>
+						{col.label}
+					</label>
+				{/each}
+			</div>
+			{#if !hasSelectedCsvColumn}
+				<p class="text-xs text-red-600">Select at least one column</p>
+			{/if}
+		</div>
+
 		{#if isDownloading}
 			<div class="flex items-center gap-2 text-sm text-gray-600">
 				<div
@@ -1030,7 +1077,10 @@
 				<Button
 					variant="primary"
 					onclick={confirmDownload}
-					disabled={isDownloading || !downloadFileName.trim() || !!fileNameError}
+					disabled={isDownloading ||
+						!downloadFileName.trim() ||
+						!!fileNameError ||
+						!hasSelectedCsvColumn}
 				>
 					{isDownloading ? 'Downloading…' : 'Download'}
 				</Button>

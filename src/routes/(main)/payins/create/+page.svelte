@@ -252,6 +252,9 @@
 	function duplicateEntry(index: number) {
 		const copy = {
 			...entries[index],
+			memberId: '',
+			memberName: '',
+			memberSearchQuery: '',
 			showMemberDropdown: false,
 			menuOpen: false
 		};

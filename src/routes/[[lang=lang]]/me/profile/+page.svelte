@@ -101,9 +101,7 @@
 			mobile: '',
 			email: '',
 			date_of_birth: '',
-			gender: '',
-			reference_member_1: '',
-			reference_member_2: ''
+			gender: ''
 		};
 	}
 	let generalEditing = $state(false);
@@ -127,9 +125,7 @@
 			mobile: info.user.mobile || '',
 			email: info.user.email || '',
 			date_of_birth: formatToYYYYMMDD(info.user.date_of_birth),
-			gender: info.user.gender || '',
-			reference_member_1: info.user.reference_member_1 || '',
-			reference_member_2: info.user.reference_member_2 || ''
+			gender: info.user.gender || ''
 		};
 		generalInitial = { ...generalForm };
 		clearTimeout(generalStatusTimeout);
@@ -144,10 +140,12 @@
 		clearTimeout(generalStatusTimeout);
 		generalStatus = '';
 		try {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			const { first_name, middle_name, surname, ...restForm } = generalForm;
 			const res = await userApi.updateUser({
 				userId: info.user._id,
 				payload: {
-					...generalForm,
+					...restForm,
 					entry_date: info.user.entry_date
 				}
 			});
@@ -288,9 +286,11 @@
 	let nomineesFetchedFor = $state('');
 	let editingNomineeId = $state<string | null>(null);
 	let nomineeRelationForm = $state('');
+	let nomineeRelationInitial = $state('');
 	let nomineeSaving = $state(false);
 	let nomineeStatus = $state<'success' | 'error' | ''>('');
 	let nomineeStatusTimeout: ReturnType<typeof setTimeout> | undefined;
+	const nomineeDirty = $derived(nomineeRelationForm !== nomineeRelationInitial);
 
 	$effect(() => {
 		const id = selectedId;
@@ -339,6 +339,7 @@
 	function openNomineeEdit(nominee: Nominee.Data) {
 		editingNomineeId = nominee._id;
 		nomineeRelationForm = nominee.relation || '';
+		nomineeRelationInitial = nomineeRelationForm;
 		clearTimeout(nomineeStatusTimeout);
 		nomineeStatus = '';
 	}
@@ -429,17 +430,20 @@
 							label={t(lang, 'firstName')}
 							bind:value={generalForm.first_name}
 							required
+							disabled
 						/>
 						<Input
 							id="middle_name"
 							label={t(lang, 'middleName')}
 							bind:value={generalForm.middle_name}
+							disabled
 						/>
 						<Input
 							id="surname"
 							label={t(lang, 'surname')}
 							bind:value={generalForm.surname}
 							required
+							disabled
 						/>
 						<Input
 							id="mobile"
@@ -463,16 +467,6 @@
 							options={APP_CONSTANTS.GENDERS}
 							required
 						/>
-						<Input
-							id="ref1"
-							label={t(lang, 'referenceMember1')}
-							bind:value={generalForm.reference_member_1}
-						/>
-						<Input
-							id="ref2"
-							label={t(lang, 'referenceMember2')}
-							bind:value={generalForm.reference_member_2}
-						/>
 					</div>
 					<div class="flex justify-end gap-2 pt-1">
 						<Button
@@ -484,7 +478,7 @@
 						>
 							{t(lang, 'cancel')}
 						</Button>
-						<Button type="submit" size="sm" disabled={generalSaving}>
+						<Button type="submit" size="sm" disabled={generalSaving || !generalDirty}>
 							{generalSaving ? t(lang, 'saving') : t(lang, 'save')}
 						</Button>
 					</div>
@@ -525,18 +519,6 @@
 						<dt class="text-gray-500">{t(lang, 'gender')}</dt>
 						<dd class="font-medium text-gray-900 capitalize">{info.user.gender || '-'}</dd>
 					</div>
-					{#if info.user.reference_member_1}
-						<div class="flex justify-between gap-4">
-							<dt class="text-gray-500">{t(lang, 'referenceMember1')}</dt>
-							<dd class="font-medium text-gray-900">{info.user.reference_member_1}</dd>
-						</div>
-					{/if}
-					{#if info.user.reference_member_2}
-						<div class="flex justify-between gap-4">
-							<dt class="text-gray-500">{t(lang, 'referenceMember2')}</dt>
-							<dd class="font-medium text-gray-900">{info.user.reference_member_2}</dd>
-						</div>
-					{/if}
 				</dl>
 			{/if}
 		</section>
@@ -604,7 +586,7 @@
 						>
 							{t(lang, 'cancel')}
 						</Button>
-						<Button type="submit" size="sm" disabled={profileSaving}>
+						<Button type="submit" size="sm" disabled={profileSaving || !profileDirty}>
 							{profileSaving ? t(lang, 'saving') : t(lang, 'save')}
 						</Button>
 					</div>
@@ -711,7 +693,7 @@
 						>
 							{t(lang, 'cancel')}
 						</Button>
-						<Button type="submit" size="sm" disabled={addressSaving}>
+						<Button type="submit" size="sm" disabled={addressSaving || !addressDirty}>
 							{addressSaving ? t(lang, 'saving') : t(lang, 'save')}
 						</Button>
 					</div>
@@ -804,7 +786,11 @@
 										>
 											{t(lang, 'cancel')}
 										</Button>
-										<Button type="submit" size="sm" disabled={nomineeSaving}>
+										<Button
+											type="submit"
+											size="sm"
+											disabled={nomineeSaving || !nomineeDirty}
+										>
 											{nomineeSaving ? t(lang, 'saving') : t(lang, 'save')}
 										</Button>
 									</div>

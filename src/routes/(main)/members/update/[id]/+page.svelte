@@ -42,7 +42,6 @@
 	const genders = APP_CONSTANTS.GENDERS;
 	const gotras = APP_CONSTANTS.GOTRAS;
 	const maritalStatus = APP_CONSTANTS.MARITAL_STATUS;
-	const memberStatus = APP_CONSTANTS.MEMBER_STATUS;
 	const nomineeRelations = APP_CONSTANTS.NOMINEE_RELATIONS;
 
 	let formData = $state<Form.UserUpdate>({
@@ -64,7 +63,6 @@
 		pincode: '',
 		state: '',
 		country: '',
-		status: '',
 		refNum1: '',
 		refNum2: ''
 	});
@@ -88,7 +86,6 @@
 		pincode: '',
 		state: '',
 		country: '',
-		status: '',
 		refNum1: '',
 		refNum2: ''
 	});
@@ -192,7 +189,6 @@
 				formData.email = formatString(userInfo.user.email, ['trim']);
 				formData.gender = formatString(userInfo.user.gender, ['trim']);
 				formData.dob = formatString(userInfo.user.date_of_birth?.split('T')[0], ['trim']);
-				formData.status = formatString(userInfo?.user?.status, ['trim']);
 				formData.refNum1 = formatString(userInfo?.user.reference_member_1, ['trim']);
 				formData.refNum2 = formatString(userInfo?.user.reference_member_2, ['trim']);
 			}
@@ -369,14 +365,12 @@
 						first_name: formData.firstName,
 						middle_name: formData.middleName,
 						surname: formData.lastName,
-						status: formData.status,
 						date_of_birth: formatToYYYYMMDD(formData.dob),
 						gender: formData.gender,
 						mobile: formData.mobileNumber,
 						email: formData.email,
 						reference_member_1: formData.refNum1,
 						reference_member_2: formData.refNum2,
-						status_details: userInfo.user.status_details,
 						entry_date: formatToYYYYMMDD(userInfo.user.entry_date)
 					}
 				});
@@ -390,7 +384,6 @@
 					formData.email = response.user.email || '';
 					formData.gender = response.user.gender || '';
 					formData.dob = response.user.date_of_birth?.split('T')[0] || '';
-					formData.status = response.user.status || '';
 					formData.refNum1 = response.user.reference_member_1 || '';
 					formData.refNum2 = response.user.reference_member_2 || '';
 
@@ -461,8 +454,17 @@
 			console.error(`Error updating ${section}:`, error);
 
 			// Set user-friendly error message
+			const backendError = error?.response?.data?.error;
+			const backendErrorMessage =
+				typeof backendError === 'string'
+					? backendError
+					: backendError && typeof backendError === 'object'
+						? Object.values(backendError)[0]
+						: undefined;
+
 			sectionErrors[section] =
 				error?.response?.data?.message ||
+				backendErrorMessage ||
 				error?.message ||
 				`Failed to update ${section}. Please try again.`;
 		} finally {
@@ -578,15 +580,6 @@
 							placeholder="Reference Number 2"
 							required
 						/>
-
-						<!-- <Select
-						id="status"
-						label="Status"
-						bind:value={formData.status}
-						options={memberStatus}
-						error={errors.status}
-						onchange={() => validateField('status')}
-					/> -->
 					</div>
 
 					{#if sectionErrors.general}
