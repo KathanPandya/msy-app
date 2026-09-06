@@ -491,19 +491,14 @@
 	function getRowMenuActions(row: any) {
 		return [
 			{ label: 'View', onclick: () => goto(`/members/view/${row._id}`) },
-			{ label: 'Edit', onclick: () => goto(`/members/update/${row._id}`) },
-			{ label: 'Payments', onclick: () => goto(`/members/view/${row._id}/payments`) },
+			{ label: 'Payments', onclick: () => goto(`/members/view/${row._id}?tab=payments`) },
 			{
 				label: 'Family',
-				disabled: !row.clubId,
-				onclick: () => goto(`/families/${row.clubId}`)
+				onclick: () => goto(`/members/view/${row._id}?tab=family`)
 			},
 			{
-				label: 'Update Status',
-				onclick: () =>
-					goto(`/members/status/${row._id}`, {
-						state: { returnTo: page.url.pathname + page.url.search }
-					})
+				label: 'Status',
+				onclick: () => goto(`/members/view/${row._id}?tab=status`)
 			}
 		];
 	}
