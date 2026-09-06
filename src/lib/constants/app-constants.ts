@@ -103,6 +103,21 @@ export const APP_CONSTANTS = {
 		'=': 'eq'
 	},
 
+	NOMINEE_RELATIONS: [
+		{ key: '', label: 'Select relation' },
+		{ key: 'father', label: 'Father' },
+		{ key: 'mother', label: 'Mother' },
+		{ key: 'son', label: 'Son' },
+		{ key: 'daughter', label: 'Daughter' },
+		{ key: 'wife', label: 'Wife' },
+		{ key: 'husband', label: 'Husband' },
+		{ key: 'brother', label: 'Brother' },
+		{ key: 'sister', label: 'Sister' },
+		{ key: 'mother-in-law', label: 'Mother-in-law' },
+		{ key: 'sister-in-law', label: 'Sister-in-law' },
+		{ key: 'nephew', label: 'Nephew' }
+	],
+
 	PAGINATION_OPTIONS: [
 		{
 			key: '10',

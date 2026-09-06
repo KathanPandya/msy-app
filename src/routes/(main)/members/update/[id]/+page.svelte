@@ -4,15 +4,19 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import { Trash2 } from '@lucide/svelte';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import addressApi from '$lib/endpoints/addressApi';
 	import coreApi from '$lib/endpoints/coreApi';
 	import profileApi from '$lib/endpoints/profileApi';
 	import userApi from '$lib/endpoints/userApi';
+	import nomineeApi from '$lib/endpoints/nomineeApi';
 	import { updateUserSchema } from '$lib/schema/update-user';
 	import type { Address } from '$lib/types/address';
 	import type { Form } from '$lib/types/form';
 	import type { User } from '$lib/types/user';
+	import type { Nominee } from '$lib/types/nominee';
 	import { formatToYYYYMMDD, getUserAddress } from '$lib/utilities/helperFunc';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { onMount } from 'svelte';
@@ -23,10 +27,23 @@
 	let userInfo = $state<User.AllInfo | null>(null);
 	let userAddress = $state<Address.Data | null>(null);
 	let isLoading = $state<boolean>(true);
+
+	let nominees = $state<Nominee.Data[]>([]);
+	let newNomineeName = $state('');
+	let newNomineeRelation = $state('');
+	let nomineeCreating = $state(false);
+	let editingNomineeId = $state<string | null>(null);
+	let editNomineeRelation = $state('');
+	let nomineeSavingId = $state<string | null>(null);
+	let nomineeDeletingId = $state<string | null>(null);
+	let nomineeToDelete = $state<Nominee.Data | null>(null);
+	let nomineeSectionError = $state('');
+	let nomineeSectionSuccess = $state('');
 	const genders = APP_CONSTANTS.GENDERS;
 	const gotras = APP_CONSTANTS.GOTRAS;
 	const maritalStatus = APP_CONSTANTS.MARITAL_STATUS;
 	const memberStatus = APP_CONSTANTS.MEMBER_STATUS;
+	const nomineeRelations = APP_CONSTANTS.NOMINEE_RELATIONS;
 
 	let formData = $state<Form.UserUpdate>({
 		firstName: '',
@@ -204,9 +221,99 @@
 			originalOther = snapshot(OTHER_FIELDS);
 			originalAddress = snapshot(ADDRESS_FIELDS);
 
+			const nomineeRes = await nomineeApi.fetchNominees({ userId });
+			nominees = nomineeRes.data;
+
 			isLoading = false;
 		}
 	});
+
+	/***************
+    Nominees (admin: view, edit relation, delete — create is disabled for now)
+  ****************/
+	// Create disabled for now — keep implementation ready for when it's re-enabled.
+	// async function createNominee() {
+	// 	if (!userInfo?.user?._id) return;
+	// 	nomineeSectionError = '';
+	// 	nomineeSectionSuccess = '';
+	// 	nomineeCreating = true;
+	// 	try {
+	// 		const res = await nomineeApi.createNominee({
+	// 			payload: {
+	// 				full_name: newNomineeName,
+	// 				relation: newNomineeRelation as Nominee.Create['relation']
+	// 			}
+	// 		});
+	// 		nominees = [...nominees, res.address];
+	// 		newNomineeName = '';
+	// 		newNomineeRelation = '';
+	// 		nomineeSectionSuccess = res.message || 'Nominee has been created';
+	// 	} catch (error: any) {
+	// 		nomineeSectionError =
+	// 			error?.response?.data?.error?.full_name ||
+	// 			error?.response?.data?.error?.relation ||
+	// 			error?.response?.data?.message ||
+	// 			'Failed to create nominee. Please try again.';
+	// 	} finally {
+	// 		nomineeCreating = false;
+	// 	}
+	// }
+
+	function openNomineeEdit(nominee: Nominee.Data) {
+		editingNomineeId = nominee._id;
+		editNomineeRelation = nominee.relation || '';
+		nomineeSectionError = '';
+		nomineeSectionSuccess = '';
+	}
+
+	async function saveNomineeRelation(nomineeId: string) {
+		nomineeSectionError = '';
+		nomineeSectionSuccess = '';
+		nomineeSavingId = nomineeId;
+		try {
+			const res = await nomineeApi.updateNomineeRelation({
+				nomineeId,
+				payload: { relation: editNomineeRelation as Nominee.Update['relation'] }
+			});
+			nominees = nominees.map((n) => (n._id === nomineeId ? { ...n, ...res.nominee } : n));
+			editingNomineeId = null;
+			nomineeSectionSuccess = res.message || 'Nominee has been updated';
+		} catch (error: any) {
+			nomineeSectionError =
+				error?.response?.data?.error?.relation ||
+				error?.response?.data?.message ||
+				'Failed to update nominee. Please try again.';
+		} finally {
+			nomineeSavingId = null;
+		}
+	}
+
+	function openDeleteNominee(nominee: Nominee.Data) {
+		nomineeToDelete = nominee;
+	}
+
+	function closeDeleteNominee() {
+		nomineeToDelete = null;
+	}
+
+	async function confirmDeleteNominee() {
+		if (!nomineeToDelete) return;
+		const nomineeId = nomineeToDelete._id;
+		nomineeSectionError = '';
+		nomineeSectionSuccess = '';
+		nomineeDeletingId = nomineeId;
+		try {
+			const res = await nomineeApi.deleteNominee({ nomineeId });
+			nominees = nominees.filter((n) => n._id !== nomineeId);
+			nomineeSectionSuccess = res.message || 'Nominee has been deleted';
+			nomineeToDelete = null;
+		} catch (error: any) {
+			nomineeSectionError =
+				error?.response?.data?.message || 'Failed to delete nominee. Please try again.';
+		} finally {
+			nomineeDeletingId = null;
+		}
+	}
 
 	/***************
     Helper functions
@@ -794,6 +901,127 @@
 						</Button>
 					</div>
 				</Card>
+
+				<!-- Nominees -->
+				<Card title="Nominees">
+					{#if nominees.length === 0}
+						<p class="text-sm text-gray-500">No nominees on file.</p>
+					{:else}
+						<div class="space-y-3">
+							{#each nominees as nominee (nominee._id)}
+								<div class="rounded-md border border-gray-200 p-3">
+									{#if editingNomineeId === nominee._id}
+										<div class="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-end">
+											<div>
+												<p class="mb-1 text-sm font-medium text-gray-700">Name</p>
+												<p class="text-sm text-gray-900">{nominee.full_name}</p>
+											</div>
+											<Select
+												id={`edit-relation-${nominee._id}`}
+												label="Relation"
+												bind:value={editNomineeRelation}
+												options={nomineeRelations}
+												required
+											/>
+										</div>
+										<div class="mt-3 flex justify-end gap-2">
+											<Button
+												variant="secondary"
+												size="sm"
+												onclick={() => (editingNomineeId = null)}
+												disabled={nomineeSavingId === nominee._id}
+											>
+												Cancel
+											</Button>
+											<Button
+												variant="primary"
+												size="sm"
+												onclick={() => saveNomineeRelation(nominee._id)}
+												disabled={nomineeSavingId === nominee._id || !editNomineeRelation}
+											>
+												{nomineeSavingId === nominee._id ? 'Saving...' : 'Save'}
+											</Button>
+										</div>
+									{:else}
+										<div class="flex items-center justify-between gap-3">
+											<div>
+												<p class="text-sm font-medium text-gray-900">{nominee.full_name}</p>
+												<p class="text-sm capitalize text-gray-500">
+													{nominee.relation
+														? nomineeRelations.find((r) => r.key === nominee.relation)?.label ||
+															nominee.relation
+														: 'Relation not set'}
+												</p>
+											</div>
+											<div class="flex flex-shrink-0 items-center gap-3">
+												<Button variant="secondary" size="sm" onclick={() => openNomineeEdit(nominee)}>
+													Edit
+												</Button>
+												<button
+													type="button"
+													onclick={() => openDeleteNominee(nominee)}
+													disabled={nomineeDeletingId === nominee._id}
+													class="ml-2 rounded-md border-l border-gray-200 py-1 pl-3 text-gray-400 hover:text-red-600 disabled:opacity-50"
+													aria-label="Delete nominee"
+												>
+													<Trash2 class="h-4 w-4" />
+												</button>
+											</div>
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+
+					<!-- Add nominee — disabled for now, admin-side create is not offered yet.
+					{#if nominees.length < 2}
+						<div
+							class="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 md:grid-cols-2 md:items-end"
+						>
+							<Input
+								id="newNomineeName"
+								label="Nominee name"
+								bind:value={newNomineeName}
+								placeholder="Full name"
+								required
+							/>
+							<Select
+								id="newNomineeRelation"
+								label="Relation"
+								bind:value={newNomineeRelation}
+								options={nomineeRelations}
+								required
+							/>
+						</div>
+						<div class="mt-3 flex justify-end">
+							<Button
+								variant="primary"
+								size="sm"
+								onclick={createNominee}
+								disabled={nomineeCreating || !newNomineeName.trim() || !newNomineeRelation}
+							>
+								{nomineeCreating ? 'Adding...' : 'Add Nominee'}
+							</Button>
+						</div>
+					{:else}
+						<p class="mt-4 border-t border-gray-100 pt-4 text-xs text-gray-500">
+							Maximum of 2 nominees reached.
+						</p>
+					{/if}
+					-->
+
+					{#if nomineeSectionError}
+						<div class="mt-4 rounded-md bg-red-50 p-4">
+							<p class="text-sm text-red-800">{nomineeSectionError}</p>
+						</div>
+					{/if}
+					{#if nomineeSectionSuccess}
+						<div class="mt-4 rounded-md bg-green-50 p-4">
+							<p class="text-sm text-green-800">{nomineeSectionSuccess}</p>
+						</div>
+					{/if}
+				</Card>
 		</div>
 	</div>
 {:else}
@@ -806,3 +1034,31 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Delete nominee confirmation -->
+<Modal open={!!nomineeToDelete} onClose={closeDeleteNominee} title="Delete Nominee">
+	{#if nomineeToDelete}
+		<p class="text-sm text-gray-700">
+			Are you sure you want to delete <strong>{nomineeToDelete.full_name}</strong> as a nominee?
+			This cannot be undone.
+		</p>
+		<div class="mt-4 flex justify-end gap-2">
+			<Button
+				variant="secondary"
+				size="sm"
+				onclick={closeDeleteNominee}
+				disabled={nomineeDeletingId === nomineeToDelete._id}
+			>
+				Cancel
+			</Button>
+			<Button
+				variant="danger"
+				size="sm"
+				onclick={confirmDeleteNominee}
+				disabled={nomineeDeletingId === nomineeToDelete._id}
+			>
+				{nomineeDeletingId === nomineeToDelete._id ? 'Deleting...' : 'Delete'}
+			</Button>
+		</div>
+	{/if}
+</Modal>

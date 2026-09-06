@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { t, withLang } from '$lib/i18n';
+	import type { DictKey } from '$lib/i18n/translations';
 	import { authStore } from '$lib/stores/authStore';
 	import { getMemberShellContext } from '$lib/context/memberShell';
 	import { getCachedUserInfo, setCachedUserInfo } from '$lib/utilities/meCache';
@@ -11,11 +12,13 @@
 	import userApi from '$lib/endpoints/userApi';
 	import profileApi from '$lib/endpoints/profileApi';
 	import addressApi from '$lib/endpoints/addressApi';
+	import nomineeApi from '$lib/endpoints/nomineeApi';
 	import MemberAvatarSwitcher from '$lib/components/other/MemberAvatarSwitcher.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { User } from '$lib/types/user';
+	import type { Nominee } from '$lib/types/nominee';
 	import { Pencil } from '@lucide/svelte';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
@@ -277,6 +280,87 @@
 		} finally {
 			addressSaving = false;
 			addressStatusTimeout = setTimeout(() => (addressStatus = ''), STATUS_CLEAR_DELAY);
+		}
+	}
+
+	// --- Nominees (view + edit relation only; members can never create or delete) ---
+	let nominees = $state<Nominee.Data[]>([]);
+	let nomineesFetchedFor = $state('');
+	let editingNomineeId = $state<string | null>(null);
+	let nomineeRelationForm = $state('');
+	let nomineeSaving = $state(false);
+	let nomineeStatus = $state<'success' | 'error' | ''>('');
+	let nomineeStatusTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	$effect(() => {
+		const id = selectedId;
+		if (!id || nomineesFetchedFor === id) return;
+		nomineesFetchedFor = id;
+		editingNomineeId = null;
+		clearTimeout(nomineeStatusTimeout);
+		nomineeStatus = '';
+		nomineeApi
+			.fetchNominees({ userId: id })
+			.then((res) => {
+				nominees = res.data;
+			})
+			.catch(() => {
+				nominees = [];
+			});
+	});
+
+	const RELATION_LABEL_KEYS: Record<string, DictKey> = {
+		father: 'relationFather',
+		mother: 'relationMother',
+		son: 'relationSon',
+		daughter: 'relationDaughter',
+		wife: 'relationWife',
+		husband: 'relationHusband',
+		brother: 'relationBrother',
+		sister: 'relationSister',
+		'mother-in-law': 'relationMotherInLaw',
+		'sister-in-law': 'relationSisterInLaw',
+		nephew: 'relationNephew'
+	};
+
+	const nomineeRelationOptions = $derived(
+		APP_CONSTANTS.NOMINEE_RELATIONS.map((option) => ({
+			key: option.key,
+			label: option.key === '' ? t(lang, 'selectRelation') : t(lang, RELATION_LABEL_KEYS[option.key])
+		}))
+	);
+
+	function relationLabel(relation: string | null) {
+		if (!relation) return t(lang, 'relationNotSet');
+		const key = RELATION_LABEL_KEYS[relation];
+		return key ? t(lang, key) : relation;
+	}
+
+	function openNomineeEdit(nominee: Nominee.Data) {
+		editingNomineeId = nominee._id;
+		nomineeRelationForm = nominee.relation || '';
+		clearTimeout(nomineeStatusTimeout);
+		nomineeStatus = '';
+	}
+
+	async function submitNomineeRelation(event: SubmitEvent, nomineeId: string) {
+		event.preventDefault();
+		nomineeSaving = true;
+		clearTimeout(nomineeStatusTimeout);
+		nomineeStatus = '';
+		try {
+			const res = await nomineeApi.updateNomineeRelation({
+				nomineeId,
+				payload: { relation: nomineeRelationForm as Nominee.Data['relation'] & string }
+			});
+			nominees = nominees.map((n) => (n._id === nomineeId ? { ...n, ...res.nominee } : n));
+			nomineeStatus = 'success';
+			editingNomineeId = null;
+		} catch {
+			nomineeStatus = 'error';
+		} finally {
+			nomineeSaving = false;
+			nomineeStatusTimeout = setTimeout(() => (nomineeStatus = ''), STATUS_CLEAR_DELAY);
 		}
 	}
 
@@ -669,6 +753,85 @@
 						<dd class="font-medium text-gray-900">{address.country || '-'}</dd>
 					</div>
 				</dl>
+			{/if}
+		</section>
+
+		<!-- Nominees (view + edit relation only — no add/delete for members) -->
+		<section class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+			<div class="mb-2 flex items-center justify-between gap-2">
+				<div class="flex min-w-0 items-center gap-2">
+					<h2 class="text-sm font-semibold text-gray-900">{t(lang, 'nominees')}</h2>
+					{#if nomineeStatus}
+						<span
+							class="truncate text-xs {nomineeStatus === 'success'
+								? 'text-green-700'
+								: 'text-red-600'}"
+						>
+							{t(lang, nomineeStatus === 'success' ? 'updateSuccess' : 'updateFailed')}
+						</span>
+					{/if}
+				</div>
+			</div>
+
+			{#if nominees.length === 0}
+				<p class="text-xs text-gray-500">{t(lang, 'noNominees')}</p>
+			{:else}
+				<ul class="space-y-2">
+					{#each nominees as nominee (nominee._id)}
+						<li class="rounded-md border border-gray-100 p-2">
+							{#if editingNomineeId === nominee._id}
+								<form
+									onsubmit={(e) => submitNomineeRelation(e, nominee._id)}
+									class="space-y-2"
+								>
+									<div class="text-xs font-medium text-gray-900">{nominee.full_name}</div>
+									<div class="grid grid-cols-2 gap-2.5">
+										<Select
+											id={`relation-${nominee._id}`}
+											label={t(lang, 'relation')}
+											bind:value={nomineeRelationForm}
+											options={nomineeRelationOptions}
+											required
+										/>
+									</div>
+									<div class="flex justify-end gap-2 pt-1">
+										<Button
+											type="button"
+											size="sm"
+											variant="secondary"
+											onclick={() => (editingNomineeId = null)}
+											disabled={nomineeSaving}
+										>
+											{t(lang, 'cancel')}
+										</Button>
+										<Button type="submit" size="sm" disabled={nomineeSaving}>
+											{nomineeSaving ? t(lang, 'saving') : t(lang, 'save')}
+										</Button>
+									</div>
+								</form>
+							{:else}
+								<div class="flex items-center justify-between gap-2">
+									<div class="min-w-0">
+										<div class="truncate text-xs font-medium text-gray-900">
+											{nominee.full_name}
+										</div>
+										<div class="text-xs text-gray-500">{relationLabel(nominee.relation)}</div>
+									</div>
+									{#if canEdit}
+										<button
+											type="button"
+											onclick={() => openNomineeEdit(nominee)}
+											class="flex flex-shrink-0 items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+										>
+											<Pencil class="h-3 w-3" />
+											{nominee.relation ? t(lang, 'edit') : t(lang, 'setRelation')}
+										</button>
+									{/if}
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ul>
 			{/if}
 		</section>
 	{/if}
