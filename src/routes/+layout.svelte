@@ -4,10 +4,25 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/authStore';
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { withLang } from '$lib/i18n';
 	import LoadingBar from '$lib/components/ui/LoadingBar.svelte';
 	let { children } = $props();
+
+	// The scrollable <main> below is part of this layout and never remounts
+	// between pages — only its content changes — so without this, navigating
+	// to a shorter page keeps the previous page's scroll position and can
+	// land you partway down (or at the bottom) instead of the top.
+	let mainEl: HTMLElement;
+	afterNavigate(() => {
+		const hash = window.location.hash;
+		const target = hash && document.getElementById(hash.slice(1));
+		if (target) {
+			target.scrollIntoView({ block: 'start' });
+			return;
+		}
+		mainEl?.scrollTo(0, 0);
+	});
 
 	onMount(() => {
 		// Initialize auth on app start
@@ -17,12 +32,16 @@
 	// Redirect to login if not authenticated (except for public routes)
 	$effect(() => {
 		const publicRoutes = [
+			'/',
 			'/login',
 			'/forgot-password',
 			'/reset-password',
 			'/admin',
 			'/unauthorized',
-			'/other-schemes'
+			'/other-schemes',
+			'/qna',
+			'/about',
+			'/terms'
 		];
 		const lang = page.params.lang as 'guj' | undefined;
 		const currentPath = page.url.pathname;
@@ -58,10 +77,12 @@
 			? currentPath.replace(new RegExp(`^/${lang}`), '') || '/'
 			: currentPath;
 
-		return pathWithoutLang === '/login' || pathWithoutLang.startsWith('/login/') ||
-			pathWithoutLang === '/me' || pathWithoutLang.startsWith('/me/')
-			? 'MSY'
-			: 'MSY Admin';
+		const publicShellRoutes = ['/', '/login', '/me', '/about', '/qna', '/terms', '/other-schemes'];
+		const isPublicShellRoute = publicShellRoutes.some(
+			(route) => pathWithoutLang === route || pathWithoutLang.startsWith(`${route}/`)
+		);
+
+		return isPublicShellRoute ? 'MSY' : 'MSY Admin';
 	});
 </script>
 
@@ -83,7 +104,7 @@
 	</div>
 {:else} -->
 	<div class="bg-whit flex h-dvh flex-col overflow-hidden">
-		<main class="min-h-0 flex-1 overflow-y-auto">
+		<main bind:this={mainEl} class="min-h-0 flex-1 overflow-y-auto">
 			{@render children?.()}
 		</main>
 	</div>
