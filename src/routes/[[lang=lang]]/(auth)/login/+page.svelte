@@ -215,7 +215,7 @@
 		lang === 'guj' ? page.url.pathname.replace(/^\/guj/, '') || '/' : `/guj${page.url.pathname}`
 	);
 	const langSwitchLabel = $derived(
-		lang === 'guj' ? 'Use this website in English' : 'આ વેબસાઇટ ગુજરાતીમાં વાપરો'
+		lang === 'guj' ? 'Use website in English' : 'વેબસાઇટ ગુજરાતીમાં વાપરો'
 	);
 </script>
 
@@ -224,21 +224,29 @@
 >
 	<a
 		href={langSwitchHref}
+		data-sveltekit-replacestate
 		class="absolute top-3 right-3 text-xs font-medium text-blue-600 hover:underline"
 	>
 		{langSwitchLabel}
 	</a>
-	<div class="w-full max-w-md self-end pb-6 text-center" style="transform: translateY(-17px);">
-		<p class="mb-2 text-2xl font-bold text-blue-600">Welcome,</p>
-		<p class="text-xs font-normal text-gray-800">
-			શ્રી અખિલ હિંદ ભટ્ટ મેવાડા બ્રહ્મ સમાજ ફેડરેશન સંચાલિત
-			<br />
-			<strong class="font-bold">
-				શ્રીમતી નિરંજનાબેન ભરતકુમાર ભટ્ટ સમસ્ત ભટ્ટ મેવાડા પરિવાર કલ્યાણ (મૃત્યુ સહાય) યોજના
-			</strong>
-			માં આપનું સ્વાગત છે 🙏
-		</p>
-	</div>
+	<!--
+		This empty div stays in the DOM (unlike a fully commented-out node) so the
+		1fr/auto/1fr grid still has its three rows and the login card below stays
+		vertically centered. Only the Welcome content itself is commented out.
+
+		<div class="w-full max-w-md self-end pb-6 text-center" style="transform: translateY(-17px);">
+			<p class="mb-2 text-2xl font-bold text-blue-600">Welcome,</p>
+			<p class="text-xs font-normal text-gray-800">
+				શ્રી અખિલ હિંદ ભટ્ટ મેવાડા બ્રહ્મ સમાજ ફેડરેશન સંચાલિત
+				<br />
+				<strong class="font-bold">
+					શ્રીમતી નિરંજનાબેન ભરતકુમાર ભટ્ટ સમસ્ત ભટ્ટ મેવાડા પરિવાર કલ્યાણ (મૃત્યુ સહાય) યોજના
+				</strong>
+				માં આપનું સ્વાગત છે 🙏
+			</p>
+		</div>
+	-->
+	<div class="w-full max-w-md self-end pb-6" style="transform: translateY(-17px);"></div>
 	<div class="w-full max-w-md rounded-xl bg-white p-6 shadow-sm sm:p-8">
 		<div class="mb-6 text-center">
 			<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'memberLogin')}</h1>

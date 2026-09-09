@@ -82,7 +82,7 @@
 <div class="overflow-y-auto bg-gray-50 px-4 py-4">
 	<div class="mx-auto max-w-2xl">
 		<div class="space-y-4">
-			<section class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
+			<section id="anaj-sahay" class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
 				<p class="text-sm font-semibold text-gray-500">અન્નપૂર્ણા યોજના</p>
 				<h2 class="mt-1 text-lg font-bold text-gray-900">
 					શ્રીમતી ઉષાનંદી વિનોદચંન્દ્ર જોષી અન્નપૂર્ણા (અનાજ સહાય) યોજના
@@ -97,7 +97,7 @@
 				{@render bankDetails()}
 			</section>
 
-			<section class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
+			<section id="shikshan-sahay" class="rounded-xl bg-white p-4 shadow-sm sm:p-6">
 				<p class="text-sm font-semibold text-gray-500">શિક્ષણ સહાય યોજના</p>
 				<h2 class="mt-1 text-lg font-bold text-gray-900">
 					શ્રીમતી સાવિત્રીબેન વિભાકરભાઈ ચતુર્ભુજ ભટ્ટ શિક્ષણ સહાય યોજના

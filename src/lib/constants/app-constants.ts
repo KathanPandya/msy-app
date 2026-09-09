@@ -103,6 +103,21 @@ export const APP_CONSTANTS = {
 		'=': 'eq'
 	},
 
+	NOMINEE_RELATIONS: [
+		{ key: '', label: 'Select relation' },
+		{ key: 'father', label: 'Father' },
+		{ key: 'mother', label: 'Mother' },
+		{ key: 'son', label: 'Son' },
+		{ key: 'daughter', label: 'Daughter' },
+		{ key: 'wife', label: 'Wife' },
+		{ key: 'husband', label: 'Husband' },
+		{ key: 'brother', label: 'Brother' },
+		{ key: 'sister', label: 'Sister' },
+		{ key: 'mother-in-law', label: 'Mother-in-law' },
+		{ key: 'sister-in-law', label: 'Sister-in-law' },
+		{ key: 'nephew', label: 'Nephew' }
+	],
+
 	PAGINATION_OPTIONS: [
 		{
 			key: '10',
@@ -126,6 +141,13 @@ export const APP_CONSTANTS = {
 		}
 	]
 };
+
+// Single source of truth for how a member status key is displayed.
+// Change the label here (e.g. 'dead' -> 'Deceased') and it updates everywhere.
+export function getMemberStatusLabel(status: string | null | undefined): string {
+	if (!status) return '-';
+	return APP_CONSTANTS.MEMBER_STATUS.find((o) => o.key === status)?.label ?? status;
+}
 
 // The largest page-size the pagination selector offers. Any single
 // `getAllUsers` request should be capped at this — never ask the API for

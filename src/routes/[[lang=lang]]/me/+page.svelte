@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { t, withLang } from '$lib/i18n';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
@@ -52,6 +53,9 @@
 	// happens on the dedicated per-app page after picking a UPI app.
 	const payAmount = $derived(Math.max(0, Math.round(familyTotalDue)));
 
+	// Toggle between the custom Pay flow and the Razorpay Donate Now button.
+	const showCustomPayButton = true;
+
 	let showAppPicker = $state(false);
 
 	function handlePayClick() {
@@ -63,6 +67,23 @@
 		showAppPicker = false;
 		goto(withLang(lang, `/me/pay/${appKey}?amount=${payAmount}`));
 	}
+
+	// "Donate Now" — always visible regardless of due/credit/settled status,
+	// unlike the (currently disabled) Pay button below which only shows when
+	// familyTotalDue > 0. Razorpay's embed script only runs when injected as a
+	// real DOM node, so it's added via onMount rather than pasted into markup.
+	let donateButtonContainer: HTMLDivElement | undefined;
+
+	onMount(() => {
+		if (showCustomPayButton || !donateButtonContainer) return;
+		const form = document.createElement('form');
+		const script = document.createElement('script');
+		script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+		script.setAttribute('data-payment_button_id', 'pl_TZdNWk9rUBB2wo');
+		script.async = true;
+		form.appendChild(script);
+		donateButtonContainer.appendChild(form);
+	});
 
 	// Payment screenshot upload — lets a member attach proof right after paying
 	// so admins can reconcile faster. Picking a file only stages it locally;
@@ -155,7 +176,8 @@
 				<p class={`mt-0.5 text-2xl font-bold ${due.color}`}>{due.value}</p>
 			</div>
 
-			{#if familyTotalDue > 0}
+			{#if showCustomPayButton}
+				<!-- Pay button — custom UPI app picker flow, always visible regardless of due/credit/settled status. -->
 				<button
 					type="button"
 					onclick={handlePayClick}
@@ -163,10 +185,13 @@
 				>
 					{t(lang, 'pay')}
 				</button>
+			{:else}
+				<!-- Donate Now — Razorpay payment button, shown to every member regardless of due/credit/settled status. -->
+				<div class="flex flex-shrink-0" bind:this={donateButtonContainer}></div>
 			{/if}
 		</div>
 
-		{#if familyTotalDue > 0 && showAppPicker}
+		{#if showCustomPayButton && showAppPicker}
 			<UpiAppPicker {lang} onselect={selectApp} onclose={() => (showAppPicker = false)} />
 		{/if}
 
