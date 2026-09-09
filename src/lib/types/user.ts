@@ -50,15 +50,15 @@ export namespace User {
 	};
 
 	export type Update = {
-		first_name: string;
-		middle_name: string;
-		surname: string;
+		first_name?: string;
+		middle_name?: string;
+		surname?: string;
 		date_of_birth: string;
 		gender: string;
 		mobile: string;
 		email: string;
-		reference_member_1: string;
-		reference_member_2: string;
+		reference_member_1?: string;
+		reference_member_2?: string;
 		entry_date: string;
 	};
 

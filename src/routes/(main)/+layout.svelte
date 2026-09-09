@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { authStore } from '$lib/stores/authStore';
+	import { pageTitleOverride } from '$lib/stores/pageTitleStore';
 	import { requireAdmin, requireAuth } from '$lib/utilities/authGuard';
 	import dashboardApi from '$lib/endpoints/dashboardApi';
 	import {
@@ -77,6 +78,8 @@
 	];
 
 	const pageTitle = $derived.by(() => {
+		if ($pageTitleOverride) return $pageTitleOverride;
+
 		// First try exact match
 		const exactMatch = navItems.find((item) => item.href === page.url.pathname);
 		if (exactMatch) return exactMatch.label;
@@ -206,22 +209,22 @@
 			>
 				<!-- Left: Page Title or Breadcrumb -->
 
-				<div class="flex items-center space-x-2">
+				<div class="flex min-w-0 flex-1 items-center space-x-2">
 					<button
 						type="button"
 						onclick={toggleSidebar}
-						class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none md:hidden"
+						class="flex-shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none md:hidden"
 						aria-label="Open sidebar"
 					>
 						<ChevronRight size={18} />
 					</button>
-					<h1 class="text-base font-semibold text-gray-900">
+					<h1 class="truncate text-base font-semibold text-gray-900">
 						{pageTitle}
 					</h1>
 				</div>
 
 				<!-- Right: User Actions -->
-				<div class="flex items-center space-x-2">
+				<div class="flex flex-shrink-0 items-center space-x-2">
 					<!-- Download Backup -->
 					<button
 						type="button"

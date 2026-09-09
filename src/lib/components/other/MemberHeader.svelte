@@ -14,7 +14,7 @@
 		lang === 'guj' ? page.url.pathname.replace(/^\/guj/, '') || '/' : `/guj${page.url.pathname}`
 	);
 	const langSwitchLabel = $derived(
-		lang === 'guj' ? 'Use this website in English' : 'આ વેબસાઇટ ગુજરાતીમાં વાપરો'
+		lang === 'guj' ? 'Use website in English' : 'વેબસાઇટ ગુજરાતીમાં વાપરો'
 	);
 </script>
 
@@ -32,7 +32,11 @@
 			{/if}
 		</div>
 		<div class="flex flex-shrink-0 items-center gap-2">
-			<a href={langSwitchHref} class="text-xs font-medium text-blue-600 hover:underline">
+			<a
+				href={langSwitchHref}
+				data-sveltekit-replacestate
+				class="text-xs font-medium text-blue-600 hover:underline"
+			>
 				{langSwitchLabel}
 			</a>
 			<button

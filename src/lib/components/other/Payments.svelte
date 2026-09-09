@@ -100,7 +100,7 @@
 		];
 		const csvContent = rows.map((r) => r.join(',')).join('\n');
 
-		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		const namePart = formatMemberDisplay(memberName, memberId) || 'Member';
@@ -245,7 +245,7 @@
 				{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
 				{ key: 'payment_mode', label: t(lang, 'paymentMode') },
 				{ key: 'payment_type', label: t(lang, 'paymentType') },
-				{ key: 'remarks', label: t(lang, 'remarks') }
+				...(readOnly ? [] : [{ key: 'remarks', label: t(lang, 'remarks') }])
 			];
 		}
 		if (filters.status === 'deadMembers') {
@@ -258,12 +258,13 @@
 			{ key: 'date', label: t(lang, 'date') },
 			{ key: 'amount', label: t(lang, 'amount') },
 			{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
-			{ key: 'remarks', label: t(lang, 'remarks') }
+			...(readOnly ? [] : [{ key: 'remarks', label: t(lang, 'remarks') }])
 		];
 	});
 
 	function formatAmount(amount: number | undefined | null): string {
-		return amount || amount === 0 ? `₹${amount}` : '-';
+		if (amount === undefined || amount === null) return '-';
+		return String(amount);
 	}
 
 	const tableData = $derived.by(() => {
