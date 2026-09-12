@@ -6,7 +6,6 @@
 	import Select from '$lib/components/ui/Select.svelte';
 	import Table from '$lib/components/ui/Table.svelte';
 	import { APP_CONSTANTS, getMemberStatusLabel } from '$lib/constants/app-constants';
-	import coreApi from '$lib/endpoints/coreApi';
 	import statusLogApi from '$lib/endpoints/statusLogApi';
 	import uploadApi from '$lib/endpoints/uploadApi';
 	import type { StatusLog } from '$lib/types/statusLog';
@@ -15,7 +14,29 @@
 	import { Upload, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
-	let { userId, onStatusChanged }: { userId: string; onStatusChanged?: () => void } = $props();
+	// This panel owns no data of its own: the member view page fetches the
+	// status log (and the member's name) once on page load and passes it down,
+	// so switching to the Status tab never re-requests what is already here.
+	// Mutations call reload(), which re-fetches at the page level.
+	let {
+		userId,
+		memberName = '',
+		memberId = '',
+		data = null,
+		isLoading = false,
+		loadError = '',
+		reload,
+		onStatusChanged
+	}: {
+		userId: string;
+		memberName?: string;
+		memberId?: string;
+		data?: StatusLog.GetResponse | null;
+		isLoading?: boolean;
+		loadError?: string;
+		reload?: () => Promise<void> | void;
+		onStatusChanged?: () => void;
+	} = $props();
 
 	const memberStatus = APP_CONSTANTS.MEMBER_STATUS;
 	// Marking a member dead is only allowed from "active" — the backend rejects
@@ -89,13 +110,9 @@
 		}
 	];
 
-	let memberName = $state('');
-	let memberIdRaw = $state('');
-	let currentStatus = $state<StatusLog.MemberStatus | null>(null);
-	let revertible = $state(false);
-	let logs = $state<StatusLog.Entry[]>([]);
-	let isLoading = $state(true);
-	let loadError = $state('');
+	const currentStatus = $derived(data?.status ?? null);
+	const revertible = $derived(data?.revertible ?? false);
+	const logs = $derived(data?.logs ?? []);
 
 	let viewerOpen = $state(false);
 	let viewerSrc = $state('');
@@ -113,29 +130,8 @@
 		currentStatus === 'active' ? memberStatus : memberStatus.filter((o) => o.key !== 'dead')
 	);
 
-	async function loadStatusLog() {
-		loadError = '';
-		try {
-			const res = await statusLogApi.getStatusLog(userId);
-			currentStatus = res.status;
-			revertible = res.revertible;
-			logs = res.logs;
-		} catch (err: any) {
-			loadError = err?.response?.data?.message || 'Failed to load status history';
-		}
-	}
-
-	onMount(async () => {
+	onMount(() => {
 		(window as any).openStatusDocument = openStatusDocument;
-		if (!userId) return;
-		isLoading = true;
-		const userInfo = await coreApi.fetchUserInfo({ userId });
-		if (userInfo?.user) {
-			memberName = userInfo.user.name;
-			memberIdRaw = userInfo.user.member_id;
-		}
-		await loadStatusLog();
-		isLoading = false;
 	});
 
 	// New status form
@@ -234,7 +230,7 @@
 			newFormSuccess = res.message || 'Status has been updated';
 			resetNewForm();
 			showNewForm = false;
-			await loadStatusLog();
+			await reload?.();
 			onStatusChanged?.();
 		} catch (err: any) {
 			newFormError = err?.response?.data?.message || 'Something went wrong';
@@ -311,7 +307,7 @@
 			}
 
 			closeEditModal();
-			await loadStatusLog();
+			await reload?.();
 		} catch (err: any) {
 			editError = err?.response?.data?.message || 'Something went wrong';
 		} finally {
@@ -378,7 +374,7 @@
 
 <div>
 	<h2 class="mb-3 text-lg font-semibold text-gray-900">
-		Status History ({formatMemberDisplay(memberName, memberIdRaw)})
+		Status History ({formatMemberDisplay(memberName, memberId)})
 	</h2>
 	{#if isLoading}
 		<div class="flex items-center justify-center py-10">
