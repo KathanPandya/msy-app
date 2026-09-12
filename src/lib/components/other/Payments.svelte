@@ -240,6 +240,7 @@
 	const tableColumns = $derived.by(() => {
 		if (filters.status === 'payments') {
 			return [
+				{ key: 'sr_no', label: 'Sr No.' },
 				{ key: 'date', label: t(lang, 'date') },
 				{ key: 'amount', label: t(lang, 'amount') },
 				{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
@@ -250,11 +251,13 @@
 		}
 		if (filters.status === 'deadMembers') {
 			return [
+				{ key: 'sr_no', label: 'Sr No.' },
 				{ key: 'date', label: t(lang, 'dateOfDeath') },
 				{ key: 'name', label: t(lang, 'member') }
 			];
 		}
 		return [
+			{ key: 'sr_no', label: 'Sr No.' },
 			{ key: 'date', label: t(lang, 'date') },
 			{ key: 'amount', label: t(lang, 'amount') },
 			{ key: 'reciept_number', label: t(lang, 'receiptNumber') },
@@ -269,30 +272,36 @@
 
 	const tableData = $derived.by(() => {
 		if (filters.status === 'payments') {
-			return sortRecords(outstandingTableData?.paymentRecords ?? []).map((payment: any) => ({
-				_id: payment._id,
-				date: formatDate(payment.date) || '-',
-				amount: formatAmount(payment.amount),
-				reciept_number: payment.reciept_number || '-',
-				payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
-				payment_type:
-					payment.payment_type === 'msy_contribution'
-						? 'MSY Contribution'
-						: formatString(payment.payment_type, ['capitalize-first']) || '-',
-				remarks: payment.remarks || '-'
-			}));
+			return sortRecords(outstandingTableData?.paymentRecords ?? []).map(
+				(payment: any, i: number) => ({
+					_id: payment._id,
+					sr_no: i + 1,
+					date: formatDate(payment.date) || '-',
+					amount: formatAmount(payment.amount),
+					reciept_number: payment.reciept_number || '-',
+					payment_mode: formatString(payment.payment_mode, ['capitalize-first']) || '-',
+					payment_type:
+						payment.payment_type === 'msy_contribution'
+							? 'MSY Contribution'
+							: formatString(payment.payment_type, ['capitalize-first']) || '-',
+					remarks: payment.remarks || '-'
+				})
+			);
 		}
 
 		if (filters.status === 'deadMembers') {
-			return sortRecords(outstandingTableData?.deadMemberRecords ?? []).map((payment: any) => {
-				const memberName = payment.userDetails?.name;
-				return {
-					_id: payment._id,
-					date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
-					amount: formatAmount(payment.amount),
-					name: memberName ? formatMemberDisplay(memberName, payment.userDetails?.member_id) : '-'
-				};
-			});
+			return sortRecords(outstandingTableData?.deadMemberRecords ?? []).map(
+				(payment: any, i: number) => {
+					const memberName = payment.userDetails?.name;
+					return {
+						_id: payment._id,
+						sr_no: i + 1,
+						date: formatDate(`${payment.deadMember.date_of_death}`) || '-',
+						amount: formatAmount(payment.amount),
+						name: memberName ? formatMemberDisplay(memberName, payment.userDetails?.member_id) : '-'
+					};
+				}
+			);
 		}
 
 		const mergedRecords = [
@@ -300,11 +309,12 @@
 			...(outstandingTableData?.deadMemberRecords ?? [])
 		];
 
-		return sortRecords(mergedRecords).map((payment: any) => {
+		return sortRecords(mergedRecords).map((payment: any, i: number) => {
 			const date = payment.date || payment?.deadMember?.date_of_death;
 			const type = payment.date ? 'credit' : 'debit';
 			return {
 				_id: payment._id,
+				sr_no: i + 1,
 				date: date ? formatDate(date) : '-',
 				amount: formatAmount(payment.amount ?? -100),
 				reciept_number: payment.reciept_number || '-',
@@ -331,59 +341,59 @@
 		>
 			<!-- Payment Summary -->
 			{#if !hideSummary}
-			<div
-				class="w-full min-w-0 flex-none rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 sm:max-w-[400px] sm:shrink sm:grow-0 sm:basis-[400px]"
-			>
-				<button
-					type="button"
-					onclick={toggleSummary}
-					class="flex w-full items-center justify-between gap-2 px-3 py-2 lg:px-4"
+				<div
+					class="w-full min-w-0 flex-none rounded-lg border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 sm:max-w-[400px] sm:shrink sm:grow-0 sm:basis-[400px]"
 				>
-					<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">
-						{t(lang, 'paymentSummary')}
-					</h3>
-					{#if !isSummaryOpen}
-						<span class="min-w-0 flex-1 truncate text-right text-xs text-gray-500">
-							₹{totalAmount} · {t(lang, 'paid')} ₹{amountPaid} ·
-							<span class={remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}>
-								{t(lang, 'bal')} ₹{Math.abs(remainingAmount)}
+					<button
+						type="button"
+						onclick={toggleSummary}
+						class="flex w-full items-center justify-between gap-2 px-3 py-2 lg:px-4"
+					>
+						<h3 class="flex-shrink-0 text-sm font-semibold text-gray-800">
+							{t(lang, 'paymentSummary')}
+						</h3>
+						{#if !isSummaryOpen}
+							<span class="min-w-0 flex-1 truncate text-right text-xs text-gray-500">
+								₹{totalAmount} · {t(lang, 'paid')} ₹{amountPaid} ·
+								<span class={remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}>
+									{t(lang, 'bal')} ₹{Math.abs(remainingAmount)}
+								</span>
 							</span>
-						</span>
-					{/if}
-					<ChevronDown
-						class={`h-4 w-4 flex-shrink-0 text-gray-500 transition-transform ${isSummaryOpen ? 'rotate-180' : ''}`}
-					/>
-				</button>
+						{/if}
+						<ChevronDown
+							class={`h-4 w-4 flex-shrink-0 text-gray-500 transition-transform ${isSummaryOpen ? 'rotate-180' : ''}`}
+						/>
+					</button>
 
-				{#if isSummaryOpen}
-					<div class="px-3 pb-2 lg:px-4 lg:pb-3">
-						<div class="grid grid-cols-3 gap-1.5 sm:gap-2">
-							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
-								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'total')}</p>
-								<p class="text-sm font-bold text-gray-800 sm:text-lg">₹{totalAmount}</p>
-							</div>
+					{#if isSummaryOpen}
+						<div class="px-3 pb-2 lg:px-4 lg:pb-3">
+							<div class="grid grid-cols-3 gap-1.5 sm:gap-2">
+								<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
+									<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'total')}</p>
+									<p class="text-sm font-bold text-gray-800 sm:text-lg">₹{totalAmount}</p>
+								</div>
 
-							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
-								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'paid')}</p>
-								<p class="text-sm font-bold text-blue-600 sm:text-lg">₹{amountPaid}</p>
-							</div>
+								<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
+									<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'paid')}</p>
+									<p class="text-sm font-bold text-blue-600 sm:text-lg">₹{amountPaid}</p>
+								</div>
 
-							<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
-								<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'balance')}</p>
-								<p
-									class={`text-sm font-bold sm:text-lg ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
-								>
-									₹{Math.abs(remainingAmount)}
-									{remainingAmount < 0 ? t(lang, 'credit') : t(lang, 'due')}
-								</p>
+								<div class="rounded-lg bg-white px-2 py-1.5 shadow-sm sm:px-3 sm:py-2">
+									<p class="mb-0.5 text-[11px] text-gray-600 sm:text-xs">{t(lang, 'balance')}</p>
+									<p
+										class={`text-sm font-bold sm:text-lg ${remainingAmount < 0 ? 'text-green-600' : 'text-red-600'}`}
+									>
+										₹{Math.abs(remainingAmount)}
+										{remainingAmount < 0 ? t(lang, 'credit') : t(lang, 'due')}
+									</p>
+								</div>
 							</div>
+							<p class="mt-1.5 text-xs text-gray-500 sm:mt-2">
+								{completionPercentage}% {t(lang, 'complete')}
+							</p>
 						</div>
-						<p class="mt-1.5 text-xs text-gray-500 sm:mt-2">
-							{completionPercentage}% {t(lang, 'complete')}
-						</p>
-					</div>
-				{/if}
-			</div>
+					{/if}
+				</div>
 			{/if}
 
 			{#if showSearch}
@@ -404,7 +414,9 @@
 		</div>
 
 		<!-- Status Tabs -->
-		<div class="flex flex-shrink-0 items-center gap-0.5 rounded-md border border-gray-300 bg-white p-0.5 text-xs">
+		<div
+			class="flex flex-shrink-0 items-center gap-0.5 rounded-md border border-gray-300 bg-white p-0.5 text-xs"
+		>
 			{#each statusOptions as option}
 				<button
 					type="button"

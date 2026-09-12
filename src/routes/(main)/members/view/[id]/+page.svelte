@@ -12,12 +12,14 @@
 	import addressApi from '$lib/endpoints/addressApi';
 	import userApi from '$lib/endpoints/userApi';
 	import nomineeApi from '$lib/endpoints/nomineeApi';
+	import statusLogApi from '$lib/endpoints/statusLogApi';
 	import { updateUserSchema } from '$lib/schema/update-user';
 	import { APP_CONSTANTS, getMemberStatusLabel } from '$lib/constants/app-constants';
 	import type { Payment } from '$lib/types/payment';
 	import type { Address } from '$lib/types/address';
 	import type { Form } from '$lib/types/form';
 	import type { Nominee } from '$lib/types/nominee';
+	import type { StatusLog } from '$lib/types/statusLog';
 	import { formatDate, formatToYYYYMMDD, getUserAddress } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
 	import { formatString } from '$lib/utilities/stringUtils';
@@ -87,12 +89,18 @@
 		if (!userId) return;
 		const res = await paymentApi.getOutstandingPaymentOfMember(userId);
 		paymentsTableInfo = res.data;
+		userData.હિસાબ = paymentsTableInfo.outstandingAmount;
 	}
 
+	// A status change can stop future dues from being raised, so the outstanding
+	// figures are refetched alongside the member here.
 	async function refreshStatusAfterChange() {
 		const userId = page.params.id;
 		if (!userId) return;
-		const userInfo = await coreApi.fetchUserInfo({ userId });
+		const [userInfo] = await Promise.all([
+			coreApi.fetchUserInfo({ userId }),
+			reloadPayments()
+		]);
 		if (userInfo?.user) {
 			userData.status = getMemberStatusLabel(formatString(userInfo.user.status, ['trim']));
 			applyPinFields(userInfo.user);
@@ -143,6 +151,52 @@
 	};
 
 	const isActiveMember = $derived(pinStatus.statusRaw === 'active');
+
+	// Status history is fetched alongside the rest of the page instead of waiting
+	// for the Status tab, so the header can show when a non-active member left.
+	// The promise is handed to MemberStatusPanel so the tab reuses this one call.
+	let statusLog = $state<StatusLog.GetResponse | null>(null);
+	let statusLogLoading = $state(true);
+	let statusLogError = $state('');
+
+	async function loadStatusLog(userId: string) {
+		statusLogLoading = true;
+		statusLogError = '';
+		try {
+			statusLog = await statusLogApi.getStatusLog(userId);
+		} catch (err: any) {
+			statusLog = null;
+			statusLogError = err?.response?.data?.message || 'Failed to load status history';
+		} finally {
+			statusLogLoading = false;
+		}
+	}
+
+	function reloadStatusLog() {
+		const userId = page.params.id;
+		if (!userId) return;
+		return loadStatusLog(userId);
+	}
+
+	const statusChangeLabel: Record<string, string> = {
+		removed: 'Removed on',
+		'voluntary-retired': 'Retired on',
+		dead: 'Deceased on'
+	};
+
+	const currentStatusRaw = $derived(statusLog?.status ?? pinStatus.statusRaw);
+
+	const statusChange = $derived.by(() => {
+		const status = currentStatusRaw;
+		if (!status || status === 'active') return null;
+		const label = statusChangeLabel[status];
+		if (!label) return null;
+		const entry = (statusLog?.logs ?? [])
+			.filter((log) => log.status === status)
+			.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+		if (!entry?.date) return null;
+		return { label, date: formatDate(entry.date) };
+	});
 
 	// --- In-place edit state (General / Other / Address / Nominees) ---
 	let userAddress = $state<Address.Data | null>(null);
@@ -561,6 +615,8 @@
 		const userId = page.params.id;
 		if (userId) {
 			isLoading = true;
+			// Deliberately not awaited — the rest of the page renders without it.
+			loadStatusLog(userId);
 			const res = await paymentApi.getOutstandingPaymentOfMember(userId);
 			paymentsTableInfo = res.data;
 
@@ -714,6 +770,12 @@
 		<div class="flex items-center gap-4 text-sm">
 			<span class="text-gray-500">Status: <span class="font-medium text-gray-900">{userData.status}</span></span>
 			<span class="text-gray-500">Joined: <span class="font-medium text-gray-900">{userData.joiningDate}</span></span>
+			{#if statusChange}
+				<span class="text-gray-500"
+					>{statusChange.label}:
+					<span class="font-medium text-gray-900">{statusChange.date}</span></span
+				>
+			{/if}
 		</div>
 		<!-- Tabs -->
 		<div class="mb-2 border-b border-gray-200">
@@ -1383,7 +1445,16 @@
 			{:else if activeTab === 'family'}
 				<FamilyPanel clubId={pinStatus.club_id} />
 			{:else if activeTab === 'status'}
-				<MemberStatusPanel userId={userData._id} onStatusChanged={refreshStatusAfterChange} />
+				<MemberStatusPanel
+					userId={userData._id}
+					memberName={userData.name}
+					memberId={memberIdRaw}
+					data={statusLog}
+					isLoading={statusLogLoading}
+					loadError={statusLogError}
+					reload={reloadStatusLog}
+					onStatusChanged={refreshStatusAfterChange}
+				/>
 			{:else if activeTab === 'other'}
 				<div class="space-y-3">
 					{#if tempPinBanner}
