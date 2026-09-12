@@ -7,6 +7,7 @@
 	import dashboardApi from '$lib/endpoints/dashboardApi';
 	import {
 		ArrowDownRight,
+		Bug,
 		ChevronLeft,
 		ChevronRight,
 		Download,
@@ -15,6 +16,7 @@
 		IndianRupee,
 		LayoutDashboard,
 		LogOut,
+		ShieldCheck,
 		Users
 	} from '@lucide/svelte';
 
@@ -74,7 +76,9 @@
 		{ href: '/families', icon: Home, label: 'Families' },
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
 		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' },
-		{ href: '/payment-screenshots', icon: Image, label: 'Screenshots' }
+		{ href: '/payment-screenshots', icon: Image, label: 'Screenshots' },
+		{ href: '/tickets', icon: Bug, label: 'Tickets' },
+		{ href: '/admins', icon: ShieldCheck, label: 'Admins' }
 	];
 
 	const pageTitle = $derived.by(() => {
