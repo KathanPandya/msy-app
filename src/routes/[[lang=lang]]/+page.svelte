@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	// import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { withLang } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
@@ -8,19 +8,19 @@
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
 
-	let payButtonContainer: HTMLDivElement;
+	// let payButtonContainer: HTMLDivElement;
 
-	onMount(() => {
-		// Razorpay's embed script only runs when injected as a real DOM node —
-		// pasting the <script> tag into markup does not execute it.
-		const form = document.createElement('form');
-		const script = document.createElement('script');
-		script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
-		script.setAttribute('data-payment_button_id', 'pl_TZdNWk9rUBB2wo');
-		script.async = true;
-		form.appendChild(script);
-		payButtonContainer.appendChild(form);
-	});
+	// onMount(() => {
+	// 	// Razorpay's embed script only runs when injected as a real DOM node —
+	// 	// pasting the <script> tag into markup does not execute it.
+	// 	const form = document.createElement('form');
+	// 	const script = document.createElement('script');
+	// 	script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+	// 	script.setAttribute('data-payment_button_id', 'pl_TZdNWk9rUBB2wo');
+	// 	script.async = true;
+	// 	form.appendChild(script);
+	// 	payButtonContainer.appendChild(form);
+	// });
 
 	$effect(() => {
 		if ($authStore.isLoading) return; // wait for initialize() to resolve
@@ -163,6 +163,27 @@
 			</p>
 		</section>
 
+		<section class="mt-4 border-y border-gray-100 py-4 text-center">
+			<a
+				href={withLang(lang, '/login')}
+				class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+			>
+				<HandHeart class="h-4 w-4" />
+				{c.memberLogin}
+			</a>
+			<p class="mt-2 text-xs text-gray-500">
+				{c.needHelp}
+				<a
+					href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="text-blue-600 hover:underline"
+				>
+					{c.contactSupport}
+				</a>
+			</p>
+		</section>
+
 		<section class="mt-6">
 			<h1 class="text-lg font-bold text-gray-900">{c.aboutTitle}</h1>
 			<div class="mt-3 space-y-3 text-sm leading-relaxed text-gray-700">
@@ -181,9 +202,9 @@
 			</div>
 		</section>
 
-		<section class="mt-4 flex justify-center">
+		<!-- <section class="mt-4 flex justify-center">
 			<div bind:this={payButtonContainer}></div>
-		</section>
+		</section> -->
 
 		<section class="mt-6">
 			<div class="flex items-baseline justify-between">
@@ -213,28 +234,6 @@
 					</details>
 				{/each}
 			</div>
-		</section>
-
-		<section class="mt-6 border-t border-gray-100 pt-6 text-center">
-			<p class="text-sm text-gray-700">{c.alreadyMember}</p>
-			<a
-				href={withLang(lang, '/login')}
-				class="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-			>
-				<HandHeart class="h-4 w-4" />
-				{c.memberLogin}
-			</a>
-			<p class="mt-4 text-xs text-gray-500">
-				{c.needHelp}
-				<a
-					href="https://wa.me/919898897380?text=Hi%2C%20I%20need%20help%20with%20MSY%20Portal"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-blue-600 hover:underline"
-				>
-					{c.contactSupport}
-				</a>
-			</p>
 		</section>
 	</main>
 
