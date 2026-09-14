@@ -49,8 +49,13 @@ instance.interceptors.response.use(
 	async (error) => {
 		endHttpRequest();
 		const status = error.response?.status ?? error.status;
-		// Only force logout on 403 when a session token was present (avoid PIN public 403s)
-		if (status === 403 && localStorage.getItem('authToken')) {
+		// Only force logout on 403 when a session token was present (avoid PIN public 403s).
+		// /api/orders/create 403s for business reasons (Razorpay not enabled for the
+		// member) — the caller handles it, the session is still valid.
+		const isOrderCreateRejection =
+			String(error.config?.url ?? '').includes('/api/orders/create') &&
+			error.response?.data?.success === false;
+		if (status === 403 && localStorage.getItem('authToken') && !isOrderCreateRejection) {
 			authStore.logout();
 		}
 		console.error('API Error:', error);

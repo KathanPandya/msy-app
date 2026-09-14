@@ -49,6 +49,7 @@ export namespace PinAuth {
 		pin_attempts?: number;
 		dob_is_placeholder?: boolean;
 		club_id?: string | null;
+		show_razorpay?: boolean;
 	};
 
 	export type SessionSuccess = {

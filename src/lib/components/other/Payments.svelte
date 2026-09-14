@@ -527,7 +527,7 @@
 				</div>
 			</div>
 
-			{#if viewingRecord.remarks}
+			{#if !readOnly && viewingRecord.remarks}
 				<div>
 					<p class="text-xs text-gray-500">{t(lang, 'description')}</p>
 					<p class="font-medium text-gray-900">{viewingRecord.remarks}</p>

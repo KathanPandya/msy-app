@@ -47,6 +47,8 @@ export namespace User {
 		pin_attempts?: number;
 		dob_is_placeholder?: boolean;
 		club_id?: string | null;
+		/** Razorpay gradual rollout — only these members see the online Pay button */
+		show_razorpay?: boolean;
 	};
 
 	export type Update = {

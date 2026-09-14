@@ -10,6 +10,7 @@
 		Bug,
 		ChevronLeft,
 		ChevronRight,
+		CreditCard,
 		Download,
 		Home,
 		Image,
@@ -77,6 +78,7 @@
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
 		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' },
 		{ href: '/payment-screenshots', icon: Image, label: 'Screenshots' },
+		{ href: '/razorpay', icon: CreditCard, label: 'Razorpay' },
 		{ href: '/tickets', icon: Bug, label: 'Tickets' },
 		{ href: '/admins', icon: ShieldCheck, label: 'Admins' }
 	];

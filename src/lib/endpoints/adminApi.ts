@@ -15,6 +15,27 @@ class AdminApi {
 		const response = await axios.post('/api/admin/create-admin', payload);
 		return response.data;
 	}
+
+	async fetchRazorpayUsers(): Promise<{
+		success: boolean;
+		userIds: string[];
+		data: AdminUser.RazorpayUser[];
+	}> {
+		const response = await axios.get('/api/admin/razorpay-users');
+		return response.data;
+	}
+
+	// Full replace — every id not in the list is turned off (razorpay.md §2).
+	async saveRazorpayUsers({ userIds }: { userIds: string[] }): Promise<{
+		success: boolean;
+		message: string;
+		userIds: string[];
+		enabled: number;
+		disabled: number;
+	}> {
+		const response = await axios.put('/api/admin/razorpay-users', { userIds });
+		return response.data;
+	}
 }
 
 const adminApi = new AdminApi();

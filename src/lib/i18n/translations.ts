@@ -16,6 +16,30 @@ export const dict = {
 	amountToPay: { en: 'Amount to pay', guj: 'ચૂકવવાની રકમ' },
 	quickSelectAmount: { en: 'Or pick an amount', guj: 'અથવા રકમ પસંદ કરો' },
 	pay: { en: 'Pay', guj: 'ચૂકવો' },
+	pleaseWait: { en: 'Please wait…', guj: 'કૃપા કરી રાહ જુઓ…' },
+	changeAmountHint: {
+		en: 'Your due amount is filled in — you can change it.',
+		guj: 'તમારી બાકી રકમ ભરેલી છે — તમે તેને બદલી શકો છો.'
+	},
+	verifyingPayment: { en: 'Verifying payment…', guj: 'ચુકવણીની ચકાસણી થઈ રહી છે…' },
+	paymentSuccessful: { en: 'Payment successful', guj: 'ચુકવણી સફળ થઈ' },
+	paymentReceivedReview: {
+		en: 'Payment received. It will reflect in your account after admin review.',
+		guj: 'ચુકવણી મળી ગઈ છે. એડમિન સમીક્ષા પછી તે તમારા ખાતામાં દેખાશે.'
+	},
+	paymentReceivedShortly: {
+		en: 'Payment received. It will reflect shortly.',
+		guj: 'ચુકવણી મળી ગઈ છે. તે થોડી વારમાં દેખાશે.'
+	},
+	paymentCancelled: { en: 'Payment cancelled.', guj: 'ચુકવણી રદ કરવામાં આવી.' },
+	paymentFailed: {
+		en: 'Payment failed: {reason}. Please try again.',
+		guj: 'ચુકવણી નિષ્ફળ: {reason}. ફરી પ્રયાસ કરો.'
+	},
+	paymentVerifyFailed: {
+		en: 'Could not verify payment. Contact support if money was deducted.',
+		guj: 'ચુકવણીની ચકાસણી થઈ શકી નથી. જો પૈસા કપાયા હોય તો સપોર્ટનો સંપર્ક કરો.'
+	},
 	chooseUpiApp: { en: 'Choose a UPI app', guj: 'UPI એપ પસંદ કરો' },
 	close: { en: 'Close', guj: 'બંધ કરો' },
 	useAnotherApp: { en: 'Use another payment app', guj: 'બીજી ચુકવણી એપ વાપરો' },
