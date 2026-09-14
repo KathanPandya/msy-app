@@ -11,6 +11,11 @@
 	import { authStore } from '$lib/stores/authStore';
 	import { Upload, ChevronRight } from '@lucide/svelte';
 	import UpiAppPicker from '$lib/components/other/UpiAppPicker.svelte';
+	import RazorpayAmountPicker from '$lib/components/other/RazorpayAmountPicker.svelte';
+	import coreApi from '$lib/endpoints/coreApi';
+	import familiesApi from '$lib/endpoints/familiesApi';
+	import { clearMeCache, setCachedFamilyMe } from '$lib/utilities/meCache';
+	import { runRazorpayPayment, type RazorpayResult } from '$lib/utilities/razorpayCheckout';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
 	const shell = getMemberShellContext();
@@ -53,13 +58,26 @@
 	// happens on the dedicated per-app page after picking a UPI app.
 	const payAmount = $derived(Math.max(0, Math.round(familyTotalDue)));
 
-	// Toggle between the custom Pay flow and the Razorpay Donate Now button.
-	const showCustomPayButton = true;
+	// Toggle between the custom UPI Pay flow and the Razorpay order flow.
+	// Backend decides per member via `show_razorpay` (razorpay.md).
+	const showCustomPayButton = $derived(!user?.show_razorpay);
+
+	// Admin can flip the flag mid-session — refetch so the right button shows
+	// without a re-login.
+	onMount(async () => {
+		const userId = user?._id;
+		if (!userId) return;
+		try {
+			const info = await coreApi.fetchUserInfo({ userId });
+			authStore.updateUser(info);
+		} catch {
+			// Keep the flag from the stored login user.
+		}
+	});
 
 	let showAppPicker = $state(false);
 
 	function handlePayClick() {
-		if (payAmount <= 0) return;
 		showAppPicker = true;
 	}
 
@@ -68,21 +86,80 @@
 		goto(withLang(lang, `/me/pay/${appKey}?amount=${payAmount}`));
 	}
 
-	// "Donate Now" — always visible regardless of due/credit/settled status,
-	// unlike the (currently disabled) Pay button below which only shows when
-	// familyTotalDue > 0. Razorpay's embed script only runs when injected as a
-	// real DOM node, so it's added via onMount rather than pasted into markup.
-	let donateButtonContainer: HTMLDivElement | undefined;
+	// Razorpay order flow — see razorpayCheckout.ts / payment-flow.md.
+	let razorpayState = $state<'idle' | 'starting' | 'verifying'>('idle');
+	let razorpayResult = $state<RazorpayResult | null>(null);
 
-	onMount(() => {
-		if (showCustomPayButton || !donateButtonContainer) return;
-		const form = document.createElement('form');
-		const script = document.createElement('script');
-		script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
-		script.setAttribute('data-payment_button_id', 'pl_TZdNWk9rUBB2wo');
-		script.async = true;
-		form.appendChild(script);
-		donateButtonContainer.appendChild(form);
+	let showAmountPicker = $state(false);
+
+	function handleRazorpayPayClick() {
+		if (razorpayState !== 'idle') return;
+		razorpayResult = null;
+		showAmountPicker = true;
+	}
+
+	async function startRazorpayPayment(amountRupees: number) {
+		if (amountRupees <= 0 || razorpayState !== 'idle' || !user) return;
+		showAmountPicker = false;
+		razorpayState = 'starting';
+
+		const result = await runRazorpayPayment({
+			amountRupees,
+			paymentType: 'msy_contribution',
+			prefill: { name: user.name, contact: user.mobile },
+			onVerifying: () => (razorpayState = 'verifying')
+		});
+
+		razorpayState = 'idle';
+		razorpayResult = result;
+		if (result.kind === 'settled') await refreshDues();
+	}
+
+	// Pull fresh dues after a settled payment so the amount and family rows update.
+	async function refreshDues() {
+		if (!user) return;
+		const userId = user._id;
+		clearMeCache();
+		try {
+			const [info, family] = await Promise.all([
+				coreApi.fetchUserInfo({ userId }),
+				familiesApi.me()
+			]);
+			authStore.updateUser(info);
+			setCachedFamilyMe(userId, family);
+			shell.familyMembers = family.family?.members ?? [];
+		} catch {
+			// Stale numbers until next load — payment itself is already recorded.
+		}
+	}
+
+	function memberName(userId: string) {
+		const m = shell.familyMembers.find((fm) => fm.id === userId);
+		return m ? formatMemberDisplay(m.name, m.member_id) : '';
+	}
+
+	const razorpayMessage = $derived.by(() => {
+		const r = razorpayResult;
+		if (!r) return null;
+		switch (r.kind) {
+			case 'settled':
+				return { text: t(lang, 'paymentSuccessful'), color: 'text-green-700' };
+			case 'review':
+				return { text: t(lang, 'paymentReceivedReview'), color: 'text-green-700' };
+			case 'processing':
+				return { text: t(lang, 'paymentReceivedShortly'), color: 'text-green-700' };
+			case 'cancelled':
+				return { text: t(lang, 'paymentCancelled'), color: 'text-gray-600' };
+			case 'failed':
+				return {
+					text: t(lang, 'paymentFailed').replace('{reason}', r.reason),
+					color: 'text-red-600'
+				};
+			case 'verifyFailed':
+				return { text: t(lang, 'paymentVerifyFailed'), color: 'text-red-600' };
+			case 'createFailed':
+				return { text: r.message, color: 'text-red-600' };
+		}
 	});
 
 	// Payment screenshot upload — lets a member attach proof right after paying
@@ -186,10 +263,49 @@
 					{t(lang, 'pay')}
 				</button>
 			{:else}
-				<!-- Donate Now — Razorpay payment button, shown to every member regardless of due/credit/settled status. -->
-				<div class="flex flex-shrink-0" bind:this={donateButtonContainer}></div>
+				<!-- Razorpay order flow — create order → Checkout → verify. -->
+				<button
+					type="button"
+					onclick={handleRazorpayPayClick}
+					disabled={razorpayState !== 'idle'}
+					class="flex flex-shrink-0 items-center justify-center gap-1.5 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					{#if razorpayState !== 'idle'}
+						<div
+							class="h-3 w-3 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"
+						></div>
+						{razorpayState === 'verifying' ? t(lang, 'verifyingPayment') : t(lang, 'pleaseWait')}
+					{:else}
+						{t(lang, 'pay')}
+					{/if}
+				</button>
 			{/if}
 		</div>
+
+		{#if !showCustomPayButton && showAmountPicker}
+			<RazorpayAmountPicker
+				{lang}
+				dueAmount={payAmount}
+				onpay={startRazorpayPayment}
+				onclose={() => (showAmountPicker = false)}
+			/>
+		{/if}
+
+		{#if razorpayMessage}
+			<div class="mt-2 border-t border-gray-100 pt-2">
+				<p class={`text-xs font-medium ${razorpayMessage.color}`}>{razorpayMessage.text}</p>
+				{#if razorpayResult?.kind === 'settled' && razorpayResult.payments.length > 1}
+					<ul class="mt-1 space-y-0.5">
+						{#each razorpayResult.payments as p (p._id)}
+							<li class="flex justify-between text-xs text-gray-700">
+								<span class="truncate">{memberName(p.userId)}</span>
+								<span class="flex-shrink-0">₹{p.amount}</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		{/if}
 
 		{#if showCustomPayButton && showAppPicker}
 			<UpiAppPicker {lang} onselect={selectApp} onclose={() => (showAppPicker = false)} />
@@ -241,7 +357,8 @@
 		{/if}
 	</section>
 
-	{#if familyTotalDue > 0}
+	<!-- Screenshot proof only applies to the manual UPI flow — Razorpay verifies itself. -->
+	{#if showCustomPayButton && familyTotalDue > 0}
 		<section class="rounded-lg border border-blue-200 bg-blue-50/50 p-3 shadow-sm">
 			<div class="flex items-center gap-2">
 				<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">

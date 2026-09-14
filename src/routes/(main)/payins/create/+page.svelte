@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
@@ -85,8 +86,41 @@
 		return { isCreating: false, isCreated: false, error: '' };
 	}
 
+	// Optional prefill via nav state — used by /razorpay to record an
+	// unsettled order manually (payment-flow.md §6.2).
+	type Prefill = {
+		memberId: string;
+		memberSearchQuery: string;
+		amount: number;
+		referenceNumber: string;
+		paymentMode: string;
+		paymentType: string;
+		paymentDate: string;
+		description: string;
+		returnTo: string;
+	};
+	const prefill = (page.state as any).prefill as Prefill | undefined;
+
+	function initialEntry() {
+		if (!prefill) return emptyEntry();
+		const knownMode = paymentModesKeys.includes(prefill.paymentMode);
+		return {
+			...emptyEntry(),
+			memberId: prefill.memberId,
+			memberSearchQuery: prefill.memberSearchQuery,
+			amount: String(prefill.amount),
+			referenceNumber: prefill.referenceNumber,
+			paymentMode: knownMode ? prefill.paymentMode : 'other',
+			paymentType: prefill.paymentType,
+			paymentDate: prefill.paymentDate,
+			description: prefill.description
+		};
+	}
+
+	const paymentModesKeys = APP_CONSTANTS.PAYMENT_MODES.map((m) => m.key as string);
+
 	// One or more payment entries, all submitted together
-	let entries = $state([emptyEntry()]);
+	let entries = $state([initialEntry()]);
 	let errors = $state([emptyErrors()]);
 	let submitStatus = $state([emptyStatus()]);
 
@@ -360,7 +394,7 @@
 		} finally {
 			isCreatingAll = false;
 			if (allCreated) {
-				setTimeout(() => goto('/payins'), 1200);
+				setTimeout(() => goto(prefill?.returnTo || '/payins'), 1200);
 			}
 		}
 	}

@@ -11,4 +11,12 @@ export namespace AdminUser {
 		username: string;
 		password: string;
 	};
+
+	export type RazorpayUser = {
+		_id: string;
+		member_id: string;
+		first_name?: string;
+		middle_name?: string;
+		surname?: string;
+	};
 }
