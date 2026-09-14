@@ -27,6 +27,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: ${{ vars.PROD_API_URL }}
+          VITE_RAZORPAY_KEY_ID: ${{ vars.PROD_RAZORPAY_KEY_ID }}
 
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
