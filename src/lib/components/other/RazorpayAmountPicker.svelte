@@ -21,6 +21,8 @@
 
 	let amountInput = $state(due > 0 ? String(due) : '');
 	const amount = $derived(Math.max(0, Math.floor(Number(amountInput) || 0)));
+	// Blocks double-tap before the parent closes this modal.
+	let submitting = $state(false);
 
 	// Partial-payment pills scale with the due; small dues are expected in full.
 	function partialAmounts(d: number): number[] {
@@ -37,6 +39,12 @@
 			return [{ label: `${t(lang, 'due')} ₹${due}`, value: due }, ...partials];
 		return partials;
 	});
+
+	function submitPay() {
+		if (submitting || amount < 1) return;
+		submitting = true;
+		onpay(amount);
+	}
 </script>
 
 <div
@@ -105,8 +113,8 @@
 
 		<button
 			type="button"
-			onclick={() => onpay(amount)}
-			disabled={amount < 1}
+			onclick={submitPay}
+			disabled={amount < 1 || submitting}
 			class="mt-3 flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
 		>
 			{t(lang, 'pay')}{amount > 0 ? ` ₹${amount}` : ''}
