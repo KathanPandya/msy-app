@@ -99,9 +99,10 @@
 	}
 
 	async function startRazorpayPayment(amountRupees: number) {
+		// Sync lock first so a second onpay in the same tick cannot pass.
 		if (amountRupees <= 0 || razorpayState !== 'idle' || !user) return;
-		showAmountPicker = false;
 		razorpayState = 'starting';
+		showAmountPicker = false;
 
 		const result = await runRazorpayPayment({
 			amountRupees,
