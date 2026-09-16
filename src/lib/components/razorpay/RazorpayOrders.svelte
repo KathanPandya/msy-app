@@ -237,7 +237,7 @@
 			<select
 				bind:value={view}
 				onchange={loadOrders}
-				class="w-[140px] shrink-0 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				class="h-11 w-[160px] shrink-0 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base font-medium sm:h-8 sm:text-sm text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			>
 				{#each VIEWS as v (v.key)}
 					<option value={v.key}>{v.label}</option>

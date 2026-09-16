@@ -156,7 +156,7 @@
 					oninput={handleInputChange}
 					value={searchQuery}
 					placeholder="Search members..."
-					class="w-full rounded-md border border-gray-300 py-2 pr-3 pl-10 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+					class="h-11 w-full rounded-md border border-gray-300 py-0 pr-3 pl-10 text-base sm:h-8 sm:text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 				/>
 			</div>
 

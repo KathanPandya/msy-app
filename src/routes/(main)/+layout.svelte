@@ -17,6 +17,7 @@
 		IndianRupee,
 		LayoutDashboard,
 		LogOut,
+		Scale,
 		ShieldCheck,
 		Users
 	} from '@lucide/svelte';
@@ -80,7 +81,8 @@
 		{ href: '/payment-screenshots', icon: Image, label: 'Screenshots' },
 		{ href: '/razorpay', icon: CreditCard, label: 'Razorpay' },
 		{ href: '/tickets', icon: Bug, label: 'Tickets' },
-		{ href: '/admins', icon: ShieldCheck, label: 'Admins' }
+		{ href: '/admins', icon: ShieldCheck, label: 'Admins' },
+		{ href: '/outstanding-mismatch', icon: Scale, label: 'Outstanding Audit' }
 	];
 
 	const pageTitle = $derived.by(() => {
