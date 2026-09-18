@@ -19,6 +19,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { User } from '$lib/types/user';
 	import type { Nominee } from '$lib/types/nominee';
+	import { addressFormValidationSchema } from '$lib/schema/update-user';
+	import { ValidationError } from 'yup';
 	import { Pencil } from '@lucide/svelte';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
@@ -237,40 +239,95 @@
 		addressEditing && JSON.stringify(addressForm) !== JSON.stringify(addressInitial)
 	);
 
+	// Maps the form's API keys to addressFormValidationSchema's keys.
+	const ADDRESS_SCHEMA_KEYS = {
+		address_line_1: 'addressLine1',
+		address_line_2: 'addressLine2',
+		area_name: 'areaName',
+		landmark: 'landmark',
+		city: 'city',
+		pincode: 'pincode',
+		state: 'state',
+		country: 'country'
+	} as const;
+	type AddressFormKey = keyof typeof ADDRESS_SCHEMA_KEYS;
+	let addressErrors = $state<Partial<Record<AddressFormKey, string>>>({});
+
+	// A member can only create an address for themselves — the backend ignores
+	// userId for non-admins, so a head can't create one for another member.
+	const canAddAddress = $derived(selectedId === me?._id);
+
 	function openAddressEdit() {
-		if (!address) return;
 		addressForm = {
-			address_line_1: address.address_line_1 || '',
-			address_line_2: address.address_line_2 || '',
-			area_name: address.area_name || '',
-			landmark: address.landmark || '',
-			city: address.city || '',
-			pincode: address.pincode || '',
-			state: address.state || '',
-			country: address.country || ''
+			address_line_1: address?.address_line_1 || '',
+			address_line_2: address?.address_line_2 || '',
+			area_name: address?.area_name || '',
+			landmark: address?.landmark || '',
+			city: address?.city || '',
+			pincode: address?.pincode || '',
+			state: address?.state || '',
+			country: address?.country || ''
 		};
 		addressInitial = { ...addressForm };
+		addressErrors = {};
 		clearTimeout(addressStatusTimeout);
 		addressStatus = '';
 		addressEditing = true;
 	}
 
+	async function validateAddressForm() {
+		const values = Object.fromEntries(
+			(Object.keys(ADDRESS_SCHEMA_KEYS) as AddressFormKey[]).map((k) => [
+				ADDRESS_SCHEMA_KEYS[k],
+				addressForm[k]
+			])
+		);
+		try {
+			await addressFormValidationSchema.validate(values, { abortEarly: false });
+			addressErrors = {};
+			return true;
+		} catch (err) {
+			if (!(err instanceof ValidationError)) throw err;
+			const next: Partial<Record<AddressFormKey, string>> = {};
+			for (const e of err.inner) {
+				const key = (Object.keys(ADDRESS_SCHEMA_KEYS) as AddressFormKey[]).find(
+					(k) => ADDRESS_SCHEMA_KEYS[k] === e.path
+				);
+				if (key && !next[key]) next[key] = e.message;
+			}
+			addressErrors = next;
+			return false;
+		}
+	}
+
 	async function submitAddress(event: SubmitEvent) {
 		event.preventDefault();
-		if (!info || !address) return;
+		if (!info) return;
+		if (!(await validateAddressForm())) return;
+		const userId = selectedId;
 		addressSaving = true;
 		clearTimeout(addressStatusTimeout);
 		addressStatus = '';
 		try {
-			const res = await addressApi.updateAddress({
-				addressId: address._id,
-				payload: { ...addressForm, is_nominee_address: false }
-			});
-			info = {
-				...info,
-				address: info.address.map((a) => (a._id === address._id ? { ...a, ...res.address } : a))
+			const payload = {
+				address_line_1: addressForm.address_line_1.trim(),
+				address_line_2: addressForm.address_line_2.trim(),
+				area_name: addressForm.area_name.trim(),
+				landmark: addressForm.landmark.trim(),
+				city: addressForm.city.trim(),
+				pincode: addressForm.pincode.trim(),
+				state: addressForm.state.trim(),
+				country: addressForm.country.trim(),
+				is_nominee_address: false
 			};
-			setCachedUserInfo(selectedId, info);
+			if (address) {
+				await addressApi.updateAddress({ addressId: address._id, payload });
+			} else {
+				await addressApi.createAddress({ payload });
+			}
+			const fresh = await coreApi.fetchUserInfo({ userId });
+			setCachedUserInfo(userId, fresh);
+			if (selectedId === userId) info = fresh;
 			addressStatus = 'success';
 			addressEditing = false;
 		} catch {
@@ -626,7 +683,7 @@
 						</span>
 					{/if}
 				</div>
-				{#if canEdit && address && !addressEditing}
+				{#if canEdit && (address || canAddAddress) && !addressEditing}
 					<button
 						type="button"
 						onclick={openAddressEdit}
@@ -638,48 +695,62 @@
 				{/if}
 			</div>
 
-			{#if !address}
-				<p class="text-xs text-gray-500">{t(lang, 'noAddressOnFile')}</p>
-			{:else if addressEditing}
+			{#if addressEditing}
 				<form onsubmit={submitAddress} class="space-y-2.5">
 					<div class="grid grid-cols-2 gap-2.5">
 						<Input
 							id="address_line_1"
 							label={t(lang, 'addressLine1')}
 							bind:value={addressForm.address_line_1}
+							error={addressErrors.address_line_1}
 							required
 						/>
 						<Input
 							id="address_line_2"
 							label={t(lang, 'addressLine2')}
 							bind:value={addressForm.address_line_2}
+							error={addressErrors.address_line_2}
 						/>
 						<Input
 							id="area_name"
 							label={t(lang, 'areaName')}
 							bind:value={addressForm.area_name}
-							required
+							error={addressErrors.area_name}
 						/>
 						<Input
 							id="landmark"
 							label={t(lang, 'landmark')}
 							bind:value={addressForm.landmark}
+							error={addressErrors.landmark}
+						/>
+						<Input
+							id="city"
+							label={t(lang, 'city')}
+							bind:value={addressForm.city}
+							error={addressErrors.city}
 							required
 						/>
-						<Input id="city" label={t(lang, 'city')} bind:value={addressForm.city} required />
 						<Input
 							id="pincode"
 							label={t(lang, 'pincode')}
 							bind:value={addressForm.pincode}
+							error={addressErrors.pincode}
 							required
 							maxlength={6}
 							inputmode="numeric"
 						/>
-						<Input id="state" label={t(lang, 'state')} bind:value={addressForm.state} required />
+						<Input
+							id="state"
+							label={t(lang, 'state')}
+							bind:value={addressForm.state}
+							error={addressErrors.state}
+							required
+						/>
 						<Input
 							id="country"
 							label={t(lang, 'country')}
 							bind:value={addressForm.country}
+							error={addressErrors.country}
 							required
 						/>
 					</div>
@@ -698,6 +769,8 @@
 						</Button>
 					</div>
 				</form>
+			{:else if !address}
+				<p class="text-xs text-gray-500">{t(lang, 'noAddressOnFile')}</p>
 			{:else}
 				<dl class="space-y-1.5 text-xs">
 					<div class="flex justify-between gap-4">

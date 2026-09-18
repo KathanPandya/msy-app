@@ -44,4 +44,9 @@ export namespace Order {
 		| { success: true; status: 'settled'; message: string; order: Data; payments: Payment.Get[] }
 		| { success: true; status: 'unsettled' | 'processing'; message: string; order: Data }
 		| { success: false; status: 'failed'; message: string };
+
+	// Errors (404/409/502/500) come back as `{ success: false, message }` and throw.
+	export type ReconcileResponse =
+		| { success: true; status: 'settled'; message: string; order: Data; payments: Payment.Get[] }
+		| { success: true; status: 'unsettled' | 'processing'; message: string; order: Data };
 }

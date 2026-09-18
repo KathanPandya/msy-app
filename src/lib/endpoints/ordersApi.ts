@@ -35,6 +35,18 @@ class OrdersApi {
 		const response = await axios.put(`/api/orders/${id}/mark-settled`, remarks ? { remarks } : {});
 		return response.data;
 	}
+
+	// Admin only. Asks Razorpay whether a `created`/`failed` order was paid and settles it if so.
+	async reconcile({
+		id,
+		remarks
+	}: {
+		id: string;
+		remarks?: string;
+	}): Promise<Order.ReconcileResponse> {
+		const response = await axios.post(`/api/orders/${id}/reconcile`, remarks ? { remarks } : {});
+		return response.data;
+	}
 }
 
 const ordersApi = new OrdersApi();
