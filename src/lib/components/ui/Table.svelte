@@ -93,7 +93,6 @@
 		density === 'compact' ? 'gap-1 px-2 py-1 text-xs' : 'gap-1 px-2 py-1.5 text-sm sm:gap-1.5 sm:px-3 sm:py-2'
 	);
 	const paginationLimitTextClass = $derived(density === 'compact' ? 'text-xs' : 'text-sm');
-	const paginationSelectWidthClass = $derived(density === 'compact' ? 'w-16 sm:w-20' : 'w-20 sm:w-24');
 
 	// Only one row's actions menu can be open at a time — tracked by row index.
 	let openMenuIndex = $state<number | null>(null);
@@ -479,11 +478,12 @@
 			{#if onLimitChange && pagination?.limit}
 				<div class="flex items-center gap-2">
 					<span class="hidden {paginationLimitTextClass} text-gray-700 md:inline">Show</span>
-					<div class="{paginationSelectWidthClass} {density === 'compact' ? 'pagination-select-compact' : ''}">
+					<div class="w-24 sm:w-20">
 						<Select
 							options={APP_CONSTANTS.PAGINATION_OPTIONS}
 							id="pagination"
 							label=""
+							size="sm"
 							bind:value={pagination.limit}
 							onchange={(e: any) => onLimitChange(e.target.value)}
 						/>
@@ -522,12 +522,6 @@
 </div>
 
 <style>
-	.pagination-select-compact :global(select) {
-		padding-block: 0.25rem;
-		padding-inline: 0.5rem;
-		font-size: 0.75rem;
-	}
-
 	.table-scroll-area {
 		scrollbar-color: #e5e7eb transparent;
 		scrollbar-width: thin;

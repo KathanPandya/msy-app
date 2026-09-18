@@ -31,6 +31,8 @@ export namespace Address {
 	export type Get = Data[];
 
 	export type Create = {
+		// Required when an admin creates an address for a member; ignored for member callers
+		userId?: string;
 		address_line_1: string;
 		address_line_2: string;
 		area_name: string;

@@ -18,9 +18,10 @@
 	// (payment-flow.md §6.1) — it needs the same manual handling as `unsettled`.
 	const STALE_SETTLING_MS = 10 * 60 * 1000;
 
-	type View = 'action' | 'failed' | 'settled' | 'all';
+	type View = 'action' | 'created' | 'failed' | 'settled' | 'all';
 	const VIEWS: { key: View; label: string }[] = [
 		{ key: 'action', label: 'Needs action' },
+		{ key: 'created', label: 'Pending' },
 		{ key: 'failed', label: 'Failed' },
 		{ key: 'settled', label: 'Settled' },
 		{ key: 'all', label: 'All orders' }
@@ -124,6 +125,8 @@
 				render: (_v: any, row: any) => statusPill(row.raw)
 			}
 		];
+		if (view === 'created')
+			return [...base, { key: 'created', label: 'Created', width: 110 }];
 		if (view === 'failed')
 			return [
 				...base,
@@ -175,6 +178,9 @@
 		if (needsAction(o)) {
 			actions.push({ label: 'Create payment', onclick: () => createPaymentFor(o) });
 			actions.push({ label: 'Mark settled', onclick: () => openMarkSettled(o) });
+		}
+		if (o.status === 'created' || o.status === 'failed') {
+			actions.push({ label: 'Check with Razorpay', onclick: () => openReconcile(o) });
 		}
 		actions.push({
 			label: 'View member',
@@ -229,6 +235,60 @@
 			settleLoading = false;
 		}
 	}
+
+	// ---------- Reconcile: ask Razorpay if a created/failed order was actually paid ----------
+	let reconcilingOrder = $state<Order.Data | null>(null);
+	let reconcileRemarks = $state('');
+	let reconcileLoading = $state(false);
+	let reconcileResult = $state<{ tone: 'success' | 'warning' | 'info' | 'error'; text: string } | null>(
+		null
+	);
+
+	const RESULT_STYLES = {
+		success: 'border-green-200 bg-green-50 text-green-800',
+		warning: 'border-amber-200 bg-amber-50 text-amber-800',
+		info: 'border-blue-200 bg-blue-50 text-blue-800',
+		error: 'border-red-200 bg-red-50 text-red-700'
+	};
+
+	function openReconcile(o: Order.Data) {
+		reconcilingOrder = o;
+		reconcileRemarks = '';
+		reconcileResult = null;
+	}
+
+	async function confirmReconcile() {
+		if (!reconcilingOrder) return;
+		reconcileLoading = true;
+		reconcileResult = null;
+		try {
+			const res = await ordersApi.reconcile({
+				id: reconcilingOrder._id,
+				remarks: reconcileRemarks.trim()
+			});
+			if (res.status === 'settled') {
+				reconcileResult = { tone: 'success', text: res.message || 'Payment verified and order settled.' };
+			} else if (res.status === 'unsettled') {
+				reconcileResult = {
+					tone: 'warning',
+					text: 'Paid on Razorpay, but the amount doesn\'t match the order. Nothing was settled — handle it from "Needs action" with Create payment + Mark settled.'
+				};
+			} else {
+				reconcileResult = {
+					tone: 'info',
+					text: 'This order is being settled right now. Refresh in a minute.'
+				};
+			}
+		} catch (err: any) {
+			reconcileResult = {
+				tone: 'error',
+				text: err?.response?.data?.message || 'Failed to check with Razorpay.'
+			};
+		} finally {
+			reconcileLoading = false;
+			loadOrders();
+		}
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -237,7 +297,7 @@
 			<select
 				bind:value={view}
 				onchange={loadOrders}
-				class="w-[140px] shrink-0 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				class="h-11 w-[160px] shrink-0 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base font-medium sm:h-8 sm:text-sm text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			>
 				{#each VIEWS as v (v.key)}
 					<option value={v.key}>{v.label}</option>
@@ -404,6 +464,66 @@
 				<Button variant="primary" size="sm" onclick={confirmMarkSettled} disabled={settleLoading}>
 					{settleLoading ? 'Saving...' : 'Mark settled'}
 				</Button>
+			</div>
+		</div>
+	{/if}
+</Modal>
+
+<Modal
+	open={!!reconcilingOrder}
+	onClose={() => (reconcilingOrder = null)}
+	title="Check with Razorpay"
+>
+	{#if reconcilingOrder}
+		{@const done = reconcileResult !== null && reconcileResult.tone !== 'error'}
+		<div class="space-y-3 text-sm">
+			<div class="grid grid-cols-2 gap-3 rounded-md border border-gray-200 p-2.5">
+				<div>
+					<p class="text-xs text-gray-500">Member</p>
+					<p class="font-medium text-gray-900">{memberLabel(reconcilingOrder)}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Amount</p>
+					<p class="font-medium text-gray-900">
+						₹{(reconcilingOrder.amount / 100).toLocaleString()}
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Razorpay order</p>
+					<p class="font-medium break-all text-gray-900">{reconcilingOrder.razorpay_order_id}</p>
+				</div>
+				<div>
+					<p class="text-xs text-gray-500">Created</p>
+					<p class="font-medium text-gray-900">{formatDate(reconcilingOrder.createdAt)}</p>
+				</div>
+			</div>
+			<p class="text-xs text-gray-600">
+				If Razorpay shows this order as paid, the payment records are created and the order is
+				settled automatically.
+			</p>
+			<Input
+				id="reconcile-remarks"
+				label="Remarks"
+				bind:value={reconcileRemarks}
+				disabled={reconcileLoading || done}
+			/>
+			{#if reconcileResult}
+				<p class="rounded-md border px-2.5 py-1.5 text-xs {RESULT_STYLES[reconcileResult.tone]}">
+					{reconcileResult.text}
+				</p>
+			{/if}
+			<div class="flex justify-end gap-2 border-t border-gray-200 pt-3">
+				<Button
+					variant="secondary"
+					size="sm"
+					onclick={() => (reconcilingOrder = null)}
+					disabled={reconcileLoading}>{done ? 'Close' : 'Cancel'}</Button
+				>
+				{#if !done}
+					<Button variant="primary" size="sm" onclick={confirmReconcile} disabled={reconcileLoading}>
+						{reconcileLoading ? 'Checking...' : 'Check'}
+					</Button>
+				{/if}
 			</div>
 		</div>
 	{/if}

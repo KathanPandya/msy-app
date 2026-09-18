@@ -144,7 +144,7 @@
 					type="text"
 					bind:value={title}
 					placeholder="Short summary of the issue"
-					class="w-full rounded-md border px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none {errors.title
+					class="h-11 w-full rounded-md border px-3 py-0 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:h-10 sm:text-sm {errors.title
 						? 'border-red-500'
 						: 'border-gray-300'}"
 				/>
@@ -156,7 +156,7 @@
 				<select
 					id="ticket-type"
 					bind:value={type}
-					class="w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+					class="h-11 w-full rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base text-gray-900 sm:h-10 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 				>
 					{#each TICKET_TYPES as option}
 						<option value={option.key}>{option.label}</option>
@@ -174,7 +174,7 @@
 				bind:value={description}
 				rows="6"
 				placeholder="What happened, what you expected, and how to reproduce it"
-				class="w-full resize-y rounded-md border px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none {errors.description
+				class="w-full resize-y rounded-md border px-3 py-2 text-base text-gray-900 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none {errors.description
 					? 'border-red-500'
 					: 'border-gray-300'}"
 			></textarea>

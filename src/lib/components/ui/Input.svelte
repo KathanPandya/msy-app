@@ -5,6 +5,7 @@
 		id: string;
 		label?: string;
 		labelStyle?: 'stacked' | 'border';
+		size?: 'md' | 'sm';
 		type?: string;
 		value: string;
 		error?: string;
@@ -33,6 +34,7 @@
 		id,
 		label,
 		labelStyle = 'stacked',
+		size = 'md',
 		type = 'text',
 		value = $bindable(),
 		error = '',
@@ -54,8 +56,8 @@
 	const inputType = $derived(type === 'password' && showPassword ? 'text' : type);
 
 	const inputClasses = $derived(
-		`w-full px-3 border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-			labelStyle === 'border' ? 'pt-2 pb-1.5' : 'py-2'
+		`w-full px-3 py-0 h-11 text-base border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+			size === 'sm' ? 'sm:h-8 sm:text-sm' : 'sm:h-10 sm:text-sm'
 		} ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'} ${
 			disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white text-gray-900'
 		} ${type === 'password' ? 'pr-10' : ''}`

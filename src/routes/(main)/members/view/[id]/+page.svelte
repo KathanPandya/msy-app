@@ -369,6 +369,36 @@
 		addressEditing = false;
 	}
 
+	// Fills the address view + form from the fetched address list. An empty list
+	// leaves userAddress null, so the next save creates instead of updates.
+	function applyAddress(addresses: Address.Data[] | undefined) {
+		userAddress = getUserAddress(addresses ?? []);
+		userData.addressLine1 = formatString(userAddress?.address_line_1, ['trim']);
+		userData.addressLine2 = formatString(userAddress?.address_line_2, ['trim']);
+		userData.areaName = formatString(userAddress?.area_name, ['trim']);
+		userData.landmark = formatString(userAddress?.landmark, ['trim']);
+		userData.city = formatString(userAddress?.city, ['trim']);
+		userData.pincode = formatString(userAddress?.pincode, ['trim']);
+		userData.state = formatString(userAddress?.state, ['trim']);
+		userData.country = formatString(userAddress?.country, ['trim']);
+
+		formData.addressLine1 = userData.addressLine1;
+		formData.addressLine2 = userData.addressLine2;
+		formData.areaName = userData.areaName;
+		formData.landmark = userData.landmark;
+		formData.city = userData.city;
+		formData.pincode = userData.pincode;
+		formData.state = userData.state;
+		formData.country = userData.country;
+
+		originalAddress = snapshot(ADDRESS_FIELDS);
+	}
+
+	async function validateAddressForm() {
+		await Promise.all(ADDRESS_FIELDS.map((field) => validateField(field)));
+		return ADDRESS_FIELDS.every((field) => !errors[field]);
+	}
+
 	async function submitSection(section: 'general' | 'other' | 'address') {
 		sectionErrors[section] = '';
 		sectionSuccess[section] = '';
@@ -453,47 +483,30 @@
 					otherEditing = false;
 				}
 			} else if (section === 'address') {
-				if (!userAddress?._id) throw new Error('Address ID is missing');
+				const userId = userData._id;
+				if (!userId) throw new Error('User ID is missing');
+				if (!(await validateAddressForm())) return;
 
-				const response = await addressApi.updateAddress({
-					addressId: userAddress._id,
-					payload: {
-						address_line_1: formData.addressLine1,
-						address_line_2: formData.addressLine2,
-						area_name: formData.areaName,
-						landmark: formData.landmark,
-						city: formData.city,
-						pincode: formData.pincode,
-						state: formData.state,
-						country: formData.country,
-						is_nominee_address: false
-					}
-				});
+				const payload = {
+					address_line_1: formData.addressLine1.trim(),
+					address_line_2: formData.addressLine2.trim(),
+					area_name: formData.areaName.trim(),
+					landmark: formData.landmark.trim(),
+					city: formData.city.trim(),
+					pincode: formData.pincode.trim(),
+					state: formData.state.trim(),
+					country: formData.country.trim(),
+					is_nominee_address: false
+				};
 
-				if (response.address) {
-					userAddress = response.address;
-					formData.addressLine1 = response.address.address_line_1 || '';
-					formData.addressLine2 = response.address.address_line_2 || '';
-					formData.areaName = response.address.area_name || '';
-					formData.landmark = response.address.landmark || '';
-					formData.city = response.address.city || '';
-					formData.pincode = response.address.pincode || '';
-					formData.state = response.address.state || '';
-					formData.country = response.address.country || '';
+				const response = userAddress?._id
+					? await addressApi.updateAddress({ addressId: userAddress._id, payload })
+					: await addressApi.createAddress({ payload: { ...payload, userId } });
 
-					userData.addressLine1 = formData.addressLine1;
-					userData.addressLine2 = formData.addressLine2;
-					userData.areaName = formData.areaName;
-					userData.landmark = formData.landmark;
-					userData.city = formData.city;
-					userData.pincode = formData.pincode;
-					userData.state = formData.state;
-					userData.country = formData.country;
-
-					originalAddress = snapshot(ADDRESS_FIELDS);
-					sectionSuccess.address = response.message || 'Address updated successfully';
-					addressEditing = false;
-				}
+				const userInfo = await coreApi.fetchUserInfo({ userId });
+				applyAddress(userInfo.address);
+				sectionSuccess.address = response.message || 'Address saved successfully';
+				addressEditing = false;
 			}
 		} catch (error: any) {
 			const backendError = error?.response?.data?.error;
@@ -681,32 +694,10 @@
 				formData.nativePlace = formatString(userInfo.profile.native_place, ['trim']);
 			}
 
-			if (userInfo.address) {
-				userAddress = getUserAddress(userInfo.address);
-				if (userAddress) {
-					userData.addressLine1 = formatString(userAddress.address_line_1, ['trim']);
-					userData.addressLine2 = formatString(userAddress.address_line_2, ['trim']);
-					userData.areaName = formatString(userAddress.area_name, ['trim']);
-					userData.city = formatString(userAddress.city, ['trim']);
-					userData.country = formatString(userAddress.country, ['trim']);
-					userData.pincode = formatString(userAddress.pincode, ['trim']);
-					userData.state = formatString(userAddress.state, ['trim']);
-					userData.landmark = formatString(userAddress.landmark, ['trim']);
-
-					formData.addressLine1 = userData.addressLine1;
-					formData.addressLine2 = userData.addressLine2;
-					formData.areaName = userData.areaName;
-					formData.landmark = userData.landmark;
-					formData.city = userData.city;
-					formData.pincode = userData.pincode;
-					formData.state = userData.state;
-					formData.country = userData.country;
-				}
-			}
+			applyAddress(userInfo.address);
 
 			originalGeneral = snapshot(GENERAL_FIELDS);
 			originalOther = snapshot(OTHER_FIELDS);
-			originalAddress = snapshot(ADDRESS_FIELDS);
 
 			const nomineeRes = await nomineeApi.fetchNominees({ userId });
 			nominees = nomineeRes.data;
@@ -1175,7 +1166,6 @@
 							error={errors.areaName}
 							onblur={() => validateField('areaName')}
 							placeholder="Area"
-							required
 						/>
 						<Input
 							id="landmark"
@@ -1184,7 +1174,6 @@
 							error={errors.landmark}
 							onblur={() => validateField('landmark')}
 							placeholder="Nearby landmark"
-							required
 						/>
 						<Input
 							id="city"

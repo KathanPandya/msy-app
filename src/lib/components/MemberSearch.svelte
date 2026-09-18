@@ -150,7 +150,7 @@
 		{placeholder}
 		onfocus={() => (open = true)}
 		onblur={() => setTimeout(() => (open = false), 120)}
-		class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+		class="w-full rounded-md border border-gray-300 bg-white h-11 px-3 py-0 text-base text-gray-900 sm:h-10 sm:text-sm placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 	/>
 	{#if open && matches.length}
 		<ul
