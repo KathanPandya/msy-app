@@ -363,7 +363,7 @@
 							oninput={handleMemberSearch}
 							onfocus={() => (showMemberDropdown = true)}
 							placeholder="Search deceased member by name..."
-							class={`w-full rounded-md border px-3 py-2 pr-10 pl-10 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+							class={`h-11 w-full rounded-md border px-3 py-0 pr-10 pl-10 text-base sm:h-10 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
 								errors.deadMemberId ? 'border-red-500' : 'border-gray-300'
 							} ${isLoading ? 'cursor-not-allowed bg-gray-100' : 'bg-white text-gray-900'}`}
 							disabled={isLoading}
@@ -460,7 +460,7 @@
 								oninput={handleNomineeSearch}
 								onfocus={() => (showNomineeDropdown = true)}
 								placeholder="Search nominee by name..."
-								class={`w-full rounded-md border px-3 py-2 pr-10 pl-10 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+								class={`h-11 w-full rounded-md border px-3 py-0 pr-10 pl-10 text-base sm:h-10 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
 									errors.nomineeId ? 'border-red-500' : 'border-gray-300'
 								} ${isLoading ? 'cursor-not-allowed bg-gray-100' : 'bg-white text-gray-900'}`}
 								disabled={isLoading}

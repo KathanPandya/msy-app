@@ -387,8 +387,8 @@
 <div class="flex h-full flex-col">
 	<!-- Fixed Header - stays at top -->
 	<div class="mb-1.5 flex-shrink-0 space-y-1.5">
-		<!-- Below 576px: Collapsible Filter + Add Button -->
-		<div class="min-[576px]:hidden">
+		<!-- Below 640px: Collapsible Filter + Add Button -->
+		<div class="sm:hidden">
 			<div class="flex items-center gap-3">
 				<!-- Filter Toggle Button — shows the selected date range, sized to content -->
 				<button
@@ -468,14 +468,15 @@
 			{/if}
 		</div>
 
-		<!-- 576px and up: Date Range Filter -->
-		<div class="hidden w-full flex-nowrap items-center gap-3 min-[576px]:flex">
+		<!-- 640px and up: Date Range Filter -->
+		<div class="hidden w-full flex-nowrap items-center gap-3 sm:flex">
 			<!-- Start Date -->
 			<div class="min-w-0 max-w-[215px] shrink grow-0 basis-[215px]">
 				<Input
 					id="startDate"
 					label="Start Date"
 					labelStyle="border"
+					size="sm"
 					type="date"
 					bind:value={startDate}
 					error={errors.startDate}
@@ -491,6 +492,7 @@
 					id="endDate"
 					label="End Date"
 					labelStyle="border"
+					size="sm"
 					type="date"
 					bind:value={endDate}
 					error={errors.endDate}

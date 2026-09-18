@@ -420,12 +420,12 @@
 									type="text"
 									bind:value={editTitle}
 									placeholder="Title"
-									class="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+									class="h-11 w-full rounded-md border border-gray-300 px-3 py-0 text-base font-medium text-gray-900 sm:h-10 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								/>
 							</div>
 							<select
 								bind:value={editType}
-								class="shrink-0 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-40"
+								class="h-11 shrink-0 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base text-gray-900 sm:h-10 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-40"
 							>
 								{#each TICKET_TYPES as option}
 									<option value={option.key}>{option.label}</option>
@@ -436,7 +436,7 @@
 							bind:value={editDescription}
 							rows="5"
 							placeholder="Description"
-							class="w-full resize-y rounded-md border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+							class="w-full resize-y rounded-md border border-gray-300 px-3 py-2 text-base text-gray-900 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 						></textarea>
 						{#if editError}
 							<p class="text-xs text-red-600">{editError}</p>
@@ -536,7 +536,7 @@
 					onkeydown={onCommentKeydown}
 					rows="1"
 					placeholder="Add a comment…"
-					class="max-h-28 min-h-[34px] w-full resize-y rounded-md border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+					class="max-h-28 min-h-11 w-full resize-y rounded-md border border-gray-300 px-3 py-[9px] text-base text-gray-900 sm:min-h-10 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 				></textarea>
 				<Button
 					variant="primary"

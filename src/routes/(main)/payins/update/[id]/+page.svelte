@@ -263,7 +263,7 @@
 						<input
 							type="text"
 							value={formatMemberDisplay(memberName, memberDisplayId)}
-							class="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 px-3 py-2 pl-10 text-gray-500"
+							class="h-11 w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-100 px-3 py-0 pl-10 text-base text-gray-500 sm:h-10 sm:text-sm"
 							disabled={true}
 						/>
 					</div>

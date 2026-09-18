@@ -470,7 +470,7 @@
 										oninput={(e) => handleMemberSearch(index, e)}
 										onfocus={() => (entry.showMemberDropdown = true)}
 										placeholder="Search member by name or mobile..."
-										class={`w-full rounded-md border px-3 py-1.5 pr-10 pl-9 text-sm transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+										class={`h-11 w-full rounded-md border px-3 py-0 pr-10 pl-9 text-base transition-colors sm:h-10 sm:text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none ${
 											errors[index].memberId
 												? 'border-red-500 focus:ring-red-500'
 												: 'border-gray-300'
@@ -635,7 +635,7 @@
 							{#if !entry.fileName}
 								<label
 									for={`file-upload-${index}`}
-									class="flex h-[38px] w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-gray-300 px-3 transition-colors hover:border-gray-400"
+									class="flex h-11 w-full cursor-pointer sm:h-10 items-center justify-center gap-2 rounded-md border border-dashed border-gray-300 px-3 transition-colors hover:border-gray-400"
 								>
 									<Upload class="h-4 w-4 text-gray-400" />
 									<span class="text-xs text-gray-600"
@@ -653,7 +653,7 @@
 								/>
 							{:else}
 								<div
-									class="flex h-[38px] items-center justify-between rounded-md border border-gray-300 bg-gray-50 px-3"
+									class="flex h-11 items-center justify-between sm:h-10 rounded-md border border-gray-300 bg-gray-50 px-3"
 								>
 									<div class="flex items-center gap-2 truncate">
 										<Upload class="h-4 w-4 shrink-0 text-gray-400" />

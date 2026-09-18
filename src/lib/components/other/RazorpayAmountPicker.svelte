@@ -85,7 +85,7 @@
 				value={amountInput}
 				oninput={(e) => (amountInput = (e.target as HTMLInputElement).value)}
 				placeholder={t(lang, 'amountToPay')}
-				class="w-full rounded-md border border-gray-300 py-1.5 pr-2 pl-6 text-sm font-medium text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="h-11 w-full rounded-md border border-gray-300 py-0 pr-2 pl-6 text-base font-medium sm:h-10 sm:text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 			/>
 		</label>
 		{#if due > 0}

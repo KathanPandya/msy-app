@@ -7,6 +7,7 @@
 	type SelectProps = {
 		id: string;
 		label?: string;
+		size?: 'md' | 'sm';
 		value: string;
 		options: SelectOption[];
 		error?: string;
@@ -18,6 +19,7 @@
 	let {
 		id,
 		label,
+		size = 'md',
 		value = $bindable(),
 		options,
 		error = '',
@@ -27,7 +29,9 @@
 	}: SelectProps = $props();
 
 	const selectClasses = $derived(
-		`w-full px-3 py-2 border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+		`w-full pl-3 pr-10 py-0 h-11 text-base border rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+			size === 'sm' ? 'sm:h-8 sm:text-sm' : 'sm:h-10 sm:text-sm'
+		} ${
 			error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
 		} ${disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white text-gray-900'}`
 	);

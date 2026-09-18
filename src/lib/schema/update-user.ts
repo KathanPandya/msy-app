@@ -45,17 +45,18 @@ export const profileDetailsSchema = Yup.object().shape({
 });
 
 export const addressFormValidationSchema = Yup.object().shape({
-	addressLine1: Yup.string().required('Address Line 1 is required'),
-	addressLine2: Yup.string(),
-	areaName: Yup.string().required('Area Name is required'),
-	landmark: Yup.string().required('Landmark is required'),
-	city: Yup.string().required('City is required'),
+	addressLine1: Yup.string().trim().required('Address Line 1 is required'),
+	addressLine2: Yup.string().trim(),
+	areaName: Yup.string().trim(),
+	landmark: Yup.string().trim(),
+	city: Yup.string().trim().required('City is required'),
 	pincode: Yup.string()
+		.trim()
 		.required('Pincode is required')
 		.length(6, 'Must be exactly 6 digits')
 		.matches(APP_CONSTANTS.VALIDATIONS.numberOnly, 'Must be only digits'),
-	state: Yup.string().required('State is required'),
-	country: Yup.string().required('Country is required')
+	state: Yup.string().trim().required('State is required'),
+	country: Yup.string().trim().required('Country is required')
 });
 
 // Combined schema

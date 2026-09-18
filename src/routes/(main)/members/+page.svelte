@@ -842,6 +842,7 @@
 						<Input
 							id="amount-value"
 							type="number"
+							size="sm"
 							bind:value={filters.amountValue}
 							placeholder="Amount"
 							onChange={() => {
@@ -1041,6 +1042,7 @@
 									[col.key]: e.currentTarget.checked
 								})}
 							disabled={isDownloading}
+							class="size-5 sm:size-4"
 						/>
 						{col.label}
 					</label>
@@ -1174,8 +1176,17 @@
 	 * screens so the selects sit inline like compact pills. */
 	.field-sm {
 		inline-size: auto;
-		padding-block: 0.375rem;
-		font-size: 0.8125rem;
+		block-size: 2.75rem;
+		padding-block: 0;
+		font-size: 1rem;
+		line-height: 1.5rem;
+	}
+	@media (min-width: 40rem) {
+		.field-sm {
+			block-size: 2rem;
+			font-size: 0.875rem;
+			line-height: 1.25rem;
+		}
 	}
 	.field:focus-visible {
 		outline: none;
@@ -1191,6 +1202,8 @@
 	@supports (appearance: base-select) {
 		.field {
 			appearance: base-select;
+			/* base-select renders as flex; keep text vertically centered */
+			align-items: center;
 		}
 	}
 

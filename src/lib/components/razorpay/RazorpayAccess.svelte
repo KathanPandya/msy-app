@@ -115,8 +115,8 @@
 
 <div class="flex h-full flex-col">
 	<div class="mb-1.5 flex-shrink-0 space-y-1.5">
-		<div class="flex flex-wrap items-center gap-2 min-[576px]:flex-nowrap">
-			<div class="w-full min-[576px]:w-64">
+		<div class="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+			<div class="w-full sm:w-64">
 				<SearchInput
 					id="razorpay-access-search"
 					bind:value={searchQuery}
@@ -127,7 +127,7 @@
 				<input
 					type="checkbox"
 					bind:checked={selectedOnly}
-					class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+					class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 				/>
 				Selected only
 			</label>
@@ -195,7 +195,7 @@
 						type="checkbox"
 						checked={allVisibleSelected}
 						onchange={toggleAllVisible}
-						class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+						class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 					/>
 					{allVisibleSelected ? 'Deselect' : 'Select'} all {visibleMembers.length} shown
 				</label>
@@ -210,7 +210,7 @@
 								type="checkbox"
 								checked={selected.has(m._id)}
 								onchange={() => toggle(m._id)}
-								class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 							/>
 							<span class="min-w-0 flex-1 truncate text-xs font-medium text-gray-900">
 								{formatMemberDisplay(m.name, m.member_id)}

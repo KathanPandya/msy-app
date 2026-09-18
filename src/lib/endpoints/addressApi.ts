@@ -17,7 +17,7 @@ class AddressApi {
 		userToken,
 		payload
 	}: {
-		userToken: string;
+		userToken?: string;
 		payload: Address.Create;
 	}): Promise<{ address: Address.Data; message: string; success: boolean }> {
 		const response = await axios.post(

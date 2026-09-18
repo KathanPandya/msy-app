@@ -266,7 +266,7 @@
 			<select
 				bind:value={voidFilter}
 				onchange={loadScreenshots}
-				class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				class="h-11 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base font-medium sm:h-8 sm:text-sm text-gray-700 shadow-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			>
 				<option value="">All screenshots</option>
 				<option value="active">Active</option>

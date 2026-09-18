@@ -292,7 +292,7 @@
 						onfocus={handleMemberIdFocus}
 						onclick={handleMemberIdFocus}
 						required
-						class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+						class="h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-0 text-base text-gray-900 sm:h-10 sm:text-sm transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 				</div>
 				<button

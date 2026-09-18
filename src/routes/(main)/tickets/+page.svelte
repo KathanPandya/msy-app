@@ -310,8 +310,8 @@
 <div class="flex h-full flex-col">
 	<!-- Fixed header -->
 	<div class="mb-1.5 flex-shrink-0 space-y-1.5">
-		<!-- Below 576px: filters collapse behind one button, Add stays right-aligned -->
-		<div class="min-[576px]:hidden">
+		<!-- Below 640px: filters collapse behind one button, Add stays right-aligned -->
+		<div class="sm:hidden">
 			<div class="flex items-center gap-3">
 				<button
 					onclick={() => (showFilters = !showFilters)}
@@ -341,7 +341,7 @@
 						<select
 							bind:value={statusFilter}
 							onchange={applyFilters}
-							class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+							class="h-11 min-w-0 flex-1 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 						>
 							<option value="">All statuses</option>
 							{#each TICKET_STATUSES as option}
@@ -351,7 +351,7 @@
 						<select
 							bind:value={typeFilter}
 							onchange={applyFilters}
-							class="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+							class="h-11 min-w-0 flex-1 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 						>
 							<option value="">All types</option>
 							{#each TICKET_TYPES as option}
@@ -365,7 +365,7 @@
 								type="checkbox"
 								bind:checked={mineOnly}
 								onchange={applyFilters}
-								class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 							/>
 							Mine
 						</label>
@@ -374,7 +374,7 @@
 								type="checkbox"
 								bind:checked={includeDeleted}
 								onchange={applyFilters}
-								class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 							/>
 							Deleted
 						</label>
@@ -389,12 +389,12 @@
 			{/if}
 		</div>
 
-		<!-- 576px and up: one row of content-hugging controls -->
-		<div class="hidden w-full flex-nowrap items-center gap-3 min-[576px]:flex">
+		<!-- 640px and up: one row of content-hugging controls -->
+		<div class="hidden w-full flex-nowrap items-center gap-3 sm:flex">
 			<select
 				bind:value={statusFilter}
 				onchange={applyFilters}
-				class="w-[130px] shrink-0 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				class="h-8 w-[150px] shrink-0 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			>
 				<option value="">All statuses</option>
 				{#each TICKET_STATUSES as option}
@@ -405,7 +405,7 @@
 			<select
 				bind:value={typeFilter}
 				onchange={applyFilters}
-				class="w-[130px] shrink-0 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+				class="h-8 w-[150px] shrink-0 rounded-md border border-gray-300 bg-white py-0 pr-10 pl-3 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 			>
 				<option value="">All types</option>
 				{#each TICKET_TYPES as option}
@@ -418,7 +418,7 @@
 					type="checkbox"
 					bind:checked={mineOnly}
 					onchange={applyFilters}
-					class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+					class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 				/>
 				Mine
 			</label>
@@ -428,7 +428,7 @@
 					type="checkbox"
 					bind:checked={includeDeleted}
 					onchange={applyFilters}
-					class="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+					class="size-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:size-4"
 				/>
 				Deleted
 			</label>

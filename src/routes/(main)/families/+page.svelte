@@ -157,7 +157,7 @@
 			bind:value={searchQuery}
 			oninput={() => debouncedSearch()}
 			placeholder="Search families by member name or MSY id…"
-			class="w-full min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:max-w-md"
+			class="w-full min-w-0 flex-1 rounded-md border border-gray-300 h-11 bg-white px-3 py-0 text-base text-gray-900 placeholder:text-gray-400 sm:h-8 sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none sm:max-w-md"
 		/>
 		<div class="ml-auto shrink-0">
 			<Button variant="primary" size="sm" onclick={() => goto('/families/create')}>
