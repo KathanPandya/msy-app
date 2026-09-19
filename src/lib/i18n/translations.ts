@@ -286,7 +286,6 @@ export const dict = {
 		en: 'This membership is no longer active. Please contact the admin.',
 		guj: 'આ સભ્યપદ હવે સક્રિય નથી. કૃપા કરી એડમિનનો સંપર્ક કરો.'
 	},
-	startOver: { en: '← Start over', guj: '← ફરીથી શરૂ કરો' },
 	needHelp: { en: 'Need help?', guj: 'મદદ જોઈએ છે?' },
 	contactSupport: { en: 'Contact Support', guj: 'સપોર્ટનો સંપર્ક કરો' },
 	loginToAdminPortal: { en: 'Login to admin portal', guj: 'એડમિન પોર્ટલમાં લૉગિન કરો' },
@@ -298,6 +297,67 @@ export const dict = {
 		guj: 'નવો PIN અને પુષ્ટિ કરેલ PIN સરખા હોવા જોઈએ.'
 	},
 	errCouldNotUpdatePin: { en: 'Could not update PIN.', guj: 'PIN અપડેટ કરી શકાયો નહીં.' },
+
+	// OTP login / set PIN
+	loginWithOtp: { en: 'Log in with OTP', guj: 'OTP થી લૉગ ઇન કરો' },
+	forgotPinContactAdmin: {
+		en: 'Forgot PIN? Contact admin.',
+		guj: 'PIN ભૂલી ગયા? એડમિનનો સંપર્ક કરો.'
+	},
+	enterCodeFor: { en: 'Enter the code emailed for', guj: 'ઇમેલ પર મોકલેલ કોડ દાખલ કરો:' },
+	sixDigitCode: { en: '6-digit code', guj: '6-અંકનો કોડ' },
+	otpSentNotice: {
+		en: 'Check your inbox and spam folder. The code expires in 10 minutes. If you request again, use the latest email.',
+		guj: 'તમારું ઇનબોક્સ અને સ્પામ ફોલ્ડર તપાસો. કોડ 10 મિનિટમાં સમાપ્ત થશે. ફરી વિનંતી કરો તો નવીનતમ ઇમેઇલનો ઉપયોગ કરો.'
+	},
+	resendCode: { en: 'Resend code', guj: 'કોડ ફરી મોકલો' },
+	resendCodeInSeconds: {
+		en: 'Resend code in {seconds}s',
+		guj: '{seconds} સેકન્ડમાં કોડ ફરી મોકલો'
+	},
+	usePinInstead: { en: 'Use PIN instead', guj: 'તેના બદલે PIN વાપરો' },
+	errCodeSixDigits: { en: 'Code must be 6 digits.', guj: 'કોડ 6 અંકનો હોવો જોઈએ.' },
+	setPin: { en: 'Set PIN', guj: 'PIN સેટ કરો' },
+	pinSet: { en: 'PIN set.', guj: 'PIN સેટ થઈ ગયો.' },
+	errPinFourDigits: { en: 'PIN must be 4 digits.', guj: 'PIN 4 અંકનો હોવો જોઈએ.' },
+	sending: { en: 'Sending…', guj: 'મોકલી રહ્યા છીએ…' },
+	resendInSeconds: { en: 'Resend in {seconds}s', guj: '{seconds} સેકન્ડમાં ફરી મોકલો' },
+	resetLinkInvalid: {
+		en: 'This link is invalid or has expired.',
+		guj: 'આ લિંક અમાન્ય છે અથવા સમાપ્ત થઈ ગઈ છે.'
+	},
+
+	// email verification
+	emailVerified: { en: 'Verified', guj: 'ચકાસાયેલ' },
+	emailNotVerified: { en: 'Not verified', guj: 'ચકાસાયેલ નથી' },
+	verifyEmail: { en: 'Verify email', guj: 'ઇમેલ ચકાસો' },
+	verifyLinkSentNotice: {
+		en: 'Check your inbox and spam folder. The link expires in 24 hours. If you request again, use the latest email. Once verified, refresh this page.',
+		guj: 'તમારું ઇનબોક્સ અને સ્પામ ફોલ્ડર તપાસો. લિંક 24 કલાકમાં સમાપ્ત થશે. ફરી વિનંતી કરો તો નવીનતમ ઇમેઇલનો ઉપયોગ કરો. ચકાસણી પછી આ પેજ રિફ્રેશ કરો.'
+	},
+	verifyingEmail: { en: 'Verifying…', guj: 'ચકાસી રહ્યા છીએ…' },
+	emailVerifiedNotice: {
+		en: 'Your email is verified. You can now log in with a code.',
+		guj: 'તમારો ઇમેલ ચકાસાઈ ગયો છે. હવે તમે કોડથી લૉગ ઇન કરી શકો છો.'
+	},
+	emailChangeContactAdmin: {
+		en: 'To change it, contact admin.',
+		guj: 'તેને બદલવા માટે એડમિનનો સંપર્ક કરો.'
+	},
+	loginPin: { en: 'Login PIN', guj: 'લૉગિન PIN' },
+	otpSessionSetPinNotice: {
+		en: 'You logged in with a code. Set a PIN for quicker login.',
+		guj: 'તમે કોડથી લૉગ ઇન કર્યું છે. ઝડપી લૉગિન માટે PIN સેટ કરો.'
+	},
+	goToProfile: { en: 'Go to profile', guj: 'પ્રોફાઇલ પર જાઓ' },
+	emailNotVerifiedTitle: { en: 'Your email is not verified', guj: 'તમારો ઇમેલ ચકાસાયેલ નથી' },
+	emailNotVerifiedNotice: {
+		en: 'Verify your email to enable OTP login, PIN reset and payment receipts.',
+		guj: 'OTP લૉગિન, PIN રીસેટ અને ચુકવણીની રસીદ મેળવવા માટે તમારો ઇમેલ ચકાસો.'
+	},
+	later: { en: 'Later', guj: 'પછી' },
+	enterYourEmail: { en: 'Enter your email', guj: 'તમારો ઇમેલ દાખલ કરો' },
+	errEnterRealEmail: { en: 'Please enter your real email.', guj: 'કૃપા કરી તમારો સાચો ઇમેલ દાખલ કરો.' },
 
 	// other-schemes page
 	knowOtherSchemes: { en: 'Know about our other schemes', guj: 'અમારી અન્ય યોજનાઓ' },
@@ -322,7 +382,42 @@ export const dict = {
 	accountNumberLabel: { en: 'Account number', guj: 'ખાતા નંબર' },
 	ifscCodeLabel: { en: 'IFSC code', guj: 'IFSC કોડ' },
 	copy: { en: 'Copy', guj: 'કૉપિ કરો' },
-	copied: { en: 'Copied!', guj: 'કૉપિ થયું!' }
+	copied: { en: 'Copied!', guj: 'કૉપિ થયું!' },
+	installApp: { en: 'Install App', guj: 'એપ ઇન્સ્ટોલ કરો' },
+	installAndroidTitle: {
+		en: 'Install the MSY app on your phone',
+		guj: 'તમારા ફોનમાં MSY એપ ઇન્સ્ટોલ કરો'
+	},
+	installAndroidHint: {
+		en: 'Open it in one tap from your home screen — no Play Store needed.',
+		guj: 'હોમ સ્ક્રીન પરથી એક ટૅપમાં ખોલો — Play Store ની જરૂર નથી.'
+	},
+	installAndroidStep1: {
+		en: 'Tap the ⋮ menu at the top-right of Chrome',
+		guj: 'Chrome માં ઉપર જમણી બાજુ ⋮ મેનુ પર ટૅપ કરો'
+	},
+	installAndroidStep2: {
+		en: 'Tap "Install app" or "Add to Home screen"',
+		guj: '"Install app" અથવા "Add to Home screen" પર ટૅપ કરો'
+	},
+	installAndroidStep3: { en: 'Tap "Install" to confirm', guj: 'ખાતરી કરવા "Install" પર ટૅપ કરો' },
+	installIosTitle: {
+		en: 'Install the MSY app on your iPhone',
+		guj: 'તમારા iPhone માં MSY એપ ઇન્સ્ટોલ કરો'
+	},
+	installIosHint: {
+		en: 'Open it in one tap from your home screen — no App Store needed.',
+		guj: 'હોમ સ્ક્રીન પરથી એક ટૅપમાં ખોલો — App Store ની જરૂર નથી.'
+	},
+	installIosStep1: {
+		en: 'In Safari, tap the Share button at the bottom',
+		guj: 'Safari માં નીચે આપેલા Share બટન પર ટૅપ કરો'
+	},
+	installIosStep2: {
+		en: 'Scroll down and tap "Add to Home Screen"',
+		guj: 'નીચે સ્ક્રોલ કરી "Add to Home Screen" પર ટૅપ કરો'
+	},
+	installIosStep3: { en: 'Tap "Add" at the top-right', guj: 'ઉપર જમણી બાજુ "Add" પર ટૅપ કરો' }
 } as const;
 
 export type DictKey = keyof typeof dict;

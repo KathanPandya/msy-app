@@ -16,6 +16,12 @@
 		onselect: (id: string) => void;
 	} = $props();
 
+	// Logged-in member first, rest keep their original order.
+	const orderedMembers = $derived([
+		...familyMembers.filter((m) => m.id === myId),
+		...familyMembers.filter((m) => m.id !== myId)
+	]);
+
 	function initials(name: string) {
 		return (name || '?').trim().charAt(0).toUpperCase();
 	}
@@ -23,7 +29,7 @@
 
 {#if familyMembers.length > 1}
 	<div class="flex gap-3 overflow-x-auto overflow-y-visible px-1 py-1.5">
-		{#each familyMembers as m (m.id)}
+		{#each orderedMembers as m (m.id)}
 			{@const isSelected = m.id === selectedId}
 			<button
 				type="button"

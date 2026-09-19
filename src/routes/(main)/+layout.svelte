@@ -145,10 +145,17 @@
 				<span
 					class={`
         ${isSidebarOpen ? 'opacity-100' : 'w-0 opacity-0'}
-        text-lg font-semibold text-gray-900 transition-opacity duration-300
+        flex items-center gap-2 overflow-hidden text-lg font-semibold whitespace-nowrap text-gray-900 transition-opacity duration-300
       `}
 				>
-					{isSidebarOpen ? 'MSY Admin' : ''}
+					{#if isSidebarOpen}
+						<img
+							src="/logos/02_Website_Logo/website-logo-symbol-512.webp"
+							alt=""
+							class="h-7 w-7 flex-shrink-0"
+						/>
+						MSY Admin
+					{/if}
 				</span>
 				<button
 					type="button"
@@ -252,7 +259,11 @@
 					</button>
 
 					<!-- User Menu -->
-					<div class="flex items-center space-x-2 border-l border-gray-200 pl-2">
+					<a
+						href="/account"
+						class="flex items-center space-x-2 border-l border-gray-200 pl-2"
+						title="Account"
+					>
 						<div
 							class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-medium text-white"
 						>
@@ -261,7 +272,7 @@
 						<div class="hidden md:block">
 							<p class="text-sm font-medium text-gray-900">{currentUser.name}</p>
 						</div>
-					</div>
+					</a>
 
 					<!-- Logout Button -->
 					<button

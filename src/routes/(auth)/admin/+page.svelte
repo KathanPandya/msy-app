@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Input from '$lib/components/ui/Input.svelte';
 	import authApi from '$lib/endpoints/authApi';
 	import { authStore } from '$lib/stores/authStore';
@@ -22,9 +23,9 @@
 		password: Yup.string().required('Password is required')
 	});
 
-	// Form Data
+	// Form Data (username prefilled after accepting an admin invite)
 	let formData = $state({
-		username: '',
+		username: page.url.searchParams.get('username') ?? '',
 		password: ''
 	});
 

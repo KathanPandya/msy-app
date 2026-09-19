@@ -36,7 +36,7 @@
 					title: '1. About Us',
 					paragraphs: [
 						`${TRUST_NAME_EN} is a not-for-profit trust. This website is used to,`,
-						'(a) accept voluntary donations to support the Trust\'s charitable activities, and',
+						"(a) accept voluntary donations to support the Trust's charitable activities, and",
 						"(b) collect scheme contributions from enrolled members, where members contribute periodically as mutual help/support for other members under the Trust's scheme."
 					]
 				},
@@ -57,7 +57,7 @@
 				{
 					title: '4. Eligibility',
 					paragraphs: [
-						'Only persons enrolled as members of the Trust\'s scheme may make scheme contributions. The contribution may be made by the representative of the members. Donations may be made by any individual or entity wishing to support the Trust.'
+						"Only persons enrolled as members of the Trust's scheme may make scheme contributions. The contribution may be made by the representative of the members. Donations may be made by any individual or entity wishing to support the Trust."
 					]
 				},
 				{
@@ -195,7 +195,7 @@
 </script>
 
 <div class="min-h-full overflow-y-auto bg-white">
-	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
+	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-1.5 sm:px-6">
 		<div class="flex items-center gap-3">
 			<a
 				href={withLang(lang, '/')}
@@ -204,7 +204,16 @@
 				<ArrowLeft class="h-3.5 w-3.5" />
 				{c.back}
 			</a>
-			<span class="text-sm font-bold tracking-wide text-blue-600">MSY</span>
+			<a href={withLang(lang, '/')} class="flex min-w-0 items-center gap-1">
+				<img
+					src="/logos/02_Website_Logo/website-logo-symbol-512.webp"
+					alt=""
+					class="h-8 w-8 flex-shrink-0"
+				/>
+				<div class="min-w-0 leading-tight">
+					<p class="text-sm font-medium text-[#2f9fb3]"><b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay <b class="-mr-0.5 text-lg">Y</b>ojana</p>
+				</div>
+			</a>
 		</div>
 		<a
 			href={langSwitchHref}

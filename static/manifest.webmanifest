@@ -1,0 +1,19 @@
+{
+	"name": "MSY",
+	"short_name": "MSY",
+	"start_url": "/me",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#135a82",
+	"icons": [
+		{ "src": "/logos/01_App_Icon/app-icon-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "/logos/01_App_Icon/app-icon-512.png", "sizes": "512x512", "type": "image/png" },
+		{
+			"src": "/logos/01_App_Icon/app-icon-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

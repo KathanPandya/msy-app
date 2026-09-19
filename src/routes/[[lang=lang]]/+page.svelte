@@ -2,9 +2,10 @@
 	import { goto } from '$app/navigation';
 	// import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { withLang } from '$lib/i18n';
+	import { t, withLang } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
 	import { HandHeart } from '@lucide/svelte';
+	import InstallAppCard from '$lib/components/other/InstallAppCard.svelte';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
 
@@ -26,11 +27,8 @@
 		if ($authStore.isLoading) return; // wait for initialize() to resolve
 		if (!$authStore.isAuthenticated) return; // show the public landing page
 
-		if ($authStore.userAllInfo?.user.role === 'admin') {
-			goto('/dashboard');
-		} else {
-			goto(withLang(lang, '/me'));
-		}
+		// Members stay here so the header logo can bring them home.
+		if ($authStore.userAllInfo?.user.role === 'admin') goto('/dashboard');
 	});
 
 	// English → offer Gujarati (label itself in Gujarati); Gujarati → offer
@@ -70,7 +68,7 @@
 				},
 				{
 					q: 'How much do I need to pay to join?',
-					a: 'The one-time joining amount depends on age at entry:\n\n<strong>18–40 years</strong>: ₹250 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹800</strong>\n<strong>41–50 years</strong>: ₹500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹1,050</strong>\n<strong>51–55 years</strong>: ₹1,500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹2,550</strong>\n\nThis amount is paid once, at the time of joining.',
+					a: 'The one-time joining amount depends on age at entry:\n\n<strong>18–40 years</strong>: ₹250 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹800</strong>\n<strong>41–50 years</strong>: ₹500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹1,050</strong>\n<strong>51–55 years</strong>: ₹1,500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹2,050</strong>\n\nThis amount is paid once, at the time of joining.',
 					html: true
 				},
 				{
@@ -115,7 +113,7 @@
 				},
 				{
 					q: 'સભ્ય બનવા માટે કેટલી રકમ ચૂકવવાની રહેશે?',
-					a: 'ઉંમર પ્રમાણે રકમ અલગ છે:\n\n<strong>18 થી 40 વર્ષ</strong>: ₹250 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹800</strong>\n<strong>41 થી 50 વર્ષ</strong>: ₹500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹1,050</strong>\n<strong>51 થી 55 વર્ષ</strong>: ₹1,500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹2,550</strong>\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.',
+					a: 'ઉંમર પ્રમાણે રકમ અલગ છે:\n\n<strong>18 થી 40 વર્ષ</strong>: ₹250 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹800</strong>\n<strong>41 થી 50 વર્ષ</strong>: ₹500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹1,050</strong>\n<strong>51 થી 55 વર્ષ</strong>: ₹1,500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹2,050</strong>\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.',
 					html: true
 				},
 				{
@@ -139,8 +137,17 @@
 </script>
 
 <div class="min-h-full overflow-y-auto bg-white">
-	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
-		<span class="text-sm font-bold tracking-wide text-blue-600">MSY</span>
+	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-1.5 sm:px-6">
+		<a href={withLang(lang, '/')} class="flex min-w-0 items-center gap-1">
+			<img
+				src="/logos/02_Website_Logo/website-logo-symbol-512.webp"
+				alt=""
+				class="h-8 w-8 flex-shrink-0"
+			/>
+			<div class="min-w-0 leading-tight">
+				<p class="text-sm font-medium text-[#2f9fb3]"><b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay <b class="-mr-0.5 text-lg">Y</b>ojana</p>
+			</div>
+		</a>
 		<a
 			href={langSwitchHref}
 			data-sveltekit-replacestate
@@ -152,14 +159,24 @@
 
 	<main class="mx-auto max-w-2xl px-4 pt-4 pb-10 sm:px-6">
 		<section class="text-center">
-			<p class="text-2xl font-bold text-blue-600">Welcome,</p>
-			<p class="mt-2 text-xs leading-relaxed text-gray-600">
-				શ્રી અખિલ હિંદ ભટ્ટ મેવાડા બ્રહ્મ સમાજ ફેડરેશન સંચાલિત
-				<br />
-				<strong class="font-semibold text-gray-800">
-					શ્રીમતી નિરંજનાબેન ભરતકુમાર ભટ્ટ સમસ્ત ભટ્ટ મેવાડા પરિવાર કલ્યાણ (મૃત્યુ સહાય) યોજના
-				</strong>
-				માં આપનું સ્વાગત છે 🙏
+			<!-- <p class="text-2xl font-bold text-blue-600">Welcome,</p> -->
+			<p class="text-xs leading-relaxed text-gray-600">
+				{#if lang === 'guj'}
+					શ્રી અખિલ હિંદ ભટ્ટ મેવાડા બ્રહ્મ સમાજ ફેડરેશન સંચાલિત
+					<br />
+					<strong class="font-semibold text-gray-800">
+						શ્રીમતી નિરંજનાબેન ભરતકુમાર ભટ્ટ સમસ્ત ભટ્ટ મેવાડા પરિવાર કલ્યાણ (મૃત્યુ સહાય) યોજના
+					</strong>
+					માં આપનું સ્વાગત છે 🙏
+				{:else}
+					Welcome to the
+					<br />
+					<strong class="font-semibold text-gray-800">
+						Shrimati Niranjanaben Bharatkumar Bhatt Samast Bhatt Mevada Parivar Kalyan (Mrutyu
+						Sahay) Yojana
+					</strong>
+					run by Shri Akhil Hind Bhatt Mevada Brahm Samaj Federation 🙏
+				{/if}
 			</p>
 		</section>
 
@@ -184,6 +201,10 @@
 			</p>
 		</section>
 
+		<div class="mt-4">
+			<InstallAppCard {lang} />
+		</div>
+
 		<section class="mt-6">
 			<h1 class="text-lg font-bold text-gray-900">{c.aboutTitle}</h1>
 			<div class="mt-3 space-y-3 text-sm leading-relaxed text-gray-700">
@@ -192,7 +213,9 @@
 				{/each}
 			</div>
 
-			<div class="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-y border-gray-100 py-4 sm:grid-cols-4">
+			<div
+				class="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-y border-gray-100 py-4 sm:grid-cols-4"
+			>
 				{#each c.stats as stat (stat.label)}
 					<div>
 						<p class="text-base font-bold text-gray-900">{stat.value}</p>
@@ -205,6 +228,16 @@
 		<!-- <section class="mt-4 flex justify-center">
 			<div bind:this={payButtonContainer}></div>
 		</section> -->
+
+		<section class="mt-6 text-center">
+			<a
+				href={withLang(lang, '/other-schemes')}
+				class="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
+			>
+				{t(lang, 'knowOtherSchemes')}
+				<HandHeart class="h-5 w-5" />
+			</a>
+		</section>
 
 		<section class="mt-6">
 			<div class="flex items-baseline justify-between">
@@ -237,7 +270,9 @@
 		</section>
 	</main>
 
-	<footer class="flex items-center justify-center gap-3 px-4 py-6 text-center text-[11px] text-gray-400">
+	<footer
+		class="flex items-center justify-center gap-3 px-4 py-6 text-center text-[11px] text-gray-400"
+	>
 		<a href={withLang(lang, '/about')} class="hover:text-gray-600 hover:underline">
 			{lang === 'guj' ? 'અમારા વિશે' : 'About Us'}
 		</a>

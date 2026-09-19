@@ -1,6 +1,5 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/authStore';
 	import { page } from '$app/state';
@@ -34,9 +33,11 @@
 		const publicRoutes = [
 			'/',
 			'/login',
+			'/verify-email',
 			'/forgot-password',
 			'/reset-password',
 			'/admin',
+			'/admin/accept-invite',
 			'/unauthorized',
 			'/other-schemes',
 			'/qna',
@@ -64,7 +65,7 @@
 			!$authStore.isLoading &&
 			$authStore.isAuthenticated &&
 			$authStore.authType === 'pin' &&
-			(pathWithoutLang === '/' || pathWithoutLang === '/admin')
+			pathWithoutLang === '/admin'
 		) {
 			goto(withLang(lang, '/me'));
 		}
@@ -77,7 +78,7 @@
 			? currentPath.replace(new RegExp(`^/${lang}`), '') || '/'
 			: currentPath;
 
-		const publicShellRoutes = ['/', '/login', '/me', '/about', '/qna', '/terms', '/other-schemes'];
+		const publicShellRoutes = ['/', '/login', '/verify-email', '/me', '/about', '/qna', '/terms', '/other-schemes'];
 		const isPublicShellRoute = publicShellRoutes.some(
 			(route) => pathWithoutLang === route || pathWithoutLang.startsWith(`${route}/`)
 		);
@@ -88,10 +89,10 @@
 
 <svelte:head>
 	<title>{appHeading}</title>
-	<link rel="icon" href={favicon} />
 </svelte:head>
 
 <LoadingBar />
+
 
 <!-- {#if $authStore.isLoading}
 	<div class="flex min-h-screen items-center justify-center bg-gray-50">

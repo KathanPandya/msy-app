@@ -6,19 +6,27 @@
 	import { authStore } from '$lib/stores/authStore';
 	import { getMemberShellContext } from '$lib/context/memberShell';
 	import { getCachedUserInfo, setCachedUserInfo } from '$lib/utilities/meCache';
-	import { formatDate, formatToYYYYMMDD, getUserAddress } from '$lib/utilities/helperFunc';
+	import {
+		formatDate,
+		formatToYYYYMMDD,
+		getUserAddress
+	} from '$lib/utilities/helperFunc';
 	import { APP_CONSTANTS } from '$lib/constants/app-constants';
 	import coreApi from '$lib/endpoints/coreApi';
 	import userApi from '$lib/endpoints/userApi';
 	import profileApi from '$lib/endpoints/profileApi';
 	import addressApi from '$lib/endpoints/addressApi';
 	import nomineeApi from '$lib/endpoints/nomineeApi';
+	import emailVerificationApi from '$lib/endpoints/emailVerificationApi';
+	import pinAuthApi from '$lib/endpoints/pinAuthApi';
+	import type { PinAuth } from '$lib/types/pinAuth';
 	import MemberAvatarSwitcher from '$lib/components/other/MemberAvatarSwitcher.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { User } from '$lib/types/user';
 	import type { Nominee } from '$lib/types/nominee';
+	import type { EmailVerification } from '$lib/types/emailVerification';
 	import { addressFormValidationSchema } from '$lib/schema/update-user';
 	import { ValidationError } from 'yup';
 	import { Pencil } from '@lucide/svelte';
@@ -338,6 +346,81 @@
 		}
 	}
 
+	// --- Email verification (only for the logged-in member's own record) ---
+	const isSelf = $derived(selectedId === me?._id);
+	let emailStatus = $state<EmailVerification.Status | null>(null);
+
+	// Always fetched fresh: an admin can set or replace the verified email.
+	function fetchEmailStatus() {
+		emailVerificationApi
+			.fetchStatus()
+			.then((res) => {
+				emailStatus = res;
+			})
+			.catch(() => {
+				emailStatus = null;
+			});
+	}
+
+	$effect(() => {
+		if (isSelf) fetchEmailStatus();
+	});
+
+	// --- Set PIN (only while logged in with an OTP code) ---
+	let loginMethod = $state<PinAuth.LoginMethod | null>(null);
+	let setPinEditing = $state(false);
+	let setPinSaving = $state(false);
+	let setPinStatus = $state<'success' | ''>('');
+	let setPinError = $state('');
+	let setPinForm = $state({ newPin: '', confirm: '' });
+
+	$effect(() => {
+		if (!isSelf) return;
+		coreApi
+			.fetchLoginMethod()
+			.then((method) => {
+				loginMethod = method;
+			})
+			.catch(() => {
+				loginMethod = null;
+			});
+	});
+
+	function openSetPin() {
+		setPinForm = { newPin: '', confirm: '' };
+		setPinError = '';
+		setPinStatus = '';
+		setPinEditing = true;
+	}
+
+	async function submitSetPin(event: SubmitEvent) {
+		event.preventDefault();
+		setPinError = '';
+		if (!/^\d{4}$/.test(setPinForm.newPin)) {
+			setPinError = t(lang, 'errPinFourDigits');
+			return;
+		}
+		if (setPinForm.newPin !== setPinForm.confirm) {
+			setPinError = t(lang, 'errPinsMismatch');
+			return;
+		}
+		setPinSaving = true;
+		try {
+			const res = await pinAuthApi.setPin(setPinForm);
+			if (res.success && res.token && res.user) {
+				// Set PIN issues a new session token; the old one stops working.
+				await authStore.loginWithPinSession(res.token, res.user);
+				loginMethod = 'pin';
+				setPinStatus = 'success';
+				setPinEditing = false;
+			}
+		} catch (err: any) {
+			setPinError = err?.response?.data?.error || t(lang, 'errSomethingWrong');
+		} finally {
+			setPinSaving = false;
+		}
+	}
+
 	// --- Nominees (view + edit relation only; members can never create or delete) ---
 	let nominees = $state<Nominee.Data[]>([]);
 	let nomineesFetchedFor = $state('');
@@ -452,6 +535,74 @@
 			></div>
 		</div>
 	{:else if info}
+		<!-- Set PIN (only while logged in with an OTP code) -->
+		{#if isSelf && (loginMethod === 'otp' || setPinStatus)}
+			<section class="rounded-lg border border-yellow-200 bg-yellow-50 p-3 shadow-sm">
+				<div class="mb-2 flex items-center justify-between gap-2">
+					<div class="flex min-w-0 items-center gap-2">
+						<h2 class="text-sm font-semibold text-gray-900">{t(lang, 'loginPin')}</h2>
+						{#if setPinStatus}
+							<span class="truncate text-xs text-green-700">{t(lang, 'pinSet')}</span>
+						{/if}
+					</div>
+					{#if loginMethod === 'otp' && !setPinEditing}
+						<button
+							type="button"
+							onclick={openSetPin}
+							class="flex flex-shrink-0 items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+						>
+							<Pencil class="h-3 w-3" />
+							{t(lang, 'setPin')}
+						</button>
+					{/if}
+				</div>
+
+				{#if setPinEditing}
+					<form onsubmit={submitSetPin} class="space-y-2.5">
+						<div class="grid grid-cols-2 gap-2.5">
+							<Input
+								id="setPinNew"
+								type="password"
+								inputmode="numeric"
+								maxlength={4}
+								label={t(lang, 'newFourDigitPin')}
+								bind:value={setPinForm.newPin}
+								required
+							/>
+							<Input
+								id="setPinConfirm"
+								type="password"
+								inputmode="numeric"
+								maxlength={4}
+								label={t(lang, 'confirmPin')}
+								bind:value={setPinForm.confirm}
+								required
+							/>
+						</div>
+						{#if setPinError}
+							<p class="text-xs text-red-600">{setPinError}</p>
+						{/if}
+						<div class="flex justify-end gap-2 pt-1">
+							<Button
+								type="button"
+								size="sm"
+								variant="secondary"
+								onclick={() => (setPinEditing = false)}
+								disabled={setPinSaving}
+							>
+								{t(lang, 'cancel')}
+							</Button>
+							<Button type="submit" size="sm" disabled={setPinSaving}>
+								{setPinSaving ? t(lang, 'saving') : t(lang, 'save')}
+							</Button>
+						</div>
+					</form>
+				{:else if loginMethod === 'otp'}
+					<p class="text-xs text-yellow-800">{t(lang, 'otpSessionSetPinNotice')}</p>
+				{/if}
+			</section>
+		{/if}
+
 		<!-- General -->
 		<section class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
 			<div class="mb-2 flex items-center justify-between gap-2">
@@ -568,6 +719,26 @@
 						<dt class="text-gray-500">{t(lang, 'mobile')}</dt>
 						<dd class="font-medium text-gray-900">{info.user.mobile || '-'}</dd>
 					</div>
+					{#if isSelf && emailStatus}
+						<div class="flex justify-between gap-4">
+							<dt class="text-gray-500">{t(lang, 'email')}</dt>
+							<dd class="flex min-w-0 items-center gap-1.5">
+								{#if emailStatus.verified && emailStatus.email}
+									<span class="truncate font-medium text-gray-900">{emailStatus.email}</span>
+								{/if}
+								<span
+									class="inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium {emailStatus.verified
+										? 'bg-green-100 text-green-800'
+										: 'bg-amber-100 text-amber-800'}"
+								>
+									{t(lang, emailStatus.verified ? 'emailVerified' : 'emailNotVerified')}
+								</span>
+							</dd>
+						</div>
+						{#if emailStatus.verified}
+							<p class="text-right text-gray-500">{t(lang, 'emailChangeContactAdmin')}</p>
+						{/if}
+					{/if}
 					<div class="flex justify-between gap-4">
 						<dt class="text-gray-500">{t(lang, 'dateOfBirth')}</dt>
 						<dd class="font-medium text-gray-900">{formatDate(info.user.date_of_birth)}</dd>
