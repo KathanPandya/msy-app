@@ -7,6 +7,15 @@ class AdminApi {
 		return response.data;
 	}
 
+	async deleteAdmin({ id }: { id: string }): Promise<{
+		success: boolean;
+		message: string;
+		data: { _id: string; username: string };
+	}> {
+		const response = await axios.delete(`/api/admin/admins/${id}`);
+		return response.data;
+	}
+
 	async sendInvite({ email }: { email: string }): Promise<{
 		success: boolean;
 		message: string;
