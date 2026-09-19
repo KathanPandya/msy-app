@@ -35,6 +35,21 @@ class PinAuthApi {
 		return response.data;
 	}
 
+	async requestOtp(payload: { memberId: string }): Promise<PinAuth.MessageResult> {
+		const response = await axios.post(`/api/pin-auth/request-otp`, payload);
+		return response.data;
+	}
+
+	async loginOtp(payload: { memberId: string; code: string }): Promise<PinAuth.StageResult> {
+		const response = await axios.post(`/api/pin-auth/login-otp`, payload);
+		return response.data;
+	}
+
+	async setPin(payload: { newPin: string; confirm: string }): Promise<PinAuth.StageResult> {
+		const response = await axios.post(`/api/pin-auth/set-pin`, payload);
+		return response.data;
+	}
+
 	async logout(): Promise<{ success: boolean; message?: string }> {
 		const response = await axios.post(`/api/pin-auth/logout`, {});
 		return response.data;

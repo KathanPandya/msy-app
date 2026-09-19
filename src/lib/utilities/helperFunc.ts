@@ -2,6 +2,16 @@ export function getUserAddress(addresses: any[]) {
 	return addresses.find((address) => !address.is_nominee_address) || null;
 }
 
+// Emails on example.com are placeholders set at import, not the member's real email.
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+	return !!email && email.trim().toLowerCase().endsWith('@example.com');
+}
+
+// Prefill value for an email input: the profile email only if it's a real one.
+export function getPrefillEmail(email: string | null | undefined): string {
+	return email && !isPlaceholderEmail(email) ? email.trim() : '';
+}
+
 export function formatDate(isoDate: string | null | undefined): string {
 	if (!isoDate) return '-';
 

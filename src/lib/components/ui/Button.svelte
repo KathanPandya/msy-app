@@ -1,7 +1,7 @@
 <script lang="ts">
 	type ButtonProps = {
 		variant?: 'primary' | 'success' | 'secondary' | 'danger';
-		size?: 'sm' | 'md';
+		size?: 'xs' | 'sm' | 'md';
 		type?: 'button' | 'submit' | 'reset';
 		onclick?: () => void;
 		disabled?: boolean;
@@ -20,7 +20,9 @@
 	const baseClasses =
 		'rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
+	// xs has a fixed height matching Input size="xs", so the two line up in a row.
 	const sizeClasses = {
+		xs: 'h-7 px-2.5 text-xs',
 		sm: 'px-3 py-1.5 text-xs',
 		md: 'px-4 py-2'
 	};

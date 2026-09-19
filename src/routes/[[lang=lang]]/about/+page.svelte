@@ -190,7 +190,7 @@
 					paragraphs: [
 						'આર્થિક પરિસ્થિતિને કારણે કોઈપણ વિદ્યાર્થીનું શિક્ષણ અટકી ન જાય તે માટે જરૂરિયાતમંદ વિદ્યાર્થીઓને શૈક્ષણિક સહાય આપવામાં આવે છે. અભ્યાસક્રમને અનુરૂપ ફી, પુસ્તકો, શૈક્ષણિક સામગ્રી તથા અન્ય જરૂરી સહાય દ્વારા વિદ્યાર્થીઓને તેમનું શિક્ષણ ચાલુ રાખવા માટે પ્રોત્સાહિત કરવામાં આવે છે.'
 					]
-				},
+				}
 				/* Sections 4 & 5 — commented out per request, not deleted.
 				{
 					title: '4. સેમિનાર અને વર્કશોપ દ્વારા યુવાનોનું સશક્તિકરણ',
@@ -222,7 +222,7 @@
 </script>
 
 <div class="min-h-full overflow-y-auto bg-white">
-	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
+	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-1.5 sm:px-6">
 		<div class="flex items-center gap-3">
 			<a
 				href={withLang(lang, '/')}
@@ -231,7 +231,16 @@
 				<ArrowLeft class="h-3.5 w-3.5" />
 				{c.back}
 			</a>
-			<span class="text-sm font-bold tracking-wide text-blue-600">MSY</span>
+			<a href={withLang(lang, '/')} class="flex min-w-0 items-center gap-1">
+				<img
+					src="/logos/02_Website_Logo/website-logo-symbol-512.webp"
+					alt=""
+					class="h-8 w-8 flex-shrink-0"
+				/>
+				<div class="min-w-0 leading-tight">
+					<p class="text-sm font-medium text-[#2f9fb3]"><b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay <b class="-mr-0.5 text-lg">Y</b>ojana</p>
+				</div>
+			</a>
 		</div>
 		<a
 			href={langSwitchHref}

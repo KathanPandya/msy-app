@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { t, type Lang } from '$lib/i18n';
+	import { t, withLang, type Lang } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
 	import { LogOut } from '@lucide/svelte';
 
@@ -21,6 +21,13 @@
 <header class="flex-shrink-0 border-b border-gray-200 bg-white px-3 py-1.5">
 	<div class="mx-auto flex max-w-3xl items-center justify-between">
 		<div class="flex items-center gap-1.5">
+			<a href={withLang(lang, '/')} class="flex-shrink-0">
+				<img
+					src="/logos/02_Website_Logo/website-logo-symbol-512.webp"
+					alt="MSY"
+					class="h-7 w-7 flex-shrink-0"
+				/>
+			</a>
 			<p class="text-sm font-semibold text-gray-900">
 				{t(lang, 'greeting').replace('{name}', firstName)}
 			</p>
