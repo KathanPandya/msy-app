@@ -5,6 +5,7 @@
 	import Table from '$lib/components/ui/Table.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import adminApi from '$lib/endpoints/adminApi';
+	import { authStore } from '$lib/stores/authStore';
 	import type { AdminInvite, AdminUser } from '$lib/types/admin';
 	import { formatTicketDate, parseTicketError } from '$lib/utilities/ticketUtils';
 	import { Plus } from '@lucide/svelte';
@@ -40,6 +41,41 @@
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	// ---------- Delete admin ----------
+	// Can't delete yourself: no Delete on the logged-in admin's row.
+	const myId = $derived($authStore.userAllInfo?.user?._id);
+	let deleteTarget = $state<AdminUser.Data | null>(null);
+	let deleteError = $state('');
+	let deleteLoading = $state(false);
+
+	function openDelete(admin: AdminUser.Data) {
+		deleteError = '';
+		deleteTarget = admin;
+	}
+
+	async function confirmDelete() {
+		if (!deleteTarget) return;
+		deleteLoading = true;
+		deleteError = '';
+		try {
+			const res = await adminApi.deleteAdmin({ id: deleteTarget._id });
+			deleteTarget = null;
+			noticeMessage = res.message;
+			loadAdmins();
+		} catch (err) {
+			deleteError = apiError(err, 'Could not delete admin');
+		} finally {
+			deleteLoading = false;
+		}
+	}
+
+	function adminActions(
+		admin: AdminUser.Data
+	): { label: string; onclick: () => void; danger?: boolean }[] {
+		if (admin._id === myId) return [];
+		return [{ label: 'Delete', danger: true, onclick: () => openDelete(admin) }];
 	}
 
 	// ---------- Invitations ----------
@@ -146,7 +182,8 @@
 			name: admin.name || '-',
 			email: admin.email || '-',
 			createdBy: admin.createdBy?.username ?? '-',
-			created: formatTicketDate(admin.createdAt)
+			created: formatTicketDate(admin.createdAt),
+			raw: admin
 		}))
 	);
 
@@ -282,6 +319,15 @@
 								<div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-500">
 									<span class="truncate">by {admin.createdBy?.username ?? '-'}</span>
 									<span class="ml-auto shrink-0">{formatTicketDate(admin.createdAt)}</span>
+									{#each adminActions(admin) as action}
+										<button
+											type="button"
+											class="shrink-0 font-medium text-red-600"
+											onclick={action.onclick}
+										>
+											{action.label}
+										</button>
+									{/each}
 								</div>
 							</div>
 						{/each}
@@ -290,7 +336,12 @@
 
 				<!-- Desktop / tablet -->
 				<div class="hidden h-full sm:block">
-					<Table {columns} data={tableData} density="compact" />
+					<Table
+						{columns}
+						data={tableData}
+						rowMenu={(row) => adminActions(row.raw)}
+						density="compact"
+					/>
 				</div>
 			{/if}
 		{:else if invitesLoading}
@@ -378,4 +429,22 @@
 			</Button>
 		</div>
 	</form>
+</Modal>
+
+<Modal open={!!deleteTarget} onClose={() => (deleteTarget = null)} title="Delete admin">
+	<div class="space-y-3">
+		<p class="text-sm text-gray-700">
+			Delete admin <span class="font-semibold text-gray-900">{deleteTarget?.username}</span>? They
+			won't be able to log in.
+		</p>
+		{#if deleteError}
+			<p class="text-xs text-red-600">{deleteError}</p>
+		{/if}
+		<div class="flex justify-end gap-2">
+			<Button variant="secondary" size="sm" onclick={() => (deleteTarget = null)}>Cancel</Button>
+			<Button variant="danger" size="sm" onclick={confirmDelete} disabled={deleteLoading}>
+				{deleteLoading ? 'Deleting...' : 'Delete'}
+			</Button>
+		</div>
+	</div>
 </Modal>
