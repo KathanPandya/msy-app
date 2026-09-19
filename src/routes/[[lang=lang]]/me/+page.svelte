@@ -12,6 +12,9 @@
 	import { Upload, ChevronRight } from '@lucide/svelte';
 	import UpiAppPicker from '$lib/components/other/UpiAppPicker.svelte';
 	import RazorpayAmountPicker from '$lib/components/other/RazorpayAmountPicker.svelte';
+	import EmailVerifyPrompt from '$lib/components/other/EmailVerifyPrompt.svelte';
+	import SetPinBanner from '$lib/components/other/SetPinBanner.svelte';
+	import InstallAppCard from '$lib/components/other/InstallAppCard.svelte';
 	import coreApi from '$lib/endpoints/coreApi';
 	import familiesApi from '$lib/endpoints/familiesApi';
 	import { clearMeCache, setCachedFamilyMe } from '$lib/utilities/meCache';
@@ -244,6 +247,9 @@
 </script>
 
 {#if user}
+	<SetPinBanner {lang} />
+	<EmailVerifyPrompt {lang} />
+
 	<section class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
 		<div class="flex items-center justify-between gap-2">
 			<div>
@@ -444,4 +450,6 @@
 			</div>
 		</section>
 	{/if}
+
+	<InstallAppCard {lang} />
 {/if}

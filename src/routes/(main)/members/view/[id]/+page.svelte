@@ -30,6 +30,7 @@
 	import PaymentYearlyBars from '$lib/components/other/PaymentYearlyBars.svelte';
 	import FamilyPanel from '$lib/components/other/FamilyPanel.svelte';
 	import MemberStatusPanel from '$lib/components/other/MemberStatusPanel.svelte';
+	import MemberVerifiedEmail from '$lib/components/other/MemberVerifiedEmail.svelte';
 	import { Pencil, Trash2 } from '@lucide/svelte';
 	import { onMount, onDestroy } from 'svelte';
 
@@ -1372,6 +1373,11 @@
 					<p class="mt-4 text-sm text-green-700">{nomineeSectionSuccess}</p>
 				{/if}
 			</div>
+
+			<!-- Verified email (separate from the profile email) -->
+			{#if page.params.id}
+				<MemberVerifiedEmail userId={page.params.id} profileEmail={userData.email} />
+			{/if}
 			</div>
 			{:else if activeTab === 'payments'}
 				<!-- Payments -->

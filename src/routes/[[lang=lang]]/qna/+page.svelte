@@ -25,7 +25,7 @@
 			faqs: [
 				{
 					q: 'What is the main purpose of this scheme?',
-					a: "When a family loses a member, the responsibility of supporting them — financially and socially — in that difficult time is shared by the entire Bhatt Mevada community. That is the core purpose of this scheme: \"One member's grief, the shared responsibility of the whole community.\""
+					a: 'When a family loses a member, the responsibility of supporting them — financially and socially — in that difficult time is shared by the entire Bhatt Mevada community. That is the core purpose of this scheme: "One member\'s grief, the shared responsibility of the whole community."'
 				},
 				{
 					q: "Is this only a support scheme during a member's death, or also a means of social unity?",
@@ -41,7 +41,7 @@
 				},
 				{
 					q: 'How much do I need to pay to become a member?',
-					a: 'The one-time joining amount depends on age at entry:\n\n<strong>18–40 years</strong>: ₹250 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹800</strong>\n<strong>41–50 years</strong>: ₹500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹1,050</strong>\n<strong>51–55 years</strong>: ₹1,500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹2,550</strong>\n\nThis amount is paid once, at the time of joining.',
+					a: 'The one-time joining amount depends on age at entry:\n\n<strong>18–40 years</strong>: ₹250 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹800</strong>\n<strong>41–50 years</strong>: ₹500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹1,050</strong>\n<strong>51–55 years</strong>: ₹1,500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹2,050</strong>\n\nThis amount is paid once, at the time of joining.',
 					html: true
 				},
 				{
@@ -98,7 +98,7 @@
 				},
 				{
 					q: "What is the scheme's core message?",
-					a: "\"Today, we stand with someone else's family in their grief. Tomorrow, when we need it, the community will stand with us.\""
+					a: '"Today, we stand with someone else\'s family in their grief. Tomorrow, when we need it, the community will stand with us."'
 				},
 				{
 					q: 'Why should every Bhatt Mevada family join this scheme?',
@@ -134,7 +134,7 @@
 				},
 				{
 					q: 'સભ્ય બનવા માટે કેટલી રકમ ચૂકવવાની રહેશે?',
-					a: 'ઉંમર પ્રમાણે રકમ અલગ છે:\n\n<strong>18 થી 40 વર્ષ</strong>: ₹250 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹800</strong>\n<strong>41 થી 50 વર્ષ</strong>: ₹500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹1,050</strong>\n<strong>51 થી 55 વર્ષ</strong>: ₹1,500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹2,550</strong>\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.',
+					a: 'ઉંમર પ્રમાણે રકમ અલગ છે:\n\n<strong>18 થી 40 વર્ષ</strong>: ₹250 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹800</strong>\n<strong>41 થી 50 વર્ષ</strong>: ₹500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹1,050</strong>\n<strong>51 થી 55 વર્ષ</strong>: ₹1,500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹2,050</strong>\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.',
 					html: true
 				},
 				{
@@ -205,7 +205,7 @@
 </script>
 
 <div class="min-h-full overflow-y-auto bg-white">
-	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
+	<header class="flex items-center justify-between border-b border-gray-100 px-4 py-1.5 sm:px-6">
 		<div class="flex items-center gap-3">
 			<a
 				href={withLang(lang, '/')}
@@ -214,7 +214,16 @@
 				<ArrowLeft class="h-3.5 w-3.5" />
 				{c.back}
 			</a>
-			<span class="text-sm font-bold tracking-wide text-blue-600">MSY</span>
+			<a href={withLang(lang, '/')} class="flex min-w-0 items-center gap-1">
+				<img
+					src="/logos/02_Website_Logo/website-logo-symbol-512.webp"
+					alt=""
+					class="h-8 w-8 flex-shrink-0"
+				/>
+				<div class="min-w-0 leading-tight">
+					<p class="text-sm font-medium text-[#2f9fb3]"><b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay <b class="-mr-0.5 text-lg">Y</b>ojana</p>
+				</div>
+			</a>
 		</div>
 		<a
 			href={langSwitchHref}

@@ -172,6 +172,13 @@ function createAuthStore() {
 
 			localStorage.clear();
 
+			// Leave the protected page before clearing auth state — otherwise the
+			// /me guard sees the logged-out state first and redirects to /login.
+			// Members land on the home page, keeping their language.
+			await goto(
+				authType === 'pin' ? (location.pathname.startsWith('/guj') ? '/guj' : '/') : '/admin'
+			);
+
 			set({
 				userAllInfo: null,
 				pinUser: null,
@@ -180,8 +187,6 @@ function createAuthStore() {
 				isAuthenticated: false,
 				error: null
 			});
-
-			goto(authType === 'pin' ? '/login' : '/admin');
 		},
 
 		updateUser(userData: Partial<User.AllInfo>) {

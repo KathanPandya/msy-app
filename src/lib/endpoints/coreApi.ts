@@ -1,4 +1,5 @@
 import axios from '$lib/config/axios';
+import type { PinAuth } from '$lib/types/pinAuth';
 import type { User } from '$lib/types/user';
 
 class CoreApi {
@@ -19,6 +20,11 @@ class CoreApi {
 			payments: [],
 			orders: []
 		};
+	}
+
+	async fetchLoginMethod(): Promise<PinAuth.LoginMethod> {
+		const response = await axios.get<{ loggedInWith: PinAuth.LoginMethod }>(`/api/auth/me`);
+		return response.data.loggedInWith;
 	}
 }
 

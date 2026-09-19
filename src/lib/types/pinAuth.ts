@@ -14,6 +14,7 @@ export namespace PinAuth {
 		name?: string;
 		userId?: string;
 		error?: string;
+		emailVerified?: boolean;
 	};
 
 	export type StageResult = {
@@ -28,6 +29,7 @@ export namespace PinAuth {
 		token?: string;
 		expiresAt?: string;
 		user?: PinUser;
+		loggedInWith?: LoginMethod;
 	};
 
 	export type PinUser = {
@@ -50,6 +52,14 @@ export namespace PinAuth {
 		dob_is_placeholder?: boolean;
 		club_id?: string | null;
 		show_razorpay?: boolean;
+	};
+
+	export type LoginMethod = 'otp' | 'pin';
+
+	export type MessageResult = {
+		success: boolean;
+		message?: string;
+		error?: string;
 	};
 
 	export type SessionSuccess = {
