@@ -2,7 +2,10 @@
 	import { page } from '$app/state';
 	import { t, withLang, type Lang } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
-	import { LogOut } from '@lucide/svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import InviteMemberModal from '$lib/components/other/InviteMemberModal.svelte';
+	import { LogOut, UserPlus } from '@lucide/svelte';
 
 	let { firstName, isHead, lang }: { firstName: string; isHead: boolean; lang: Lang | undefined } =
 		$props();
@@ -16,6 +19,9 @@
 	const langSwitchLabel = $derived(
 		lang === 'guj' ? 'Use website in English' : 'વેબસાઇટ ગુજરાતીમાં વાપરો'
 	);
+
+	let showInvite = $state(false);
+	let showLogout = $state(false);
 </script>
 
 <header class="flex-shrink-0 border-b border-gray-200 bg-white px-3 py-1.5">
@@ -48,7 +54,16 @@
 			</a>
 			<button
 				type="button"
-				onclick={() => authStore.logout()}
+				onclick={() => (showInvite = true)}
+				aria-label={t(lang, 'inviteTitle')}
+				title={t(lang, 'inviteTitle')}
+				class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+			>
+				<UserPlus class="h-4 w-4" />
+			</button>
+			<button
+				type="button"
+				onclick={() => (showLogout = true)}
 				aria-label={t(lang, 'logOut')}
 				title={t(lang, 'logOut')}
 				class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -58,3 +73,17 @@
 		</div>
 	</div>
 </header>
+
+<InviteMemberModal open={showInvite} onClose={() => (showInvite = false)} {lang} />
+
+<Modal open={showLogout} onClose={() => (showLogout = false)} title={t(lang, 'logOut')}>
+	<p class="text-sm text-gray-700">{t(lang, 'logOutConfirm')}</p>
+	<div class="mt-3 flex justify-end gap-2">
+		<Button variant="secondary" size="sm" onclick={() => (showLogout = false)}
+			>{t(lang, 'cancel')}</Button
+		>
+		<Button variant="danger" size="sm" onclick={() => authStore.logout()}
+			>{t(lang, 'logOut')}</Button
+		>
+	</div>
+</Modal>
