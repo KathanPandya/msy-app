@@ -24,7 +24,7 @@ export const APP_CONSTANTS = {
 			label: 'Widow'
 		},
 		{
-			key: 'divorced with child',
+			key: 'divorced_with_child',
 			label: 'Divorced with child'
 		}
 	],
@@ -116,6 +116,14 @@ export const APP_CONSTANTS = {
 		{ key: 'mother-in-law', label: 'Mother-in-law' },
 		{ key: 'sister-in-law', label: 'Sister-in-law' },
 		{ key: 'nephew', label: 'Nephew' }
+	],
+
+	ID_DOCUMENT_TYPES: [
+		{ key: '', label: 'Select document type' },
+		{ key: 'school_leaving_certificate', label: 'School Leaving Certificate' },
+		{ key: 'passport', label: 'Passport Copy' },
+		{ key: 'driving_license', label: 'Driving License' },
+		{ key: 'aadhaar', label: 'Aadhaar Card' }
 	],
 
 	PAGINATION_OPTIONS: [

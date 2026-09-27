@@ -6,6 +6,7 @@ export type Lang = 'en' | 'guj';
 export const dict = {
 	loading: { en: 'Loading…', guj: 'લોડ થઈ રહ્યું છે…' },
 	logOut: { en: 'Log out', guj: 'લૉગ આઉટ' },
+	logOutConfirm: { en: 'Do you want to log out?', guj: 'શું તમે લૉગ આઉટ કરવા માંગો છો?' },
 	head: { en: 'Head', guj: 'વડા' },
 	greeting: { en: 'Hi, {name}', guj: 'નમસ્તે, {name}' },
 	amountDue: { en: 'Amount due', guj: 'બાકી રકમ' },
@@ -417,7 +418,175 @@ export const dict = {
 		en: 'Scroll down and tap "Add to Home Screen"',
 		guj: 'નીચે સ્ક્રોલ કરી "Add to Home Screen" પર ટૅપ કરો'
 	},
-	installIosStep3: { en: 'Tap "Add" at the top-right', guj: 'ઉપર જમણી બાજુ "Add" પર ટૅપ કરો' }
+	installIosStep3: { en: 'Tap "Add" at the top-right', guj: 'ઉપર જમણી બાજુ "Add" પર ટૅપ કરો' },
+
+	// Membership registration
+	regTitle: { en: 'Membership registration', guj: 'સભ્યપદ નોંધણી' },
+	regStepOf: { en: 'Step {step} of 3', guj: 'પગલું {step} / 3' },
+	regInvalidLink: { en: 'This invitation link is not valid.', guj: 'આ આમંત્રણ લિંક માન્ય નથી.' },
+	regInvalidLinkHint: {
+		en: 'Ask the member who shared it with you for a new link.',
+		guj: 'જે સભ્યએ તમને લિંક મોકલી હતી તેમની પાસેથી નવી લિંક માંગો.'
+	},
+	regLinkClosed: { en: 'This link is no longer valid.', guj: 'આ લિંક હવે માન્ય નથી.' },
+	regLinkClosedHint: {
+		en: 'Open the link in the newest email we sent you.',
+		guj: 'અમે મોકલેલા સૌથી નવા ઇમેઇલમાંની લિંક ખોલો.'
+	},
+	regInvalidDob: { en: 'Enter a valid date of birth.', guj: 'માન્ય જન્મ તારીખ દાખલ કરો.' },
+	regAgeTooLow: {
+		en: 'Members must be at least {age} years old.',
+		guj: 'સભ્યની ઉંમર ઓછામાં ઓછી {age} વર્ષ હોવી જોઈએ.'
+	},
+	regAgeTooHigh: {
+		en: 'Members must be under {age} years old.',
+		guj: 'સભ્યની ઉંમર {age} વર્ષથી ઓછી હોવી જોઈએ.'
+	},
+	regFeeForAge: {
+		en: 'Age {age} — one-time fee {amount}',
+		guj: 'ઉંમર {age} — એક વખતની ફી {amount}'
+	},
+	regEntryFee: { en: 'Entry fee', guj: 'પ્રવેશ ફી' },
+	regDeposit: { en: 'Deposit', guj: 'ડિપોઝિટ' },
+	regCorpusFund: { en: 'Corpus fund', guj: 'કોર્પસ ફંડ' },
+	regEmailCodeHint: {
+		en: 'We will email a code here to confirm it is yours.',
+		guj: 'આ ઇમેઇલ તમારું છે તેની ખાતરી માટે અમે અહીં કોડ મોકલીશું.'
+	},
+	regVerifyEmail: { en: 'Verify email', guj: 'ઇમેઇલ ચકાસો' },
+	regCodeSentTo: {
+		en: 'We sent a 6-digit code to {email}.',
+		guj: 'અમે {email} પર 6 અંકનો કોડ મોકલ્યો છે.'
+	},
+	regNewCodeSentTo: { en: 'We sent a new code to {email}.', guj: 'અમે {email} પર નવો કોડ મોકલ્યો છે.' },
+	regEnterCodeSentTo: { en: 'Enter the code emailed to', guj: 'આ ઇમેઇલ પર મોકલેલો કોડ દાખલ કરો:' },
+	regConfirmCode: { en: 'Confirm', guj: 'ખાતરી કરો' },
+	regAttemptsLeft: { en: '{left} attempts left.', guj: '{left} પ્રયાસ બાકી.' },
+	regWrongEmail: { en: 'Wrong email? Change it', guj: 'ખોટું ઇમેઇલ? બદલો' },
+	regEnterCorrectEmail: {
+		en: 'Enter the correct email. We will send a new code and link there.',
+		guj: 'સાચું ઇમેઇલ દાખલ કરો. અમે ત્યાં નવો કોડ અને લિંક મોકલીશું.'
+	},
+	regSendCode: { en: 'Send code', guj: 'કોડ મોકલો' },
+	regBack: { en: 'Back', guj: 'પાછા' },
+	regResumeNotice: {
+		en: 'The same email has a link to continue on another phone or computer.',
+		guj: 'એ જ ઇમેઇલમાં બીજા ફોન કે કમ્પ્યુટર પર આગળ વધવાની લિંક પણ છે.'
+	},
+	regEmailConfirmed: { en: 'Email confirmed', guj: 'ઇમેઇલ ચકાસાઈ ગયું' },
+	regSaving: { en: 'Saving…', guj: 'સાચવી રહ્યા છીએ…' },
+	regSaved: { en: 'Saved', guj: 'સાચવ્યું' },
+	regYourDetails: { en: 'Your details', guj: 'તમારી વિગતો' },
+	regFamilyDetails: { en: 'Family details', guj: 'કુટુંબની વિગતો' },
+	regDocuments: { en: 'Documents', guj: 'દસ્તાવેજો' },
+	regPhotoHint: {
+		en: 'Make sure the text is readable in the photo.',
+		guj: 'ફોટામાં લખાણ સ્પષ્ટ વંચાય તેની ખાતરી કરો.'
+	},
+	regIdDocType: { en: 'Document type', guj: 'દસ્તાવેજનો પ્રકાર' },
+	regIdDocument: { en: 'ID document', guj: 'ઓળખ દસ્તાવેજ' },
+	regYourPhoto: { en: 'Your photo', guj: 'તમારો ફોટો' },
+	regPhoto: { en: 'Photo', guj: 'ફોટો' },
+	regUploadDocument: { en: 'Upload document', guj: 'દસ્તાવેજ અપલોડ કરો' },
+	regChangeDocument: { en: 'Change document', guj: 'દસ્તાવેજ બદલો' },
+	regChooseDocTypeFirst: { en: 'Choose the document type first.', guj: 'પહેલાં દસ્તાવેજનો પ્રકાર પસંદ કરો.' },
+	regReuploadForType: {
+		en: 'Upload again for the new document type.',
+		guj: 'નવા દસ્તાવેજ પ્રકાર માટે ફરી અપલોડ કરો.'
+	},
+	regNomineeN: { en: 'Nominee {n}', guj: 'નોમિની {n}' },
+	regAddSecondNominee: { en: 'Add second nominee', guj: 'બીજા નોમિની ઉમેરો' },
+	regRemove: { en: 'Remove', guj: 'દૂર કરો' },
+	regFitnessCertificate: { en: 'Fitness certificate', guj: 'ફિટનેસ પ્રમાણપત્ર' },
+	regFitnessHint: {
+		en: 'Applicants aged 51 or older must add a fitness certificate from a registered doctor (MBBS or higher).',
+		guj: '51 કે તેથી વધુ ઉંમરના અરજદારે માન્ય ડૉક્ટર (MBBS કે ઉપર) નું ફિટનેસ પ્રમાણપત્ર ઉમેરવું જરૂરી છે.'
+	},
+	regFitnessWarning: {
+		en: 'From age 51 a fitness certificate from a registered doctor is needed. Keep it ready — you will add a photo of it in the next step.',
+		guj: '51 વર્ષ કે તેથી વધુ ઉંમર માટે માન્ય ડૉક્ટરનું ફિટનેસ પ્રમાણપત્ર જરૂરી છે. તૈયાર રાખો — આગળના પગલામાં તેનો ફોટો ઉમેરવાનો રહેશે.'
+	},
+	regUploadPhoto: { en: 'Upload photo', guj: 'ફોટો અપલોડ કરો' },
+	regChangePhoto: { en: 'Change photo', guj: 'ફોટો બદલો' },
+	regUploaded: { en: 'Uploaded', guj: 'અપલોડ થયું' },
+	regUploading: { en: 'Uploading…', guj: 'અપલોડ થઈ રહ્યું છે…' },
+	regErrUploadFailed: {
+		en: 'Could not upload the photo. Please try again.',
+		guj: 'ફોટો અપલોડ થયો નહીં. ફરી પ્રયાસ કરો.'
+	},
+	regErrFileTooLarge: { en: 'The file must be under 10 MB.', guj: 'ફાઇલ 10 MB થી નાની હોવી જોઈએ.' },
+	regErrMobile: { en: 'Enter a 10-digit mobile number.', guj: '10 અંકનો મોબાઇલ નંબર દાખલ કરો.' },
+	regErrPincode: { en: 'Enter a 6-digit pincode.', guj: '6 અંકનો પિનકોડ દાખલ કરો.' },
+	regStillMissing: { en: 'Still missing:', guj: 'હજુ બાકી:' },
+	regContinue: { en: 'Continue', guj: 'આગળ વધો' },
+	regFillEverything: {
+		en: 'Fill every required field and add every photo to continue.',
+		guj: 'આગળ વધવા દરેક જરૂરી વિગત ભરો અને બધા ફોટા ઉમેરો.'
+	},
+	regReviewTitle: { en: 'Check your details', guj: 'તમારી વિગતો તપાસો' },
+	regReviewHint: {
+		en: 'Go back to the form if anything is wrong.',
+		guj: 'કંઈ ખોટું હોય તો ફોર્મ પર પાછા જાઓ.'
+	},
+	regName: { en: 'Name', guj: 'નામ' },
+	regPayAmount: { en: 'Pay {amount}', guj: '{amount} ચૂકવો' },
+	regTermsTitle: { en: 'Terms and conditions', guj: 'નિયમો અને શરતો' },
+	regTermsAccept: {
+		en: 'I have read and accept the terms and conditions',
+		guj: 'મેં નિયમો અને શરતો વાંચી છે અને સ્વીકારું છું'
+	},
+	regTermsNone: {
+		en: 'Registration cannot be completed right now because the terms have not been published. Please try again later.',
+		guj: 'નિયમો હજુ પ્રકાશિત થયા નથી, તેથી હાલ નોંધણી પૂર્ણ થઈ શકતી નથી. કૃપા કરી થોડી વાર પછી પ્રયાસ કરો.'
+	},
+	regTermsLoadFailed: { en: 'Could not load the terms.', guj: 'નિયમો લોડ થઈ શક્યા નહીં.' },
+	regTryAgain: { en: 'Try again', guj: 'ફરી પ્રયાસ કરો' },
+	regRetryPayment: { en: 'Retry payment', guj: 'ફરી ચુકવણી કરો' },
+	regBackToForm: { en: 'Back to the form', guj: 'ફોર્મ પર પાછા' },
+	regPaymentCancelled: {
+		en: 'Payment cancelled. Your details are saved — pay whenever you are ready.',
+		guj: 'ચુકવણી રદ થઈ. તમારી વિગતો સાચવેલી છે — તૈયાર હો ત્યારે ચુકવણી કરો.'
+	},
+	regSubmittedTitle: { en: 'Application submitted', guj: 'અરજી મોકલાઈ ગઈ' },
+	regApprovedTitle: { en: 'Application approved', guj: 'અરજી મંજૂર થઈ' },
+	regRejectedTitle: { en: 'Application closed', guj: 'અરજી બંધ થઈ' },
+	regDoneSubmitted: {
+		en: "Your application is being reviewed. We'll email your member ID once an admin approves it.",
+		guj: 'તમારી અરજીની સમીક્ષા થઈ રહી છે. એડમિન મંજૂરી આપશે એટલે અમે તમારો સભ્ય ID ઇમેઇલ કરીશું.'
+	},
+	regDoneProcessing: {
+		en: 'Payment received and is being confirmed. No need to pay again.',
+		guj: 'ચુકવણી મળી ગઈ છે અને તેની ખાતરી થઈ રહી છે. ફરી ચુકવણી કરવાની જરૂર નથી.'
+	},
+	regDoneNeedsReview: {
+		en: "Payment received, but the amount doesn't match. An admin will check it.",
+		guj: 'ચુકવણી મળી ગઈ છે, પણ રકમ મેળ ખાતી નથી. એડમિન તેની તપાસ કરશે.'
+	},
+	regDoneApproved: {
+		en: 'You are now a member. Your member ID was sent to your email.',
+		guj: 'તમે હવે સભ્ય છો. તમારો સભ્ય ID તમારા ઇમેઇલ પર મોકલવામાં આવ્યો છે.'
+	},
+	regDoneRejected: {
+		en: 'This application was not approved. The reason was sent to your email.',
+		guj: 'આ અરજી મંજૂર થઈ નથી. કારણ તમારા ઇમેઇલ પર મોકલવામાં આવ્યું છે.'
+	},
+
+	// Invite link
+	inviteTitle: { en: 'Invite a member', guj: 'સભ્યને આમંત્રણ આપો' },
+	inviteHint: {
+		en: 'Share your link with someone who wants to join MSY.',
+		guj: 'MSY માં જોડાવા ઇચ્છતી વ્યક્તિ સાથે તમારી લિંક શેર કરો.'
+	},
+	inviteGetLink: { en: 'Get my invite link', guj: 'મારી આમંત્રણ લિંક મેળવો' },
+	inviteShareWhatsApp: { en: 'Share on WhatsApp', guj: 'WhatsApp પર શેર કરો' },
+	inviteLinkNote: {
+		en: 'Your personal link. It never changes and anyone can use it.',
+		guj: 'તમારી પોતાની લિંક. તે ક્યારેય બદલાતી નથી અને કોઈ પણ તેનો ઉપયોગ કરી શકે છે.'
+	},
+	inviteWhatsAppMessage: {
+		en: 'Join Mrutyu Sahay Yojana. Fill the membership form here: {link}',
+		guj: 'મૃત્યુ સહાય યોજનામાં જોડાઓ. સભ્યપદ ફોર્મ અહીં ભરો: {link}'
+	}
 } as const;
 
 export type DictKey = keyof typeof dict;
