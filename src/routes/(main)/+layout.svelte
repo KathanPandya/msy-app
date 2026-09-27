@@ -12,6 +12,7 @@
 		ChevronRight,
 		CreditCard,
 		Download,
+		FileText,
 		Home,
 		Image,
 		IndianRupee,
@@ -19,6 +20,7 @@
 		LogOut,
 		Scale,
 		ShieldCheck,
+		UserPlus,
 		Users
 	} from '@lucide/svelte';
 
@@ -75,6 +77,8 @@
 	const navItems = [
 		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
 		{ href: '/members', icon: Users, label: 'Members' },
+		{ href: '/registrations', icon: UserPlus, label: 'Registrations' },
+		{ href: '/registration-terms', icon: FileText, label: 'Registration T&C' },
 		{ href: '/families', icon: Home, label: 'Families' },
 		{ href: '/payins', icon: IndianRupee, label: 'Payins' },
 		{ href: '/payouts', icon: ArrowDownRight, label: 'Payouts' },

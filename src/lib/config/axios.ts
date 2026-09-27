@@ -55,7 +55,14 @@ instance.interceptors.response.use(
 		const isOrderCreateRejection =
 			String(error.config?.url ?? '').includes('/api/orders/create') &&
 			error.response?.data?.success === false;
-		if (status === 403 && localStorage.getItem('authToken') && !isOrderCreateRejection) {
+		// Registration 403s are business errors; they must not log the member out.
+		const isRegistrationRejection = String(error.config?.url ?? '').includes('/api/registration');
+		if (
+			status === 403 &&
+			localStorage.getItem('authToken') &&
+			!isOrderCreateRejection &&
+			!isRegistrationRejection
+		) {
 			authStore.logout();
 		}
 		console.error('API Error:', error);

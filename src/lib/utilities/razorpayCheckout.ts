@@ -28,7 +28,7 @@ export type RazorpayResult =
 
 let checkoutScriptPromise: Promise<void> | null = null;
 
-function loadCheckoutScript(): Promise<void> {
+export function loadCheckoutScript(): Promise<void> {
 	if ((window as any).Razorpay) return Promise.resolve();
 	if (checkoutScriptPromise) return checkoutScriptPromise;
 

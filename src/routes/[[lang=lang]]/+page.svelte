@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { MIN_AGE, MAX_AGE, feeSlabLines } from '$lib/utilities/registrationUtils';
 	import { goto } from '$app/navigation';
 	// import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -45,12 +46,12 @@
 			aboutTitle: 'About the Scheme',
 			aboutParagraphs: [
 				'The MSY (Mrutyu Sahay Yojana) is a scheme run by the Akhil Hind Bhatt Mevada Brahma Samaj Federation for the mutual benefit of the Bhatt Mevada community.',
-				'Any Bhatt Mevada community member between 18 and 55 years old can join with a one-time payment, and the benefit becomes active after 12 months of continuous membership.',
+				`Any Bhatt Mevada community member between ${MIN_AGE} and ${MAX_AGE} years old can join with a one-time payment, and the benefit becomes active after 12 months of continuous membership.`,
 				"When a member of the scheme passes away, every other active member contributes a fixed ₹100. These small, pooled contributions come together as a substantial amount — 100 times the active members, at present ₹81,000 — which is handed to the deceased member's family (nominee) on the day of Besna, usually within 30 days of the death being reported.",
 				"The scheme isn't built to be a source of individual benefit — it is a shared cultural practice: today we stand by another family in their grief, and tomorrow, if the need arises, the community stands by ours. To date, 111 families have received support through this scheme."
 			],
 			stats: [
-				{ value: '18–55 yrs', label: 'eligible age' },
+				{ value: `${MIN_AGE}–${MAX_AGE} yrs`, label: 'eligible age' },
 				{ value: '₹100', label: 'contribution per death' },
 				{ value: '₹81,000', label: 'support paid on Besna' },
 				{ value: '111', label: 'families supported so far' }
@@ -64,11 +65,11 @@
 				},
 				{
 					q: 'Who can become a member?',
-					a: 'Any person between 18 and 55 years of age, belonging to the Bhatt Mevada Brahmin community and residing in India, can apply for membership.'
+					a: `Any person between ${MIN_AGE} and ${MAX_AGE} years of age, belonging to the Bhatt Mevada Brahmin community and residing in India, can apply for membership.`
 				},
 				{
 					q: 'How much do I need to pay to join?',
-					a: 'The one-time joining amount depends on age at entry:\n\n<strong>18–40 years</strong>: ₹250 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹800</strong>\n<strong>41–50 years</strong>: ₹500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹1,050</strong>\n<strong>51–55 years</strong>: ₹1,500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹2,050</strong>\n\nThis amount is paid once, at the time of joining.',
+					a: `The one-time joining amount depends on age at entry:\n\n${feeSlabLines('en')}\n\nThis amount is paid once, at the time of joining.`,
 					html: true
 				},
 				{
@@ -90,12 +91,12 @@
 			aboutTitle: 'યોજના વિશે',
 			aboutParagraphs: [
 				'MSY (મૃત્યુ સહાય યોજના) એ અખિલ હિંદ ભટ્ટ મેવાડા બ્રહ્મ સમાજ ફેડરેશન દ્વારા સંચાલિત ભટ્ટ મેવાડા સમાજ માટેની યોજના છે.',
-				'18 થી 55 વર્ષની ઉંમરના કોઈપણ ભટ્ટ મેવાડા સમાજના સભ્ય એક જ વખતની ચુકવણી કરીને સભ્ય બની શકે છે, અને સભ્યપદના 12 મહિના પૂર્ણ થયા બાદ યોજનાનો લાભ મળવાપાત્ર બને છે.',
+				`${MIN_AGE} થી ${MAX_AGE} વર્ષની ઉંમરના કોઈપણ ભટ્ટ મેવાડા સમાજના સભ્ય એક જ વખતની ચુકવણી કરીને સભ્ય બની શકે છે, અને સભ્યપદના 12 મહિના પૂર્ણ થયા બાદ યોજનાનો લાભ મળવાપાત્ર બને છે.`,
 				'જ્યારે યોજનાના કોઈ સભ્યનું અવસાન થાય છે, ત્યારે અન્ય દરેક ચાલુ સભ્ય ₹100 નો નિયત ફાળો આપે છે. આ નાના-નાના, ભેગા થયેલા ફાળા મળીને એક નોંધપાત્ર રકમ — ચાલુ સભ્યોની 100 ગણી રકમ, હાલમાં ₹81,000 — જે મરણ પામનાર સભ્યના પરિવારને (નોમિનીને), મૃત્યુની જાણ થયા બાદ સામાન્ય રીતે 30 દિવસની અંદર, બેસણાના દિવસે આપવામાં આવે છે.',
 				'આ યોજના વ્યક્તિગત લાભ માટે નહીં, પરંતુ એક સહિયારી સામાજિક પરંપરા તરીકે ઊભી કરવામાં આવી છે: આજે આપણે બીજા પરિવારના દુઃખમાં સહભાગી બનીએ છીએ, અને કાલે જરૂર પડે તો સમાજ આપણી પડખે ઊભો રહેશે. અત્યાર સુધીમાં આ યોજના મારફતે 111 થી વધુ પરિવારોને સહાય મળી ચૂકી છે.'
 			],
 			stats: [
-				{ value: '18–55 વર્ષ', label: 'પાત્રતા ઉંમર' },
+				{ value: `${MIN_AGE}–${MAX_AGE} વર્ષ`, label: 'પાત્રતા ઉંમર' },
 				{ value: '₹100', label: 'મૃત્યુ દીઠ ફાળો' },
 				{ value: '₹81,000', label: 'બેસણાના દિવસે અપાતી સહાય' },
 				{ value: '111', label: 'અત્યાર સુધી સહાય પામેલા પરિવારો' }
@@ -109,11 +110,11 @@
 				},
 				{
 					q: 'યોજનામાં કોણ સભ્ય બની શકે?',
-					a: '18 થી 55 વર્ષની ઉંમરના, ભારતમાં વસતા ભટ્ટ મેવાડા બ્રાહ્મણ જ્ઞાતિના વ્યક્તિ સભ્યપદ માટે અરજી કરી શકે છે.'
+					a: `${MIN_AGE} થી ${MAX_AGE} વર્ષની ઉંમરના, ભારતમાં વસતા ભટ્ટ મેવાડા બ્રાહ્મણ જ્ઞાતિના વ્યક્તિ સભ્યપદ માટે અરજી કરી શકે છે.`
 				},
 				{
 					q: 'સભ્ય બનવા માટે કેટલી રકમ ચૂકવવાની રહેશે?',
-					a: 'ઉંમર પ્રમાણે રકમ અલગ છે:\n\n<strong>18 થી 40 વર્ષ</strong>: ₹250 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹800</strong>\n<strong>41 થી 50 વર્ષ</strong>: ₹500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹1,050</strong>\n<strong>51 થી 55 વર્ષ</strong>: ₹1,500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹2,050</strong>\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.',
+					a: `ઉંમર પ્રમાણે રકમ અલગ છે:\n\n${feeSlabLines('guj')}\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.`,
 					html: true
 				},
 				{
@@ -145,7 +146,10 @@
 				class="h-8 w-8 flex-shrink-0"
 			/>
 			<div class="min-w-0 leading-tight">
-				<p class="text-sm font-medium text-[#2f9fb3]"><b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay <b class="-mr-0.5 text-lg">Y</b>ojana</p>
+				<p class="text-sm font-medium text-[#2f9fb3]">
+					<b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay
+					<b class="-mr-0.5 text-lg">Y</b>ojana
+				</p>
 			</div>
 		</a>
 		<a

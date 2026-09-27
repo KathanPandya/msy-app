@@ -1,4 +1,10 @@
 <script lang="ts">
+	import {
+		FITNESS_CERTIFICATE_FROM_AGE,
+		MIN_AGE,
+		MAX_AGE,
+		feeSlabLines
+	} from '$lib/utilities/registrationUtils';
 	import { page } from '$app/state';
 	import { withLang } from '$lib/i18n';
 	import { ArrowLeft } from '@lucide/svelte';
@@ -33,19 +39,19 @@
 				},
 				{
 					q: 'Who can become a member?',
-					a: 'Any person between 18 and 55 years of age, belonging to the Bhatt Mevada Brahmin community and residing in India, can apply for membership.'
+					a: `Any person between ${MIN_AGE} and ${MAX_AGE} years of age, belonging to the Bhatt Mevada Brahmin community and residing in India, can apply for membership.`
 				},
 				{
 					q: 'Is proof of age required to join?',
-					a: 'Yes. Along with the application form, one valid age-proof document is required — a school leaving certificate, passport, driving licence, or Aadhaar card. If your age is between 50 and 55, you will also have to submit a health fitness certificate from a registered medical practitioner (MBBS or higher).'
+					a: `Yes. Along with the application form, one valid age-proof document is required — a school leaving certificate, passport, driving licence, or Aadhaar card. If you are ${FITNESS_CERTIFICATE_FROM_AGE} or older, you will also have to submit a health fitness certificate from a registered medical practitioner (MBBS or higher).`
 				},
 				{
 					q: 'How much do I need to pay to become a member?',
-					a: 'The one-time joining amount depends on age at entry:\n\n<strong>18–40 years</strong>: ₹250 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹800</strong>\n<strong>41–50 years</strong>: ₹500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹1,050</strong>\n<strong>51–55 years</strong>: ₹1,500 entry fee + ₹500 deposit + ₹50 corpus fee = <strong>₹2,050</strong>\n\nThis amount is paid once, at the time of joining.',
+					a: `The one-time joining amount depends on age at entry:\n\n${feeSlabLines('en')}\n\nThis amount is paid once, at the time of joining.`,
 					html: true
 				},
 				{
-					q: 'What is the ₹500 deposit for?',
+					q: 'What is the deposit for?',
 					a: "The deposit collected at membership is part of the scheme's financial structure. As per the rules, it is non-refundable in any case."
 				},
 				{
@@ -126,20 +132,20 @@
 				},
 				{
 					q: 'યોજનામાં કોણ સભ્ય બની શકે?',
-					a: '18 થી 55 વર્ષની ઉંમરના, ભારતમાં વસતા ભટ્ટ મેવાડા બ્રાહ્મણ જ્ઞાતિના વ્યક્તિ સભ્યપદ માટે અરજી કરી શકે છે.'
+					a: `${MIN_AGE} થી ${MAX_AGE} વર્ષની ઉંમરના, ભારતમાં વસતા ભટ્ટ મેવાડા બ્રાહ્મણ જ્ઞાતિના વ્યક્તિ સભ્યપદ માટે અરજી કરી શકે છે.`
 				},
 				{
 					q: 'સભ્ય બનવા માટે ઉંમરનો પુરાવો આપવો જરૂરી છે?',
-					a: 'હા. શાળા છોડ્યાનું પ્રમાણપત્ર, પાસપોર્ટ, ડ્રાઇવિંગ લાઇસન્સ અથવા આધારકાર્ડ પૈકી કોઈ એક માન્ય પુરાવો પ્રવેશપત્ર સાથે આપવો જરૂરી છે. જો આપની ઉંમર 50 થી 55 વર્ષની વચ્ચે છે, તો આપે માન્યતા પ્રાપ્ત મેડિકલ ઓફિસર (MBBS અથવા ઉપરી) પાસેથી ફિઝિકલ ફિટનેસ પ્રમાણપત્ર જોડવું જરૂરી છે.'
+					a: `હા. શાળા છોડ્યાનું પ્રમાણપત્ર, પાસપોર્ટ, ડ્રાઇવિંગ લાઇસન્સ અથવા આધારકાર્ડ પૈકી કોઈ એક માન્ય પુરાવો પ્રવેશપત્ર સાથે આપવો જરૂરી છે. જો આપની ઉંમર ${FITNESS_CERTIFICATE_FROM_AGE} વર્ષ કે તેથી વધુ છે, તો આપે માન્યતા પ્રાપ્ત મેડિકલ ઓફિસર (MBBS અથવા ઉપરી) પાસેથી ફિઝિકલ ફિટનેસ પ્રમાણપત્ર જોડવું જરૂરી છે.`
 				},
 				{
 					q: 'સભ્ય બનવા માટે કેટલી રકમ ચૂકવવાની રહેશે?',
-					a: 'ઉંમર પ્રમાણે રકમ અલગ છે:\n\n<strong>18 થી 40 વર્ષ</strong>: ₹250 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹800</strong>\n<strong>41 થી 50 વર્ષ</strong>: ₹500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹1,050</strong>\n<strong>51 થી 55 વર્ષ</strong>: ₹1,500 દાખલ ફી + ₹500 ડિપોઝિટ + ₹50 કોર્પસ ફી = <strong>₹2,050</strong>\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.',
+					a: `ઉંમર પ્રમાણે રકમ અલગ છે:\n\n${feeSlabLines('guj')}\n\nઆ રકમ એક જ વખત ભરવાની રહેશે.`,
 					html: true
 				},
 				{
 					q: 'ડિપોઝિટનો હેતુ શું છે?',
-					a: 'સભ્યપદ સાથે લેવાતી ₹500ની ડિપોઝિટ યોજનાની નાણાકીય વ્યવસ્થાનો એક ભાગ છે. નિયમો મુજબ કોઈપણ સંજોગોમાં ડિપોઝિટ પરત મળવાપાત્ર રહેશે નહીં.'
+					a: 'સભ્યપદ સાથે લેવાતી ડિપોઝિટ યોજનાની નાણાકીય વ્યવસ્થાનો એક ભાગ છે. નિયમો મુજબ કોઈપણ સંજોગોમાં ડિપોઝિટ પરત મળવાપાત્ર રહેશે નહીં.'
 				},
 				{
 					q: 'સભ્ય બન્યા પછી તરત જ યોજનાનો લાભ મળે છે?',
@@ -221,7 +227,10 @@
 					class="h-8 w-8 flex-shrink-0"
 				/>
 				<div class="min-w-0 leading-tight">
-					<p class="text-sm font-medium text-[#2f9fb3]"><b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay <b class="-mr-0.5 text-lg">Y</b>ojana</p>
+					<p class="text-sm font-medium text-[#2f9fb3]">
+						<b class="text-lg">M</b>rutyu <b class="text-lg">S</b>ahay
+						<b class="-mr-0.5 text-lg">Y</b>ojana
+					</p>
 				</div>
 			</a>
 		</div>

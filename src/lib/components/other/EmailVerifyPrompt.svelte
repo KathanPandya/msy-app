@@ -14,12 +14,13 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
-	import { MailWarning } from '@lucide/svelte';
+	import { MailWarning, ChevronDown } from '@lucide/svelte';
 
 	let { lang }: { lang: Lang | undefined } = $props();
 
 	let status = $state<EmailVerification.Status | null>(null);
 	let popupOpen = $state(false);
+	let expanded = $state(false);
 	let email = $state('');
 	let sending = $state(false);
 	let message = $state('');
@@ -62,6 +63,8 @@
 			return;
 		}
 		popupOpen = false;
+		// Keep the result visible in the banner after sending from the popup.
+		expanded = true;
 		sending = true;
 		try {
 			const res = await emailVerificationApi.send({ email: email.trim() });
@@ -107,12 +110,24 @@
 {/snippet}
 
 {#if needsVerification}
-	<section class="rounded-lg border border-red-300 bg-red-50 p-3 shadow-sm">
-		<div class="flex items-start gap-2">
-			<MailWarning class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600" />
-			<div class="min-w-0 flex-1">
-				<p class="text-sm font-semibold text-red-800">{t(lang, 'emailNotVerifiedTitle')}</p>
-				<p class="mt-0.5 text-xs text-red-700">{t(lang, 'emailNotVerifiedNotice')}</p>
+	<section class="rounded-lg border border-red-300 bg-red-50 shadow-sm">
+		<button
+			type="button"
+			class="flex w-full items-center gap-2 px-3 py-2 text-left"
+			aria-expanded={expanded}
+			onclick={() => (expanded = !expanded)}
+		>
+			<MailWarning class="h-4 w-4 flex-shrink-0 text-red-600" />
+			<span class="min-w-0 flex-1 truncate text-sm font-semibold text-red-800">
+				{t(lang, 'emailNotVerifiedTitle')}
+			</span>
+			<ChevronDown
+				class="h-4 w-4 flex-shrink-0 text-red-600 transition-transform {expanded ? 'rotate-180' : ''}"
+			/>
+		</button>
+		{#if expanded}
+			<div class="px-3 pb-3 pl-9">
+				<p class="text-xs text-red-700">{t(lang, 'emailNotVerifiedNotice')}</p>
 				{@render emailForm('bannerEmail')}
 				{#if message}
 					<p class="mt-1 text-xs text-green-700">{message} {t(lang, 'verifyLinkSentNotice')}</p>
@@ -121,7 +136,7 @@
 					<p class="mt-1 text-xs text-red-600">{error}</p>
 				{/if}
 			</div>
-		</div>
+		{/if}
 	</section>
 
 	<Modal open={popupOpen} onClose={() => (popupOpen = false)} title={t(lang, 'emailNotVerifiedTitle')}>

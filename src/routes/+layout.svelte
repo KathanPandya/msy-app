@@ -50,7 +50,11 @@
 		// it before comparing against publicRoutes (otherwise /guj/login never
 		// matches '/login' and gets bounced straight back to it, losing the lang).
 		const pathWithoutLang = lang ? currentPath.replace(new RegExp(`^/${lang}`), '') || '/' : currentPath;
-		const isPublic = publicRoutes.includes(pathWithoutLang);
+		// Segment match, not prefix: /registrations stays admin-only.
+		const isPublic =
+			publicRoutes.includes(pathWithoutLang) ||
+			pathWithoutLang === '/register' ||
+			pathWithoutLang.startsWith('/register/');
 
 		if (!$authStore.isLoading && !$authStore.isAuthenticated) {
 			if (!isPublic) {
@@ -78,7 +82,7 @@
 			? currentPath.replace(new RegExp(`^/${lang}`), '') || '/'
 			: currentPath;
 
-		const publicShellRoutes = ['/', '/login', '/verify-email', '/me', '/about', '/qna', '/terms', '/other-schemes'];
+		const publicShellRoutes = ['/', '/login', '/verify-email', '/me', '/about', '/qna', '/terms', '/other-schemes', '/register'];
 		const isPublicShellRoute = publicShellRoutes.some(
 			(route) => pathWithoutLang === route || pathWithoutLang.startsWith(`${route}/`)
 		);
