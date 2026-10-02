@@ -20,7 +20,7 @@
 		registrationStatusPill,
 		relationLabel
 	} from '$lib/utilities/registrationUtils';
-	import { Check, Copy, Send, X } from '@lucide/svelte';
+	import { Check, Copy, FileText, Send, X } from '@lucide/svelte';
 
 	const registrationId = $derived(page.params.id as string);
 	const returnTo = $derived((page.state as any)?.returnTo || '/registrations');
@@ -191,7 +191,17 @@
 {#snippet docTile(label: string, url: string | null)}
 	<div>
 		<p class="mb-1 text-sm font-medium text-gray-500">{label}</p>
-		{#if url}
+		{#if url && /\.pdf(\?|$)/i.test(url)}
+			<a
+				href={url}
+				target="_blank"
+				rel="noopener"
+				class="flex h-32 w-32 flex-col items-center justify-center gap-1 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
+			>
+				<FileText class="h-8 w-8" />
+				<span class="text-xs font-medium">PDF</span>
+			</a>
+		{:else if url}
 			<ImageViewer src={url} alt={label} thumbnailSize="large" />
 		{:else}
 			<div

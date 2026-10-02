@@ -514,9 +514,23 @@ export const dict = {
 		en: 'Could not upload the photo. Please try again.',
 		guj: 'ફોટો અપલોડ થયો નહીં. ફરી પ્રયાસ કરો.'
 	},
-	regErrFileTooLarge: { en: 'The file must be under 10 MB.', guj: 'ફાઇલ 10 MB થી નાની હોવી જોઈએ.' },
+	regErrFileTooLarge: { en: 'The file must be under 5 MB.', guj: 'ફાઇલ 5 MB થી નાની હોવી જોઈએ.' },
+	regErrPhotoType: {
+		en: 'Photo must be a JPG or PNG image.',
+		guj: 'ફોટો JPG અથવા PNG હોવો જોઈએ.'
+	},
+	regErrDocType: {
+		en: 'Only JPG, PNG and PDF files are allowed.',
+		guj: 'ફક્ત JPG, PNG અને PDF ફાઇલો માન્ય છે.'
+	},
+	regPhotoFileHint: { en: 'JPG or PNG, max 5 MB', guj: 'JPG અથવા PNG, મહત્તમ 5 MB' },
+	regDocFileHint: { en: 'JPG, PNG or PDF, max 5 MB', guj: 'JPG, PNG અથવા PDF, મહત્તમ 5 MB' },
 	regErrMobile: { en: 'Enter a 10-digit mobile number.', guj: '10 અંકનો મોબાઇલ નંબર દાખલ કરો.' },
 	regErrPincode: { en: 'Enter a 6-digit pincode.', guj: '6 અંકનો પિનકોડ દાખલ કરો.' },
+	regErrFutureDob: {
+		en: 'Date of birth cannot be in the future.',
+		guj: 'જન્મ તારીખ ભવિષ્યની ન હોઈ શકે.'
+	},
 	regStillMissing: { en: 'Still missing:', guj: 'હજુ બાકી:' },
 	regContinue: { en: 'Continue', guj: 'આગળ વધો' },
 	regFillEverything: {
