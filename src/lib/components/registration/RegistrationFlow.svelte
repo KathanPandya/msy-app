@@ -29,7 +29,7 @@
 		saveRegistrationToken
 	} from '$lib/utilities/registrationUtils';
 	import { formatDate } from '$lib/utilities/helperFunc';
-	import { CheckCircle2, Clock, Plus, Upload, XCircle } from '@lucide/svelte';
+	import { CheckCircle2, Clock, FileText, Plus, Upload, XCircle } from '@lucide/svelte';
 
 	let {
 		lang,
@@ -116,6 +116,7 @@
 	let uploadedDocTypes = $state(emptyDocTypes());
 	let fitnessRequired = $state(false);
 	let uploading = $state<Registration.UploadType | null>(null);
+	let uploadingPdf = $state(false);
 	let saveState = $state<'idle' | 'saving' | 'saved'>('idle');
 	let missing = $state<string[]>([]);
 
@@ -128,7 +129,12 @@
 	let termsAccepted = $state<Registration.TermsAcceptance | null>(null);
 	let isAccepting = $state(false);
 
-	const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+	const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+	const isPhoto = (type: Registration.UploadType) =>
+		type === 'photo' || type === 'nominee_photo' || type === 'nominee_2_photo';
+	const uploadExts = (type: Registration.UploadType) =>
+		isPhoto(type) ? ['jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png', 'pdf'];
+	const isPdf = (src: string) => /\.pdf(\?|$)/i.test(src);
 	const maxDob = new Date().toLocaleDateString('en-CA');
 
 	const estimate = $derived(estimateQuote(dob));
@@ -166,6 +172,7 @@
 			!!n.relation &&
 			/^\d{10}$/.test(n.mobile) &&
 			!!n.dob &&
+			n.dob <= maxDob &&
 			idDocReady(`${key}_id_doc`) &&
 			!!uploads[`${key}_photo`]
 		);
@@ -241,7 +248,41 @@
 		};
 	}
 
-	let lastSavedJson = '';
+	// Field keys are the backend's paths ("nominee.mobile"), so a 400's `field` maps straight onto errors.
+	function valueAt(payload: Registration.Update, field: string) {
+		const [head, sub] = field.split('.');
+		const value = (payload as Record<string, any>)[head];
+		return sub ? value?.[sub] : value;
+	}
+
+	function fieldPayload(field: string): Registration.Update {
+		const [head, sub] = field.split('.');
+		const value = valueAt(detailsPayload(), field);
+		return { [head]: sub ? { [sub]: value } : value };
+	}
+
+	function snapshot(payload: Registration.Update): Record<string, string> {
+		return Object.fromEntries(
+			Object.entries(payload).flatMap(([head, value]) =>
+				value && typeof value === 'object'
+					? Object.entries(value).map(([sub, v]) => [`${head}.${sub}`, JSON.stringify(v)])
+					: [[head, JSON.stringify(value)]]
+			)
+		);
+	}
+
+	function localError(field: string): string {
+		if (field === 'mobile') return mobileError;
+		if (field === 'address.pincode') return pincodeError;
+		const [head, sub] = field.split('.');
+		const n = nominees[(NOMINEE_KEYS as readonly string[]).indexOf(head)];
+		if (!n) return '';
+		if (sub === 'mobile' && n.mobile && !/^\d{10}$/.test(n.mobile)) return t(lang, 'regErrMobile');
+		if (sub === 'date_of_birth' && n.dob > maxDob) return t(lang, 'regErrFutureDob');
+		return '';
+	}
+
+	let savedFields: Record<string, string> = {};
 
 	function uploadsFrom(reg: Registration.Data): Record<Registration.UploadType, string | null> {
 		return {
@@ -293,7 +334,7 @@
 		docTypes = docTypesFrom(reg);
 		fitnessRequired = !!reg.fitness_certificate_required;
 		termsAccepted = reg.terms_accepted ?? null;
-		lastSavedJson = JSON.stringify(detailsPayload());
+		savedFields = snapshot(detailsPayload());
 	}
 
 	function finish(kind: DoneKind) {
@@ -482,25 +523,35 @@
 
 	let saveSeq = 0;
 
-	async function saveDetails(field = '_form') {
+	/** No field → saves everything unsaved (Continue); otherwise PATCHes only that field. */
+	async function saveDetails(field?: string) {
 		if (!token || stage !== 'details') return;
-		const payload = detailsPayload();
-		const json = JSON.stringify(payload);
-		if (json === lastSavedJson) return;
+		let payload: Registration.Update;
+		if (field) {
+			if (localError(field)) return;
+			const current = JSON.stringify(valueAt(detailsPayload(), field));
+			if (field !== 'nominee_2' && current === savedFields[field]) return;
+			payload = fieldPayload(field);
+		} else {
+			payload = detailsPayload();
+			const current = snapshot(payload);
+			if (Object.entries(current).every(([k, v]) => savedFields[k] === v)) return;
+		}
 
 		const seq = ++saveSeq;
 		saveState = 'saving';
 		try {
 			await registrationApi.update({ token, payload });
-			lastSavedJson = json;
-			const { [field]: _, ...rest } = errors;
+			savedFields = { ...savedFields, ...snapshot(payload) };
+			const { [field ?? '']: _, _save: __, ...rest } = errors;
 			errors = rest;
 			if (seq === saveSeq) saveState = 'saved';
 		} catch (err: any) {
 			if (seq === saveSeq) saveState = 'idle';
 			const status = err?.response?.status;
 			if (status === 403 || status === 409) return refresh();
-			errors = { ...errors, [field]: parseRegistrationError(err, t(lang, 'errSomethingWrong')) };
+			const key = err?.response?.data?.field || '_save';
+			errors = { ...errors, [key]: parseRegistrationError(err, t(lang, 'errSomethingWrong')) };
 		}
 	}
 
@@ -512,6 +563,11 @@
 
 		const { [type]: _, ...rest } = errors;
 		errors = rest;
+		const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+		if (!uploadExts(type).includes(ext)) {
+			errors = { ...errors, [type]: t(lang, isPhoto(type) ? 'regErrPhotoType' : 'regErrDocType') };
+			return;
+		}
 		if (file.size > MAX_UPLOAD_BYTES) {
 			errors = { ...errors, [type]: t(lang, 'regErrFileTooLarge') };
 			return;
@@ -519,6 +575,7 @@
 
 		const docType = isIdDoc(type) ? (docTypes[type] as Registration.IdDocType) : undefined;
 		const preview = URL.createObjectURL(file);
+		uploadingPdf = ext === 'pdf';
 		localPreviews = { ...localPreviews, [type]: preview };
 		uploading = type;
 		try {
@@ -552,7 +609,9 @@
 			nominees = [nominees[0]];
 			applyUploads(registration);
 			docTypes = { ...docTypes, nominee_2_id_doc: '' };
-			lastSavedJson = JSON.stringify(detailsPayload());
+			savedFields = Object.fromEntries(
+				Object.entries(savedFields).filter(([k]) => !k.startsWith('nominee_2.'))
+			);
 			saveState = 'saved';
 		} catch (err: any) {
 			saveState = 'idle';
@@ -748,8 +807,28 @@
 	</div>
 {/snippet}
 
+{#snippet thumb(src: string, alt: string, size: 'small' | 'large', pdf: boolean)}
+	{#if pdf}
+		<a
+			href={src}
+			target="_blank"
+			rel="noopener"
+			class="flex flex-col items-center justify-center gap-1 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 {size ===
+			'large'
+				? 'h-32 w-32'
+				: 'h-16 w-16'}"
+		>
+			<FileText class={size === 'large' ? 'h-8 w-8' : 'h-5 w-5'} />
+			<span class="text-xs font-medium">PDF</span>
+		</a>
+	{:else}
+		<ImageViewer {src} {alt} thumbnailSize={size} />
+	{/if}
+{/snippet}
+
 {#snippet fileField(type: Registration.UploadType, label: string)}
 	{@const src = localPreviews[type] ?? uploads[type]}
+	{@const pdf = localPreviews[type] ? uploadingPdf : isPdf(src ?? '')}
 	{@const needsDocType = isIdDoc(type)}
 	{@const docTypeMissing = needsDocType && !docTypes[type as IdDocUpload]}
 	{@const staleDocType =
@@ -764,7 +843,7 @@
 		{#if src}
 			<div class="flex items-center gap-3">
 				<div class="relative">
-					<ImageViewer {src} alt={label} thumbnailSize="large" />
+					{@render thumb(src, label, 'large', pdf)}
 					{#if uploading === type}
 						<div class="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70">
 							<div
@@ -808,11 +887,16 @@
 				<p class="mt-1 text-xs text-gray-500">{t(lang, 'regChooseDocTypeFirst')}</p>
 			{/if}
 		{/if}
+		<p class="mt-1 text-xs text-gray-500">
+			{t(lang, isPhoto(type) ? 'regPhotoFileHint' : 'regDocFileHint')}
+		</p>
 		<!-- No `capture`, as decided: one button, the phone offers camera or gallery. -->
 		<input
 			id={`file-${type}`}
 			type="file"
-			accept="image/*"
+			accept={uploadExts(type)
+				.map((ext) => `.${ext}`)
+				.join(',')}
 			class="hidden"
 			disabled={uploading !== null || docTypeMissing}
 			onchange={(e) => handleUpload(e, type)}
@@ -835,6 +919,8 @@
 
 {#snippet nomineeSection(i: number)}
 	{@const key = NOMINEE_KEYS[i]}
+	{@const dobError =
+		localError(`${key}.date_of_birth`) || errors[`${key}.date_of_birth`]}
 	<section class="space-y-3">
 		<div class="flex items-end justify-between gap-2 border-b border-gray-200 pb-1.5">
 			<h2 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
@@ -856,8 +942,8 @@
 			id={`${key}-name`}
 			label={t(lang, 'regName')}
 			bind:value={nominees[i].fullName}
-			error={errors[`${key}.fullName`]}
-			onblur={() => saveDetails(`${key}.fullName`)}
+			error={errors[`${key}.full_name`]}
+			onblur={() => saveDetails(`${key}.full_name`)}
 			required
 		/>
 		<Select
@@ -876,9 +962,7 @@
 			inputmode="numeric"
 			maxlength={10}
 			bind:value={nominees[i].mobile}
-			error={(nominees[i].mobile && !/^\d{10}$/.test(nominees[i].mobile)
-				? t(lang, 'regErrMobile')
-				: '') || errors[`${key}.mobile`]}
+			error={localError(`${key}.mobile`) || errors[`${key}.mobile`]}
 			onblur={() => saveDetails(`${key}.mobile`)}
 			required
 		/>
@@ -891,16 +975,14 @@
 				type="date"
 				bind:value={nominees[i].dob}
 				max={maxDob}
-				onchange={() => saveDetails(`${key}.dob`)}
+				onchange={() => saveDetails(`${key}.date_of_birth`)}
 				required
-				class="h-11 w-full rounded-md border bg-white px-3 py-0 text-base text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:h-10 sm:text-sm {errors[
-					`${key}.dob`
-				]
+				class="h-11 w-full rounded-md border bg-white px-3 py-0 text-base text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none sm:h-10 sm:text-sm {dobError
 					? 'border-red-500'
 					: 'border-gray-300'}"
 			/>
-			{#if errors[`${key}.dob`]}
-				<p class="mt-1 text-sm text-red-600">{errors[`${key}.dob`]}</p>
+			{#if dobError}
+				<p class="mt-1 text-sm text-red-600">{dobError}</p>
 			{/if}
 		</div>
 		{@render docTypeSelect(`${key}_id_doc`)}
@@ -916,7 +998,12 @@
 		{#each files as file (file.type)}
 			{#if uploads[file.type]}
 				<div class="text-center">
-					<ImageViewer src={uploads[file.type] ?? ''} alt={file.label} thumbnailSize="small" />
+					{@render thumb(
+						uploads[file.type] ?? '',
+						file.label,
+						'small',
+						isPdf(uploads[file.type] ?? '')
+					)}
 					<p class="mt-1 w-16 truncate text-[11px] text-gray-500">{file.label}</p>
 				</div>
 			{/if}
@@ -1164,6 +1251,11 @@
 						<span class="text-gray-400">{t(lang, 'regSaved')}</span>
 					{/if}
 				</div>
+				{#if errors._save}
+					<p class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+						{errors._save}
+					</p>
+				{/if}
 
 				<section class="space-y-3">
 					{@render sectionHeading(t(lang, 'regYourDetails'))}
@@ -1197,8 +1289,8 @@
 						label={t(lang, 'maritalStatus')}
 						bind:value={maritalStatus}
 						options={APP_CONSTANTS.MARITAL_STATUS}
-						error={errors.maritalStatus}
-						onchange={() => saveDetails('maritalStatus')}
+						error={errors.marital_status}
+						onchange={() => saveDetails('marital_status')}
 						required
 					/>
 					<Select
@@ -1214,8 +1306,8 @@
 						id="nativePlace"
 						label={t(lang, 'nativePlace')}
 						bind:value={nativePlace}
-						error={errors.nativePlace}
-						onblur={() => saveDetails('nativePlace')}
+						error={errors.native_place}
+						onblur={() => saveDetails('native_place')}
 						required
 					/>
 				</section>
@@ -1226,46 +1318,46 @@
 						id="addressLine1"
 						label={t(lang, 'addressLine1')}
 						bind:value={addressLine1}
-						error={errors.addressLine1}
-						onblur={() => saveDetails('addressLine1')}
+						error={errors['address.address_line_1']}
+						onblur={() => saveDetails('address.address_line_1')}
 						required
 					/>
 					<Input
 						id="addressLine2"
 						label={t(lang, 'addressLine2')}
 						bind:value={addressLine2}
-						error={errors.addressLine2}
-						onblur={() => saveDetails('addressLine2')}
+						error={errors['address.address_line_2']}
+						onblur={() => saveDetails('address.address_line_2')}
 					/>
 					<div class="grid grid-cols-2 gap-3">
 						<Input
 							id="landmark"
 							label={t(lang, 'landmark')}
 							bind:value={landmark}
-							error={errors.landmark}
-							onblur={() => saveDetails('landmark')}
+							error={errors['address.landmark']}
+							onblur={() => saveDetails('address.landmark')}
 						/>
 						<Input
 							id="areaName"
 							label={t(lang, 'areaName')}
 							bind:value={areaName}
-							error={errors.areaName}
-							onblur={() => saveDetails('areaName')}
+							error={errors['address.area_name']}
+							onblur={() => saveDetails('address.area_name')}
 						/>
 						<Input
 							id="city"
 							label={t(lang, 'city')}
 							bind:value={city}
-							error={errors.city}
-							onblur={() => saveDetails('city')}
+							error={errors['address.city']}
+							onblur={() => saveDetails('address.city')}
 							required
 						/>
 						<Input
 							id="state"
 							label={t(lang, 'state')}
 							bind:value={stateName}
-							error={errors.state}
-							onblur={() => saveDetails('state')}
+							error={errors['address.state']}
+							onblur={() => saveDetails('address.state')}
 							required
 						/>
 					</div>
@@ -1275,8 +1367,8 @@
 						inputmode="numeric"
 						maxlength={6}
 						bind:value={pincode}
-						error={pincodeError || errors.pincode}
-						onblur={() => saveDetails('pincode')}
+						error={pincodeError || errors['address.pincode']}
+						onblur={() => saveDetails('address.pincode')}
 						required
 					/>
 				</section>
