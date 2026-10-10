@@ -27,6 +27,15 @@ class PaymentApi {
 		return response.data;
 	}
 
+	async getPaymentReceipt(id: string): Promise<{ data: { url: string }; success: boolean }> {
+		const response = await axios.get(`api/payment/${id}/receipt`);
+		// receipt_url is now saved on the payment, so cached lists are stale.
+		clearMembersCache();
+		clearPaymentsCache();
+		clearMeCache();
+		return response.data;
+	}
+
 	async getOutstandingPaymentOfMember(
 		userId: string
 	): Promise<{ data: Payment.OutstandingData; success: boolean }> {

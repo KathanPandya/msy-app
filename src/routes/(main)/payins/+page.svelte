@@ -12,9 +12,14 @@
 	import type { Payment } from '$lib/types/payment';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import {
+		downloadPaymentReceipt,
+		hasDigitalReceipt,
+		receiptErrorMessage
+	} from '$lib/utilities/paymentReceipt';
 	import { getCachedPayments, setCachedPayments } from '$lib/utilities/paymentsCache';
 	import { formatString } from '$lib/utilities/stringUtils';
-	import { Calendar, ChevronDown, ChevronUp, LayoutGrid, Plus, Rows3 } from '@lucide/svelte';
+	import { Calendar, ChevronDown, ChevronUp, Download, LayoutGrid, Plus, Rows3 } from '@lucide/svelte';
 	import { onMount, untrack } from 'svelte';
 	const backendMapping: Record<string, string> = APP_CONSTANTS.BACKEND_MAPPING;
 	const validLimits = APP_CONSTANTS.PAGINATION_OPTIONS.map((o) => Number(o.key));
@@ -315,6 +320,26 @@
 
 	function closeView() {
 		viewingRow = null;
+		receiptError = '';
+	}
+
+	let receiptLoading = $state(false);
+	let receiptError = $state('');
+
+	// From the row menu there's no modal open, so a failure opens the details modal to show the error.
+	async function downloadReceipt(row: any) {
+		const payment = paymentList.find((p) => p._id === row._id);
+		if (!payment) return;
+		receiptLoading = true;
+		receiptError = '';
+		try {
+			await downloadPaymentReceipt(payment);
+		} catch (err: any) {
+			viewingRow = row;
+			receiptError = receiptErrorMessage(err);
+		} finally {
+			receiptLoading = false;
+		}
 	}
 
 	function editFromView() {
@@ -357,6 +382,9 @@
 	function rowMenu(row: any) {
 		return [
 			{ label: 'View', onclick: () => openView(row) },
+			...(hasDigitalReceipt(paymentList.find((p) => p._id === row._id) ?? null)
+				? [{ label: 'Download Receipt', onclick: () => downloadReceipt(row) }]
+				: []),
 			{ label: 'Edit', onclick: () => goToUpdate(row) },
 			{ label: 'Delete', onclick: () => openDelete(row), danger: true }
 		];
@@ -681,7 +709,19 @@
 			{/if}
 		</div>
 
-		<div class="mt-4 flex justify-end border-t border-gray-200 pt-3">
+		{#if receiptError}
+			<p class="mt-3 text-sm text-red-600">{receiptError}</p>
+		{/if}
+
+		<div class="mt-4 flex justify-end gap-2 border-t border-gray-200 pt-3">
+			{#if hasDigitalReceipt(viewingDetails)}
+				<Button variant="secondary" size="sm" onclick={() => downloadReceipt(viewingRow)} disabled={receiptLoading}>
+					<span class="inline-flex items-center gap-1.5">
+						<Download class="h-3.5 w-3.5" />
+						{receiptLoading ? 'Generating...' : 'Download Receipt'}
+					</span>
+				</Button>
+			{/if}
 			<Button variant="primary" size="sm" onclick={editFromView}>Edit</Button>
 		</div>
 	{/if}
