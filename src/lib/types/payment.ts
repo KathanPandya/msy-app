@@ -8,6 +8,7 @@ export namespace Payment {
 		payment_type: string;
 		photo: string;
 		reciept_number: string;
+		receipt_url: string | null;
 		remarks: string | null;
 		updatedAt: string;
 		userId: string;

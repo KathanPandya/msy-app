@@ -6,6 +6,11 @@
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import {
+		downloadPaymentReceipt,
+		hasDigitalReceipt,
+		receiptErrorMessage
+	} from '$lib/utilities/paymentReceipt';
 	import { formatString } from '$lib/utilities/stringUtils';
 	import { ChevronDown, Download, LayoutGrid, Rows3, Search } from '@lucide/svelte';
 	import Button from '../ui/Button.svelte';
@@ -129,6 +134,24 @@
 
 	function closeView() {
 		viewingRecord = null;
+		receiptError = '';
+	}
+
+	let receiptLoading = $state(false);
+	let receiptError = $state('');
+
+	// From the row menu there's no modal open, so a failure opens the details modal to show the error.
+	async function downloadReceipt(record: any) {
+		receiptLoading = true;
+		receiptError = '';
+		try {
+			await downloadPaymentReceipt(record);
+		} catch (err: any) {
+			viewingRecord = record;
+			receiptError = receiptErrorMessage(err);
+		} finally {
+			receiptLoading = false;
+		}
 	}
 
 	function editFromView() {
@@ -192,6 +215,10 @@
 		const actions: { label: string; onclick: () => void; danger?: boolean }[] = [
 			{ label: t(lang, 'view'), onclick: () => openView(row._id) }
 		];
+		const record = (outstandingTableData?.paymentRecords ?? []).find((p: any) => p._id === row._id);
+		if (hasDigitalReceipt(record)) {
+			actions.push({ label: t(lang, 'downloadReceipt'), onclick: () => downloadReceipt(record) });
+		}
 		if (!readOnly) {
 			actions.push({ label: t(lang, 'edit'), onclick: () => editPayment(row._id) });
 			actions.push({ label: 'Delete', onclick: () => openDelete(row._id), danger: true });
@@ -542,9 +569,23 @@
 			{/if}
 		</div>
 
-		{#if !readOnly}
-			<div class="mt-4 flex justify-end border-t border-gray-200 pt-3">
-				<Button variant="primary" size="sm" onclick={editFromView}>{t(lang, 'edit')}</Button>
+		{#if receiptError}
+			<p class="mt-3 text-sm text-red-600">{receiptError}</p>
+		{/if}
+
+		{#if !readOnly || hasDigitalReceipt(viewingRecord)}
+			<div class="mt-4 flex justify-end gap-2 border-t border-gray-200 pt-3">
+				{#if hasDigitalReceipt(viewingRecord)}
+					<Button variant="secondary" size="sm" onclick={() => downloadReceipt(viewingRecord)} disabled={receiptLoading}>
+						<span class="inline-flex items-center gap-1.5">
+							<Download class="h-3.5 w-3.5" />
+							{receiptLoading ? t(lang, 'generatingReceipt') : t(lang, 'downloadReceipt')}
+						</span>
+					</Button>
+				{/if}
+				{#if !readOnly}
+					<Button variant="primary" size="sm" onclick={editFromView}>{t(lang, 'edit')}</Button>
+				{/if}
 			</div>
 		{/if}
 	{/if}
