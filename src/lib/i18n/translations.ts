@@ -218,6 +218,8 @@ export const dict = {
 	receiptNumber: { en: 'Receipt Number', guj: 'રસીદ નંબર' },
 	description: { en: 'Description', guj: 'વર્ણન' },
 	receipt: { en: 'Receipt', guj: 'રસીદ' },
+	downloadReceipt: { en: 'Download Receipt', guj: 'રસીદ ડાઉનલોડ કરો' },
+	generatingReceipt: { en: 'Generating...', guj: 'બનાવી રહ્યા છીએ...' },
 	edit: { en: 'Edit', guj: 'સંપાદિત કરો' },
 
 	// /me/payments/v2 (PaymentDonut.svelte, PaymentYearlyBars.svelte)
