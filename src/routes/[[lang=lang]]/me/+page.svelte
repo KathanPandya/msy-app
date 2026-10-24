@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { t, withLang } from '$lib/i18n';
 	import { formatMemberDisplay } from '$lib/utilities/memberId';
+	import { getMemberStatusLabel } from '$lib/constants/app-constants';
 	import paymentApi from '$lib/endpoints/paymentApi';
 	import uploadApi from '$lib/endpoints/uploadApi';
 	import ImageViewer from '$lib/components/ui/ImageViewer.svelte';
@@ -344,7 +345,7 @@
 								{#if m.status !== 'active'}
 									<span
 										class="mt-0.5 inline-flex rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] text-yellow-800"
-										>{m.status}</span
+										>{getMemberStatusLabel(m.status)}</span
 									>
 								{/if}
 							</div>
