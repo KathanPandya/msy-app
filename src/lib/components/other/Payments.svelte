@@ -92,7 +92,7 @@
 	const filterSuffix: Record<string, string> = {
 		'': 'AllEntries',
 		payments: 'Payments',
-		deadMembers: 'DeadMembers'
+		deadMembers: 'DeceasedMembers'
 	};
 
 	function downloadCsv() {

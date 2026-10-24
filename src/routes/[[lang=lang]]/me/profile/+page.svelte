@@ -11,7 +11,7 @@
 		formatToYYYYMMDD,
 		getUserAddress
 	} from '$lib/utilities/helperFunc';
-	import { APP_CONSTANTS } from '$lib/constants/app-constants';
+	import { APP_CONSTANTS, getMemberStatusLabel } from '$lib/constants/app-constants';
 	import coreApi from '$lib/endpoints/coreApi';
 	import userApi from '$lib/endpoints/userApi';
 	import profileApi from '$lib/endpoints/profileApi';
@@ -695,7 +695,7 @@
 				<dl class="space-y-1.5 text-xs">
 					<div class="flex justify-between gap-4">
 						<dt class="text-gray-500">{t(lang, 'status')}</dt>
-						<dd class="font-medium text-gray-900 capitalize">{info.user.status}</dd>
+						<dd class="font-medium text-gray-900">{getMemberStatusLabel(info.user.status)}</dd>
 					</div>
 					<div class="flex justify-between gap-4">
 						<dt class="text-gray-500">{t(lang, 'joined')}</dt>
