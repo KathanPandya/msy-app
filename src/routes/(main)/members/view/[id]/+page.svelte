@@ -31,7 +31,7 @@
 	import FamilyPanel from '$lib/components/other/FamilyPanel.svelte';
 	import MemberStatusPanel from '$lib/components/other/MemberStatusPanel.svelte';
 	import MemberVerifiedEmail from '$lib/components/other/MemberVerifiedEmail.svelte';
-	import { Pencil, Trash2 } from '@lucide/svelte';
+	import { History, Pencil, Trash2 } from '@lucide/svelte';
 	import { onMount, onDestroy } from 'svelte';
 
 	type TabKey = 'info' | 'payments' | 'family' | 'status' | 'other';
@@ -543,33 +543,145 @@
 	let nomineeSectionError = $state('');
 	let nomineeSectionSuccess = $state('');
 
+	let editNomineeName = $state('');
+	let editNomineeReason = $state('');
+	let nomineeNameError = $state('');
+	let nomineeReasonError = $state('');
+	let nomineeToConfirm = $state<Nominee.Data | null>(null);
+	let historyNomineeId = $state<string | null>(null);
+	let nomineeLogs = $state<Nominee.Log[]>([]);
+	let nomineeLogsLoading = $state(false);
+	let nomineeLogsError = $state('');
+	const nomineeLogFieldLabels: Record<string, string> = {
+		full_name: 'Name',
+		relation: 'Relation',
+		mobile: 'Mobile',
+		date_of_birth: 'Date of birth',
+		id_doc_type: 'ID document type',
+		id_doc_url: 'ID document',
+		photo_url: 'Photo'
+	};
+
 	function openNomineeEdit(nominee: Nominee.Data) {
 		editingNomineeId = nominee._id;
+		editNomineeName = nominee.full_name;
+		editNomineeReason = '';
 		editNomineeRelation = nominee.relation || '';
+		nomineeNameError = '';
+		nomineeReasonError = '';
 		nomineeSectionError = '';
 		nomineeSectionSuccess = '';
 	}
 
-	async function saveNomineeRelation(nomineeId: string) {
+	// Case-sensitive on purpose: the API allows "ramesh" → "Ramesh".
+	function isNomineeNameChanged(nominee: Nominee.Data) {
+		return editNomineeName.trim() !== nominee.full_name;
+	}
+
+	function isNomineeRelationChanged(nominee: Nominee.Data) {
+		return !!editNomineeRelation && editNomineeRelation !== (nominee.relation || '');
+	}
+
+	function saveNominee(nominee: Nominee.Data) {
+		if (isNomineeNameChanged(nominee)) {
+			nomineeToConfirm = nominee;
+			return;
+		}
+		submitNomineeEdit(nominee);
+	}
+
+	async function submitNomineeEdit(nominee: Nominee.Data) {
+		const nomineeId = nominee._id;
+		const nameChanged = isNomineeNameChanged(nominee);
+		const relationChanged = isNomineeRelationChanged(nominee);
 		nomineeSectionError = '';
 		nomineeSectionSuccess = '';
+		nomineeNameError = '';
+		nomineeReasonError = '';
 		nomineeSavingId = nomineeId;
+		let saved = false;
 		try {
-			const res = await nomineeApi.updateNomineeRelation({
-				nomineeId,
-				payload: { relation: editNomineeRelation as Nominee.Update['relation'] }
-			});
-			nominees = nominees.map((n) => (n._id === nomineeId ? { ...n, ...res.nominee } : n));
+			let message = '';
+			if (nameChanged) {
+				const res = await nomineeApi.correctNomineeName({
+					nomineeId,
+					payload: {
+						type: 'correction',
+						full_name: editNomineeName.trim(),
+						reason: editNomineeReason.trim()
+					}
+				});
+				saved = true;
+				message = res.message;
+			}
+			if (relationChanged) {
+				const res = await nomineeApi.updateNomineeRelation({
+					nomineeId,
+					payload: { relation: editNomineeRelation as Nominee.Update['relation'] }
+				});
+				saved = true;
+				message = res.message;
+			}
 			editingNomineeId = null;
-			nomineeSectionSuccess = res.message || 'Nominee has been updated';
+			nomineeSectionSuccess = message || 'Nominee has been updated';
 		} catch (error: any) {
+			const fieldErrors = error?.response?.data?.error;
+			nomineeNameError = fieldErrors?.full_name || '';
+			nomineeReasonError = fieldErrors?.reason || '';
 			nomineeSectionError =
-				error?.response?.data?.error?.relation ||
+				fieldErrors?.relation ||
 				error?.response?.data?.message ||
-				'Failed to update nominee. Please try again.';
+				(nomineeNameError || nomineeReasonError
+					? ''
+					: 'Failed to update nominee. Please try again.');
 		} finally {
+			nomineeToConfirm = null;
+			if (saved) await refreshNominees(nomineeId);
 			nomineeSavingId = null;
 		}
+	}
+
+	async function refreshNominees(nomineeId: string) {
+		const userId = page.params.id;
+		if (!userId) return;
+		try {
+			const res = await nomineeApi.fetchNominees({ userId });
+			nominees = res.data;
+		} catch {
+			nomineeSectionError = 'Failed to refresh nominees. Please reload the page.';
+		}
+		if (historyNomineeId === nomineeId) await loadNomineeLogs(nomineeId);
+	}
+
+	function toggleNomineeHistory(nomineeId: string) {
+		if (historyNomineeId === nomineeId) {
+			historyNomineeId = null;
+			return;
+		}
+		historyNomineeId = nomineeId;
+		loadNomineeLogs(nomineeId);
+	}
+
+	async function loadNomineeLogs(nomineeId: string) {
+		nomineeLogsError = '';
+		nomineeLogsLoading = true;
+		nomineeLogs = [];
+		try {
+			const res = await nomineeApi.fetchNomineeLogs({ nomineeId });
+			nomineeLogs = res.data;
+		} catch (error: any) {
+			nomineeLogsError =
+				error?.response?.data?.message || 'Failed to load history. Please try again.';
+		} finally {
+			nomineeLogsLoading = false;
+		}
+	}
+
+	function formatNomineeLogValue(field: string, value: string | null) {
+		if (!value) return '-';
+		if (field === 'date_of_birth') return formatDate(value);
+		if (field === 'relation') return nomineeRelations.find((r) => r.key === value)?.label || value;
+		return value;
 	}
 
 	function openDeleteNominee(nominee: Nominee.Data) {
@@ -1296,11 +1408,15 @@
 						{#each nominees as nominee (nominee._id)}
 							<div class="rounded-md border border-gray-200 p-3">
 								{#if editingNomineeId === nominee._id}
-									<div class="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-end">
-										<div>
-											<p class="mb-1 text-sm font-medium text-gray-700">Name</p>
-											<p class="text-sm text-gray-900">{nominee.full_name}</p>
-										</div>
+									<div class="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-start">
+										<Input
+											id={`edit-name-${nominee._id}`}
+											label="Name"
+											bind:value={editNomineeName}
+											error={nomineeNameError}
+											disabled={nomineeSavingId === nominee._id}
+											required
+										/>
 										<Select
 											id={`edit-relation-${nominee._id}`}
 											label="Relation"
@@ -1308,6 +1424,29 @@
 											options={nomineeRelations}
 											required
 										/>
+										{#if isNomineeNameChanged(nominee)}
+											<div class="md:col-span-2">
+												<label
+													for={`edit-reason-${nominee._id}`}
+													class="mb-1 block text-sm font-medium text-gray-700"
+												>
+													Reason for name correction <span class="text-red-500">*</span>
+												</label>
+												<textarea
+													id={`edit-reason-${nominee._id}`}
+													bind:value={editNomineeReason}
+													rows="2"
+													disabled={nomineeSavingId === nominee._id}
+													placeholder="e.g. Spelling mistake in first name"
+													class="w-full resize-y rounded-md border px-3 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm {nomineeReasonError
+														? 'border-red-500'
+														: 'border-gray-300'}"
+												></textarea>
+												{#if nomineeReasonError}
+													<p class="mt-1 text-sm text-red-600">{nomineeReasonError}</p>
+												{/if}
+											</div>
+										{/if}
 									</div>
 									<div class="mt-3 flex justify-end gap-2">
 										<Button
@@ -1321,10 +1460,11 @@
 										<Button
 											variant="primary"
 											size="sm"
-											onclick={() => saveNomineeRelation(nominee._id)}
+											onclick={() => saveNominee(nominee)}
 											disabled={nomineeSavingId === nominee._id ||
-												!editNomineeRelation ||
-												editNomineeRelation === (nominee.relation || '')}
+												!editNomineeName.trim() ||
+												(!isNomineeNameChanged(nominee) && !isNomineeRelationChanged(nominee)) ||
+												(isNomineeNameChanged(nominee) && !editNomineeReason.trim())}
 										>
 											{nomineeSavingId === nominee._id ? 'Saving...' : 'Save'}
 										</Button>
@@ -1351,6 +1491,18 @@
 											</button>
 											<button
 												type="button"
+												onclick={() => toggleNomineeHistory(nominee._id)}
+												class="ml-2 rounded-md border-l border-gray-200 py-1 pl-3 {historyNomineeId ===
+												nominee._id
+													? 'text-blue-600'
+													: 'text-gray-400 hover:text-gray-600'}"
+												aria-label="Nominee history"
+												title="History"
+											>
+												<History class="h-4 w-4" />
+											</button>
+											<button
+												type="button"
 												onclick={() => openDeleteNominee(nominee)}
 												disabled={nomineeDeletingId === nominee._id}
 												class="ml-2 rounded-md border-l border-gray-200 py-1 pl-3 text-gray-400 hover:text-red-600 disabled:opacity-50"
@@ -1359,6 +1511,52 @@
 												<Trash2 class="h-4 w-4" />
 											</button>
 										</div>
+									</div>
+								{/if}
+								{#if historyNomineeId === nominee._id}
+									<div class="mt-3 border-t border-gray-100 pt-3">
+										<p class="mb-2 text-sm font-medium text-gray-700">History</p>
+										{#if nomineeLogsLoading}
+											<p class="text-sm text-gray-500">Loading history...</p>
+										{:else if nomineeLogsError}
+											<p class="text-sm text-red-600">{nomineeLogsError}</p>
+										{:else if nomineeLogs.length === 0}
+											<p class="text-sm text-gray-500">No corrections yet.</p>
+										{:else}
+											<div class="space-y-2">
+												{#each nomineeLogs as log (log._id)}
+													<div class="rounded-md bg-gray-50 p-2 text-sm">
+														<div
+															class="flex flex-wrap items-center justify-between gap-x-3 text-xs text-gray-500"
+														>
+															<span>
+																{formatDate(log.createdAt)}
+																{new Date(log.createdAt).toLocaleTimeString('en-IN', {
+																	hour: '2-digit',
+																	minute: '2-digit'
+																})}
+																· {log.type === 'correction' ? 'Correction' : 'Change'}
+															</span>
+															<span>
+																{log.changedBy?.name || log.changedBy?.username || 'Unknown admin'}
+															</span>
+														</div>
+														{#each log.changes as change, i (i)}
+															<p class="mt-1 text-gray-900">
+																<span class="font-medium"
+																	>{nomineeLogFieldLabels[change.field] || change.field}:</span
+																>
+																{formatNomineeLogValue(change.field, change.old)} → {formatNomineeLogValue(
+																	change.field,
+																	change.new
+																)}
+															</p>
+														{/each}
+														<p class="mt-0.5 text-gray-600">Reason: {log.reason}</p>
+													</div>
+												{/each}
+											</div>
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -1515,6 +1713,41 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Nominee name correction confirmation -->
+<Modal
+	open={!!nomineeToConfirm}
+	onClose={() => (nomineeToConfirm = null)}
+	title="Confirm Name Correction"
+>
+	{#if nomineeToConfirm}
+		<p class="text-sm text-gray-700">
+			Change <strong>'{nomineeToConfirm.full_name}'</strong> to
+			<strong>'{editNomineeName.trim()}'</strong>?
+		</p>
+		{#if isNomineeRelationChanged(nomineeToConfirm)}
+			<p class="mt-2 text-sm text-gray-700">The relation change will also be saved.</p>
+		{/if}
+		<div class="mt-4 flex justify-end gap-2">
+			<Button
+				variant="secondary"
+				size="sm"
+				onclick={() => (nomineeToConfirm = null)}
+				disabled={nomineeSavingId === nomineeToConfirm._id}
+			>
+				Cancel
+			</Button>
+			<Button
+				variant="primary"
+				size="sm"
+				onclick={() => nomineeToConfirm && submitNomineeEdit(nomineeToConfirm)}
+				disabled={nomineeSavingId === nomineeToConfirm._id}
+			>
+				{nomineeSavingId === nomineeToConfirm._id ? 'Saving...' : 'Confirm'}
+			</Button>
+		</div>
+	{/if}
+</Modal>
 
 <!-- Delete nominee confirmation -->
 <Modal open={!!nomineeToDelete} onClose={closeDeleteNominee} title="Delete Nominee">
