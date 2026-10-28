@@ -5,10 +5,16 @@
 	import { page } from '$app/state';
 	import { t, withLang } from '$lib/i18n';
 	import { authStore } from '$lib/stores/authStore';
-	import { HandHeart } from '@lucide/svelte';
+	import { HandHeart, Heart } from '@lucide/svelte';
 	import InstallAppCard from '$lib/components/other/InstallAppCard.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	const lang = $derived(page.params.lang as 'guj' | undefined);
+
+	let donateOpen = $state(false);
+	const DONATE_ACCOUNT_NAME = 'Akhil Hind Bhatt Mewada Brahm Samaj Federation';
+	const DONATE_ACCOUNT_NUMBER = '202010110014429';
+	const DONATE_IFSC_CODE = 'BKID0002020';
 
 	// let payButtonContainer: HTMLDivElement;
 
@@ -83,6 +89,10 @@
 			],
 			alreadyMember: 'Already a member? Log in to view dues and make payments.',
 			memberLogin: 'Member Login',
+			donateNow: 'Donate Now',
+			donateIntro: 'You can donate by bank transfer to the account below.',
+			accountName: 'Account name',
+			gatewayNote: 'We are integrating an online payment gateway soon.',
 			needHelp: 'Need help?',
 			contactSupport: 'Contact support on WhatsApp',
 			adminLogin: 'Admin login'
@@ -128,6 +138,10 @@
 			],
 			alreadyMember: 'પહેલેથી સભ્ય છો? બાકી રકમ જોવા અને ચુકવણી કરવા લોગ ઇન કરો.',
 			memberLogin: 'સભ્ય લોગ ઇન',
+			donateNow: 'દાન કરો',
+			donateIntro: 'નીચેના બેંક ખાતામાં ટ્રાન્સફર કરીને આપ દાન આપી શકો છો.',
+			accountName: 'ખાતાનું નામ',
+			gatewayNote: 'અમે ટૂંક સમયમાં ઓનલાઇન પેમેન્ટ ગેટવે ઉમેરી રહ્યા છીએ.',
 			needHelp: 'મદદ જોઈએ છે?',
 			contactSupport: 'WhatsApp પર સહાયનો સંપર્ક કરો',
 			adminLogin: 'એડમિન લોગ ઇન'
@@ -192,6 +206,14 @@
 				<HandHeart class="h-4 w-4" />
 				{c.memberLogin}
 			</a>
+			<button
+				type="button"
+				onclick={() => (donateOpen = true)}
+				class="ml-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-600 px-5 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-50"
+			>
+				<Heart class="h-4 w-4" />
+				{c.donateNow}
+			</button>
 			<p class="mt-2 text-xs text-gray-500">
 				{c.needHelp}
 				<a
@@ -288,3 +310,26 @@
 		<a href="/admin" class="hover:text-gray-600 hover:underline">{c.adminLogin}</a>
 	</footer>
 </div>
+
+<Modal open={donateOpen} onClose={() => (donateOpen = false)} title={c.donateNow}>
+	<p class="text-sm text-gray-700">{c.donateIntro}</p>
+	<dl class="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+		<div>
+			<dt class="text-xs text-gray-500">{c.accountName}</dt>
+			<dd class="font-semibold text-gray-900">{DONATE_ACCOUNT_NAME}</dd>
+		</div>
+		<div>
+			<dt class="text-xs text-gray-500">{t(lang, 'bankLabel')}</dt>
+			<dd class="font-semibold text-gray-900">{t(lang, 'bankNameBoi')}</dd>
+		</div>
+		<div>
+			<dt class="text-xs text-gray-500">{t(lang, 'accountNumberLabel')}</dt>
+			<dd class="font-semibold text-gray-900">{DONATE_ACCOUNT_NUMBER}</dd>
+		</div>
+		<div>
+			<dt class="text-xs text-gray-500">{t(lang, 'ifscCodeLabel')}</dt>
+			<dd class="font-semibold text-gray-900">{DONATE_IFSC_CODE}</dd>
+		</div>
+	</dl>
+	<p class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">{c.gatewayNote}</p>
+</Modal>

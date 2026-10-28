@@ -30,6 +30,26 @@ class NomineeApi {
 		return response.data;
 	}
 
+	async correctNomineeName({
+		nomineeId,
+		payload
+	}: {
+		nomineeId: string;
+		payload: Nominee.NameCorrection;
+	}): Promise<{ success: boolean; nominee: Nominee.Data; message: string }> {
+		const response = await axios.patch(`/api/nominee/admin/name/${nomineeId}`, payload);
+		return response.data;
+	}
+
+	async fetchNomineeLogs({
+		nomineeId
+	}: {
+		nomineeId: string;
+	}): Promise<{ success: boolean; data: Nominee.Log[] }> {
+		const response = await axios.get(`/api/nominee/admin/logs/${nomineeId}`);
+		return response.data;
+	}
+
 	async deleteNominee({
 		nomineeId
 	}: {

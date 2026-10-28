@@ -32,4 +32,28 @@ export namespace Nominee {
 	export type Update = {
 		relation: Relation;
 	};
+
+	export type NameCorrection = {
+		type: 'correction';
+		full_name: string;
+		reason: string;
+	};
+
+	export type LogChange = {
+		field: string;
+		old: string | null;
+		new: string | null;
+	};
+
+	export type Log = {
+		_id: string;
+		nomineeId: string;
+		userId: string;
+		type: 'correction' | 'change';
+		changes: LogChange[];
+		reason: string;
+		changedBy: { _id: string; username: string; name: string } | null;
+		createdAt: string;
+		updatedAt: string;
+	};
 }
