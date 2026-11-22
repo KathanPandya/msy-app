@@ -602,6 +602,111 @@ export const dict = {
 	inviteWhatsAppMessage: {
 		en: 'Join Mrutyu Sahay Yojana. Fill the membership form here: {link}',
 		guj: 'મૃત્યુ સહાય યોજનામાં જોડાઓ. સભ્યપદ ફોર્મ અહીં ભરો: {link}'
+	},
+	frTabTitle: { en: 'Registration Form', guj: 'નોંધણી ફોર્મ' },
+	frRegisterNow: { en: 'Register Now', guj: 'નોંધણી કરો' },
+	frStepAbout: { en: 'About you', guj: 'તમારી માહિતી' },
+	frStepContact: { en: 'How can we contact you?', guj: 'અમે તમારો સંપર્ક કેવી રીતે કરીએ?' },
+	frStepRoots: { en: 'Address & family roots', guj: 'સરનામું અને મૂળ' },
+	frProfession: { en: 'Profession', guj: 'વ્યવસાય' },
+	frLastName: { en: 'Last Name', guj: 'અટક' },
+	frDay: { en: 'Day', guj: 'દિવસ' },
+	frMonth: { en: 'Month', guj: 'મહિનો' },
+	frYear: { en: 'Year', guj: 'વર્ષ' },
+	frMobile: { en: 'Mobile number', guj: 'મોબાઇલ નંબર' },
+	frWhatsappSame: { en: 'WhatsApp is on this same number', guj: 'આ જ નંબર પર WhatsApp છે' },
+	frWhatsapp: { en: 'WhatsApp number', guj: 'WhatsApp નંબર' },
+	frEmail: { en: 'Email', guj: 'ઇમેલ' },
+	frAddress: { en: 'Home address', guj: 'ઘરનું સરનામું' },
+	frAddressHint: { en: 'House no., society, area', guj: 'ઘર નં., સોસાયટી, વિસ્તાર' },
+	frCity: { en: 'City', guj: 'શહેર' },
+	frPincode: { en: 'Pincode', guj: 'પિનકોડ' },
+	frErrPincode: { en: 'Enter a 6-digit pincode', guj: '6 અંકનો પિનકોડ લખો' },
+	frFee: { en: 'Fee', guj: 'ફી' },
+	frFree: { en: 'Free', guj: 'મફત' },
+	frTotal: { en: 'Total', guj: 'કુલ' },
+	frErrNeedAdult: {
+		en: 'At least one member must be above 10 years of age.',
+		guj: 'ઓછામાં ઓછો એક સભ્ય 10 વર્ષથી મોટો હોવો જોઈએ.'
+	},
+	frNeedsReview: {
+		en: 'Payment received, but the amount does not match. We will check it and contact you.',
+		guj: 'ચુકવણી મળી છે, પણ રકમ મેળ ખાતી નથી. અમે તપાસ કરીને તમારો સંપર્ક કરીશું.'
+	},
+	frLoadOptionsFailed: {
+		en: 'Could not load the form. Please refresh the page.',
+		guj: 'ફોર્મ લોડ થઈ શક્યું નથી. કૃપા કરી પેજ રિફ્રેશ કરો.'
+	},
+	frViewPass: { en: 'View entry pass', guj: 'પ્રવેશ પાસ જુઓ' },
+	epTitle: { en: 'Entry pass', guj: 'પ્રવેશ પાસ' },
+	epShowQr: {
+		en: 'Show this QR at the entrance on the day of the event.',
+		guj: 'કાર્યક્રમના દિવસે પ્રવેશદ્વાર પર આ QR બતાવો.'
+	},
+	epNotPaid: {
+		en: 'Payment for this form is not complete yet.',
+		guj: 'આ ફોર્મની ચુકવણી હજુ પૂરી થઈ નથી.'
+	},
+	epNotFound: { en: 'This pass link is not valid.', guj: 'આ પાસ લિંક માન્ય નથી.' },
+	epEntered: { en: 'Entered', guj: 'પ્રવેશ થયો' },
+	frVatan: { en: 'Vatan (native place)', guj: 'વતન' },
+	frVatanHint: { en: 'Village or town name', guj: 'ગામ અથવા શહેરનું નામ' },
+	frSelect: { en: 'Select', guj: 'પસંદ કરો' },
+	frNext: { en: 'Next', guj: 'આગળ' },
+	frBack: { en: 'Back', guj: 'પાછળ' },
+	frMembers: { en: 'Members', guj: 'સભ્યો' },
+	frAddMoreHint: { en: 'You can add more members to this form.', guj: 'તમે આ ફોર્મમાં વધુ સભ્યો ઉમેરી શકો છો.' },
+	frYouTag: { en: 'You', guj: 'તમે' },
+	frAddMember: { en: 'Add member', guj: 'સભ્ય ઉમેરો' },
+	frNewMember: { en: 'New member', guj: 'નવા સભ્ય' },
+	frEditMember: { en: 'Edit member', guj: 'સભ્યની માહિતી બદલો' },
+	frRelationWith: { en: "{member} is {head}'s…", guj: '{member} એ {head}ના શું થાય?' },
+	frSameAs: { en: 'Same as {name}', guj: '{name} જેવું જ' },
+	frChange: { en: 'Change', guj: 'બદલો' },
+	frEdit: { en: 'Edit', guj: 'બદલો' },
+	frThisMember: { en: 'this member', guj: 'આ સભ્ય' },
+	frOwnMobile: {
+		en: 'Does {name} have their own mobile number?',
+		guj: 'શું {name} પાસે પોતાનો મોબાઇલ નંબર છે?'
+	},
+	frOwnEmail: {
+		en: 'Does {name} have their own email?',
+		guj: 'શું {name} પાસે પોતાનો ઇમેલ છે?'
+	},
+	frYes: { en: 'Yes', guj: 'હા' },
+	frNoUseHeads: { en: "No, use {name}'s", guj: 'ના, {name}નો વાપરો' },
+	frSaveMember: { en: 'Save member', guj: 'સભ્ય સાચવો' },
+	frRemoveConfirm: { en: 'Remove {name} from the list?', guj: '{name}ને યાદીમાંથી દૂર કરવા છે?' },
+	frMembersCount: { en: '{n} members', guj: '{n} સભ્યો' },
+	frMemberCountOne: { en: '{n} member', guj: '{n} સભ્ય' },
+	frSubmit: { en: 'Review & pay', guj: 'તપાસો અને ચૂકવો' },
+	frReviewTitle: { en: 'Check your details', guj: 'તમારી માહિતી તપાસો' },
+	frReviewHint: {
+		en: 'Please check everything once. Tap Edit to correct anything.',
+		guj: 'એક વાર બધું તપાસી લો. કંઈ સુધારવું હોય તો "બદલો" દબાવો.'
+	},
+	frPaySubmit: { en: 'Pay ₹{amount} & submit', guj: '₹{amount} ચૂકવો અને સબમિટ કરો' },
+	frPaying: { en: 'Processing payment…', guj: 'ચુકવણી થઈ રહી છે…' },
+	frDontClose: {
+		en: 'Please do not close or refresh this page.',
+		guj: 'કૃપા કરી આ પેજ બંધ કે રિફ્રેશ કરશો નહીં.'
+	},
+	frDoneTitle: { en: 'Form submitted', guj: 'ફોર્મ સબમિટ થઈ ગયું' },
+	frDoneEmail: {
+		en: 'You will receive an email at {email}.',
+		guj: 'તમને {email} પર ઇમેલ મળશે.'
+	},
+	frKeepEmail: {
+		en: 'Please keep this email safe. It will be required on that day.',
+		guj: 'કૃપા કરી આ ઇમેલ સાચવી રાખો. તે દિવસે તેની જરૂર પડશે.'
+	},
+	frErrRequired: { en: 'Please fill this', guj: 'કૃપા કરી આ ભરો' },
+	frErrChoose: { en: 'Please choose one', guj: 'કૃપા કરી એક પસંદ કરો' },
+	frErrDob: { en: 'Select day, month and year', guj: 'દિવસ, મહિનો અને વર્ષ પસંદ કરો' },
+	frErrMobile: { en: 'Enter a 10-digit mobile number', guj: '10 અંકનો મોબાઇલ નંબર લખો' },
+	frErrEmail: {
+		en: 'Enter a correct email, e.g. name@gmail.com',
+		guj: 'સાચો ઇમેલ લખો, દા.ત. name@gmail.com'
 	}
 } as const;
 
