@@ -617,6 +617,7 @@ export const dict = {
 	frWhatsappSame: { en: 'WhatsApp is on this same number', guj: 'આ જ નંબર પર WhatsApp છે' },
 	frWhatsapp: { en: 'WhatsApp number', guj: 'WhatsApp નંબર' },
 	frEmail: { en: 'Email', guj: 'ઇમેલ' },
+	frEmailOptional: { en: 'Email (optional)', guj: 'ઇમેલ (વૈકલ્પિક)' },
 	frAddress: { en: 'Home address', guj: 'ઘરનું સરનામું' },
 	frAddressHint: { en: 'House no., society, area', guj: 'ઘર નં., સોસાયટી, વિસ્તાર' },
 	frCity: { en: 'City', guj: 'શહેર' },
@@ -692,13 +693,13 @@ export const dict = {
 		guj: 'કૃપા કરી આ પેજ બંધ કે રિફ્રેશ કરશો નહીં.'
 	},
 	frDoneTitle: { en: 'Form submitted', guj: 'ફોર્મ સબમિટ થઈ ગયું' },
-	frDoneEmail: {
-		en: 'You will receive an email at {email}.',
-		guj: 'તમને {email} પર ઇમેલ મળશે.'
+	frDoneWhatsapp: {
+		en: 'You will receive a WhatsApp message on {number}.',
+		guj: 'તમને {number} પર WhatsApp મેસેજ મળશે.'
 	},
-	frKeepEmail: {
-		en: 'Please keep this email safe. It will be required on that day.',
-		guj: 'કૃપા કરી આ ઇમેલ સાચવી રાખો. તે દિવસે તેની જરૂર પડશે.'
+	frKeepWhatsapp: {
+		en: 'Please do not delete this message. It will be required on that day.',
+		guj: 'કૃપા કરી આ મેસેજ ડિલીટ કરશો નહીં. તે દિવસે તેની જરૂર પડશે.'
 	},
 	frErrRequired: { en: 'Please fill this', guj: 'કૃપા કરી આ ભરો' },
 	frErrChoose: { en: 'Please choose one', guj: 'કૃપા કરી એક પસંદ કરો' },

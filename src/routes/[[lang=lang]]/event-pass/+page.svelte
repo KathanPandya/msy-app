@@ -10,6 +10,7 @@
 	import { generateQrDataUrl } from '$lib/utilities/upiPayment';
 	import { CheckCircle2 } from '@lucide/svelte';
 	import { isRegistrationHost } from '$lib/constants/event';
+	import EventAd from '$lib/components/event/EventAd.svelte';
 
 	const onRegistrationHost = isRegistrationHost();
 
@@ -157,6 +158,10 @@
 					</section>
 				{/each}
 			</div>
+		{/if}
+
+		{#if !isLoading}
+			<EventAd />
 		{/if}
 	</div>
 </div>

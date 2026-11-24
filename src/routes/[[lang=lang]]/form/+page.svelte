@@ -12,6 +12,7 @@
 	import Select from '$lib/components/ui/Select.svelte';
 	import { CalendarDays, CheckCircle2, MapPin, Plus } from '@lucide/svelte';
 	import { isRegistrationHost } from '$lib/constants/event';
+	import EventAd from '$lib/components/event/EventAd.svelte';
 
 	const onRegistrationHost = isRegistrationHost();
 
@@ -304,7 +305,7 @@
 						e.whatsapp = t(lang, 'frErrMobile');
 					break;
 				case 'email':
-					if (p.ownEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email.trim()))
+					if (p.ownEmail && p.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email.trim()))
 						e.email = t(lang, 'frErrEmail');
 					break;
 				case 'address':
@@ -594,12 +595,11 @@
 {#snippet emailField(p: Person, prefix: string)}
 	<Input
 		id={`${prefix}-email`}
-		label={t(lang, 'frEmail')}
+		label={t(lang, 'frEmailOptional')}
 		type="email"
 		inputmode="email"
 		bind:value={p.email}
 		error={errors.email}
-		required
 	/>
 {/snippet}
 
@@ -1015,9 +1015,11 @@
 			<div class="pt-10 text-center">
 				<CheckCircle2 class="mx-auto mb-4 h-16 w-16 text-green-600" />
 				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frDoneTitle')}</h1>
-				<p class="mt-2 text-gray-600">{fmt('frDoneEmail', { email: head.email })}</p>
+				<p class="mt-2 text-gray-600">
+					{fmt('frDoneWhatsapp', { number: head.whatsappSame ? head.mobile : head.whatsapp })}
+				</p>
 				<p class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-					{t(lang, 'frKeepEmail')}
+					{t(lang, 'frKeepWhatsapp')}
 				</p>
 				<a
 					href={passHref}
@@ -1026,6 +1028,10 @@
 					{t(lang, 'frViewPass')}
 				</a>
 			</div>
+		{/if}
+
+		{#if stage !== 'landing' && stage !== 'paying'}
+			<EventAd />
 		{/if}
 	</div>
 </div>

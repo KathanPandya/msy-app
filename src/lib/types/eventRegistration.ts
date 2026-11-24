@@ -18,7 +18,7 @@ export namespace EventRegistration {
 		profession: string;
 		mobile: string;
 		whatsapp: string;
-		email: string;
+		email: string | null;
 		address: string;
 		city: string;
 		pincode: string;
@@ -49,7 +49,7 @@ export namespace EventRegistration {
 		amount: number;
 		currency: string;
 		total_amount: number;
-		prefill: { name: string; email: string; contact: string };
+		prefill: { name: string; email?: string; contact: string };
 	};
 
 	export type VerifyPayload = {
