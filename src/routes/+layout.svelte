@@ -4,7 +4,8 @@
 	import { authStore } from '$lib/stores/authStore';
 	import { page } from '$app/state';
 	import { goto, afterNavigate } from '$app/navigation';
-	import { withLang } from '$lib/i18n';
+	import { t, withLang } from '$lib/i18n';
+	import { isRegistrationHost } from '$lib/constants/event';
 	import LoadingBar from '$lib/components/ui/LoadingBar.svelte';
 	let { children } = $props();
 
@@ -42,7 +43,9 @@
 			'/other-schemes',
 			'/qna',
 			'/about',
-			'/terms'
+			'/terms',
+			'/form',
+			'/event-pass'
 		];
 		const lang = page.params.lang as 'guj' | undefined;
 		const currentPath = page.url.pathname;
@@ -55,6 +58,14 @@
 			publicRoutes.includes(pathWithoutLang) ||
 			pathWithoutLang === '/register' ||
 			pathWithoutLang.startsWith('/register/');
+
+		// Same build as the main site, but this host serves only the event form and its pass.
+		if (isRegistrationHost()) {
+			if (pathWithoutLang !== '/form' && pathWithoutLang !== '/event-pass') {
+				goto(withLang(lang, '/form'), { replaceState: true });
+			}
+			return;
+		}
 
 		if (!$authStore.isLoading && !$authStore.isAuthenticated) {
 			if (!isPublic) {
@@ -77,12 +88,13 @@
 
 	const appHeading = $derived.by(() => {
 		const lang = page.params.lang as 'guj' | undefined;
+		if (isRegistrationHost()) return t(lang, 'frTabTitle');
 		const currentPath = page.url.pathname;
 		const pathWithoutLang = lang
 			? currentPath.replace(new RegExp(`^/${lang}`), '') || '/'
 			: currentPath;
 
-		const publicShellRoutes = ['/', '/login', '/verify-email', '/me', '/about', '/qna', '/terms', '/other-schemes', '/register'];
+		const publicShellRoutes = ['/', '/login', '/verify-email', '/me', '/about', '/qna', '/terms', '/other-schemes', '/register', '/form', '/event-pass'];
 		const isPublicShellRoute = publicShellRoutes.some(
 			(route) => pathWithoutLang === route || pathWithoutLang.startsWith(`${route}/`)
 		);
