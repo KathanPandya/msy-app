@@ -12,12 +12,18 @@
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-title" content="MSY" />
 	<script type="text/javascript">
-		if ('%sveltekit.env.PUBLIC_IS_PRODUCTION%' === 'true') {
+		// One Clarity project per site; any other host (localhost, test URLs) gets none.
+		var clarityIds = {
+			'registration.bhattmewada.org': 'zj5brcpkft',
+			'msy.bhattmewada.org': 'yfo62a6hop'
+		};
+		var clarityId = clarityIds[location.hostname];
+		if (clarityId) {
 			(function(c,l,a,r,i,t,y){
 				c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
 				t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
 				y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-			})(window, document, "clarity", "script", "yfo62a6hop");
+			})(window, document, "clarity", "script", clarityId);
 		}
 	</script>
 	%sveltekit.head%
