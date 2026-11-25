@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { onMount, tick } from 'svelte';
 	import { t, withLang, type Lang } from '$lib/i18n';
 	import type { DictKey } from '$lib/i18n/translations';
 	import optionApi from '$lib/endpoints/optionApi';
+	import eventRegistrationApi from '$lib/endpoints/eventRegistrationApi';
 	import type { Option } from '$lib/types/option';
 	import type { EventRegistration } from '$lib/types/eventRegistration';
 	import { runEventRegistrationPayment } from '$lib/utilities/eventRegistrationCheckout';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
-	import { CalendarDays, CheckCircle2, MapPin, Plus } from '@lucide/svelte';
+	import { CalendarDays, CheckCircle2, Info, MapPin, Plus } from '@lucide/svelte';
 	import { isRegistrationHost } from '$lib/constants/event';
 	import EventAd from '$lib/components/event/EventAd.svelte';
 
@@ -49,6 +51,7 @@
 		| 'profession'
 		| 'ownMobile'
 		| 'mobile'
+		| 'whatsappSame'
 		| 'whatsapp'
 		| 'ownEmail'
 		| 'email'
@@ -57,10 +60,11 @@
 		| 'pincode'
 		| 'gotra'
 		| 'vatan';
-	type Stage = 'landing' | 'head' | 'family' | 'member' | 'review' | 'paying' | 'done';
+	type Stage = 'landing' | 'head' | 'family' | 'member' | 'review' | 'paying' | 'registered';
 
 	const DRAFT_KEY = 'msy-family-registration-draft-v3';
-	const FREE_UP_TO_AGE = 10;
+	// Members register from their 10th birthday; younger children can't be added (same rule as the server).
+	const MIN_AGE = 10;
 	const FEE_PER_MEMBER = 100;
 
 	const MONTHS = {
@@ -143,11 +147,14 @@
 		{ key: '', label: t(lang, 'frMonth') },
 		...MONTHS[L].map((m, i) => ({ key: String(i + 1), label: m }))
 	]);
+	// Starts at the latest year someone can be born in and turn 10 this year (e.g. 2026 → 2016).
+	// Born that year but not yet 10 is still caught by the age check.
+	const latestBirthYear = thisYear - MIN_AGE;
 	const yearOptions = $derived([
 		{ key: '', label: t(lang, 'frYear') },
-		...Array.from({ length: 101 }, (_, i) => ({
-			key: String(thisYear - i),
-			label: String(thisYear - i)
+		...Array.from({ length: latestBirthYear - (thisYear - 100) + 1 }, (_, i) => ({
+			key: String(latestBirthYear - i),
+			label: String(latestBirthYear - i)
 		}))
 	]);
 	let options = $state<Record<string, Option.Item[]>>({});
@@ -184,31 +191,66 @@
 	const draftFirstName = $derived(draft.firstName.trim() || t(lang, 'frThisMember'));
 
 	onMount(async () => {
+		const optionsRequest = optionApi.list({ lists: ['relation', 'profession', 'gotra'] });
+
+		let saved: any = null;
 		try {
-			const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
-			if (saved?.head) {
-				head = saved.head;
-				members = saved.members ?? [];
-				stage = saved.stage === 'head' ? 'head' : 'family';
-				step = saved.step ?? 0;
-				token = saved.token ?? null;
-			}
+			saved = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
 		} catch {}
+		if (saved?.token && (await isAlreadyPaid(saved.token))) {
+			token = saved.token;
+			stage = 'registered';
+		} else if (saved?.head) {
+			head = saved.head;
+			members = saved.members ?? [];
+			stage = saved.stage === 'head' ? 'head' : 'family';
+			step = saved.step ?? 0;
+			token = saved.token ?? null;
+		}
 		restored = true;
 
 		try {
-			options = (await optionApi.list({ lists: ['relation', 'profession', 'gotra'] })).options;
+			options = (await optionsRequest).options;
 		} catch {
 			optionsError = t(lang, 'frLoadOptionsFailed');
 		}
 	});
+
+	function clearDraft() {
+		try {
+			localStorage.removeItem(DRAFT_KEY);
+		} catch {}
+	}
+
+	// The saved form is kept after payment on purpose. Many people pay in a UPI app and never come
+	// back, or lose the WhatsApp message, but they do reopen the link. So when the saved form is
+	// already paid, we show "already registered" with their entry pass instead of an empty form.
+	// "Fill a new form" (for another family) is the only thing that clears it.
+	async function isAlreadyPaid(savedToken: string) {
+		try {
+			const { registration } = await eventRegistrationApi.pass({ token: savedToken });
+			return registration.status === 'paid';
+		} catch {
+			return false;
+		}
+	}
+
+	function startFresh() {
+		clearDraft();
+		head = emptyPerson(true);
+		members = [];
+		step = 0;
+		token = null;
+		formError = '';
+		goTo('landing');
+	}
 
 	// Saved on every change so a refresh or closed tab doesn't lose a half-filled form.
 	// The token is kept too, so a cancelled payment retries the same form.
 	$effect(() => {
 		const snapshot = JSON.stringify({ head, members, stage, step, token });
 		// Landing isn't saved, so someone with a half-filled form resumes it instead of seeing landing again.
-		if (!restored || stage === 'landing' || stage === 'done') return;
+		if (!restored || stage === 'landing' || stage === 'registered') return;
 		try {
 			localStorage.setItem(DRAFT_KEY, snapshot);
 		} catch {}
@@ -241,9 +283,7 @@
 		}
 		return age;
 	}
-	const feeFor = (p: Person) => (ageToday(p) <= FREE_UP_TO_AGE ? 0 : FEE_PER_MEMBER);
-	const totalAmount = $derived([head, ...members].reduce((sum, p) => sum + feeFor(p), 0));
-	const feeLabel = (fee: number) => (fee ? `₹${fee}` : t(lang, 'frFree'));
+	const totalAmount = $derived((members.length + 1) * FEE_PER_MEMBER);
 
 	function reviewRows(p: Person, isHead: boolean) {
 		const mobile = p.ownMobile ? p.mobile : head.mobile;
@@ -268,7 +308,7 @@
 			{ label: t(lang, 'frPincode'), value: p.sameAddress ? head.pincode : p.pincode },
 			{ label: t(lang, 'gotra'), value: optionLabel('gotra', p.sameGotra ? head.gotra : p.gotra) },
 			{ label: t(lang, 'frVatan'), value: p.sameVatan ? head.vatan : p.vatan },
-			{ label: t(lang, 'frFee'), value: feeLabel(feeFor(p)) }
+			{ label: t(lang, 'frFee'), value: `₹${FEE_PER_MEMBER}` }
 		];
 	}
 
@@ -284,6 +324,7 @@
 					break;
 				case 'dob':
 					if (!p.dobDay || !p.dobMonth || !p.dobYear) e.dob = t(lang, 'frErrDob');
+					else if (ageToday(p) < MIN_AGE) e.dob = t(lang, 'frErrChild');
 					break;
 				case 'profession':
 					if (!p.profession) e.profession = t(lang, 'frErrChoose');
@@ -420,8 +461,8 @@
 	}
 
 	function openReview() {
-		formError = totalAmount > 0 ? '' : t(lang, 'frErrNeedAdult');
-		if (!formError) goTo('review');
+		formError = '';
+		goTo('review');
 	}
 
 	function toMemberInput(p: Person, isHead: boolean): EventRegistration.MemberInput {
@@ -466,10 +507,8 @@
 		switch (result.kind) {
 			case 'submitted':
 			case 'processing':
-				try {
-					localStorage.removeItem(DRAFT_KEY);
-				} catch {}
-				goTo('done');
+				// Straight to the pass so they have it right away, even if WhatsApp never arrives.
+				goto(withLang(lang, `/event-pass?token=${token}&new=1`));
 				break;
 			case 'needs_review':
 				await goTo('review');
@@ -482,6 +521,9 @@
 			case 'failed':
 				await goTo('review');
 				formError = t(lang, 'paymentFailed').replace('{reason}', result.reason.replace(/\.$/, ''));
+				break;
+			case 'alreadyPaid':
+				goTo('registered');
 				break;
 			case 'createFailed':
 				formError = result.message;
@@ -558,6 +600,13 @@
 {/snippet}
 
 {#snippet mobileFields(p: Person, prefix: string)}
+	{#if prefix === 'head'}
+		<!-- Shown before they type, so nobody enters a fake number thinking it's only for records. -->
+		<div class="flex gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+			<Info class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+			<p>{t(lang, 'frPassOnWhatsapp')}</p>
+		</div>
+	{/if}
 	<Input
 		id={`${prefix}-mobile`}
 		label={t(lang, 'frMobile')}
@@ -569,14 +618,8 @@
 		error={errors.mobile}
 		required
 	/>
-	<label class="flex cursor-pointer items-center gap-2">
-		<input
-			type="checkbox"
-			bind:checked={p.whatsappSame}
-			class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-		/>
-		<span class="text-sm text-gray-700">{t(lang, 'frWhatsappSame')}</span>
-	</label>
+	<!-- Same Yes/No buttons as the member questions, so there is one pattern to learn. -->
+	{@render yesNo(p, 'whatsappSame', t(lang, 'frWhatsappSameQ'), t(lang, 'frWhatsappDifferent'))}
 	{#if !p.whatsappSame}
 		<Input
 			id={`${prefix}-whatsapp`}
@@ -608,7 +651,7 @@
 		{@render fieldLabel(t(lang, 'frAddress'), `${prefix}-address`)}
 		<textarea
 			id={`${prefix}-address`}
-			rows="3"
+			rows="2"
 			bind:value={p.address}
 			class="w-full resize-y rounded-md border px-3 py-2 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm {errors.address
 				? 'border-red-500'
@@ -666,21 +709,26 @@
 	</div>
 {/snippet}
 
-{#snippet yesNo(field: 'ownMobile' | 'ownEmail', question: string)}
+{#snippet yesNo(
+	p: Person,
+	field: 'ownMobile' | 'ownEmail' | 'whatsappSame',
+	question: string,
+	noLabel: string
+)}
 	<div>
 		{@render fieldLabel(question)}
 		<div class="grid grid-cols-2 gap-2">
 			<Button
-				variant={draft[field] === true ? 'primary' : 'secondary'}
-				onclick={() => (draft[field] = true)}
+				variant={p[field] === true ? 'primary' : 'secondary'}
+				onclick={() => (p[field] = true)}
 			>
 				{t(lang, 'frYes')}
 			</Button>
 			<Button
-				variant={draft[field] === false ? 'primary' : 'secondary'}
-				onclick={() => (draft[field] = false)}
+				variant={p[field] === false ? 'primary' : 'secondary'}
+				onclick={() => (p[field] = false)}
 			>
-				{fmt('frNoUseHeads', { name: headFirstName })}
+				{noLabel}
 			</Button>
 		</div>
 		{@render fieldError(field)}
@@ -749,9 +797,9 @@
 	</div>
 {/snippet}
 
-<div class="relative min-h-full bg-white px-4 pt-16 pb-10">
+<div class="min-h-full bg-white px-4 pb-10">
 	<header
-		class="absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-1.5 sm:px-6"
+		class="sticky top-0 z-10 -mx-4 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-1.5 sm:px-6"
 	>
 		<a href={withLang(lang, '/')} class="flex min-w-0 items-center gap-1">
 			<img
@@ -779,7 +827,7 @@
 
 	<div class="mx-auto w-full max-w-md pt-4">
 		{#if optionsError}
-			<p class="mb-6 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+			<p class="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
 				{optionsError}
 			</p>
 		{/if}
@@ -826,7 +874,7 @@
 				</div>
 			</div>
 		{:else if stage === 'head'}
-			<div class="mb-6">
+			<div class="mb-4">
 				<div class="flex gap-1.5">
 					{#each HEAD_STEPS as _, i (i)}
 						<span class="h-1.5 flex-1 rounded-full {i <= step ? 'bg-blue-600' : 'bg-gray-200'}"
@@ -841,7 +889,7 @@
 				</div>
 			</div>
 
-			<form onsubmit={nextHeadStep} novalidate class="space-y-5">
+			<form onsubmit={nextHeadStep} novalidate class="space-y-4">
 				{#if step === 0}
 					{@render nameField(head, 'head')}
 					{@render dobFields(head, 'head')}
@@ -863,7 +911,7 @@
 				</div>
 			</form>
 		{:else if stage === 'family'}
-			<div class="mb-6">
+			<div class="mb-4">
 				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frMembers')}</h1>
 				<p class="mt-1 text-sm text-gray-600">{t(lang, 'frAddMoreHint')}</p>
 			</div>
@@ -884,6 +932,12 @@
 				{/each}
 			</ul>
 
+			<div
+				class="mt-3 flex gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"
+			>
+				<Info class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+				<p>{t(lang, 'frMemberAgeRule')}</p>
+			</div>
 			<button
 				type="button"
 				onclick={() => openMember(null)}
@@ -893,7 +947,7 @@
 				{t(lang, 'frAddMember')}
 			</button>
 
-			<div class="mt-6 grid gap-3 border-t border-gray-200 pt-6">
+			<div class="mt-5 grid gap-3 border-t border-gray-200 pt-5">
 				<p class="text-center text-sm text-gray-500">
 					{fmt(members.length ? 'frMembersCount' : 'frMemberCountOne', { n: members.length + 1 })}
 				</p>
@@ -901,11 +955,11 @@
 				<Button onclick={openReview}>{t(lang, 'frSubmit')}</Button>
 			</div>
 		{:else if stage === 'member'}
-			<h1 class="mb-6 text-2xl font-bold text-gray-900">
+			<h1 class="mb-4 text-2xl font-bold text-gray-900">
 				{t(lang, editIndex === null ? 'frNewMember' : 'frEditMember')}
 			</h1>
 
-			<form onsubmit={saveMember} novalidate class="space-y-5">
+			<form onsubmit={saveMember} novalidate class="space-y-4">
 				{@render nameField(draft, 'm')}
 				{@render dobFields(draft, 'm')}
 				<div>
@@ -923,18 +977,28 @@
 				</div>
 				{@render professionField(draft, 'm')}
 
-				<div class="space-y-5 border-t border-gray-200 pt-5">
-					{@render yesNo('ownMobile', fmt('frOwnMobile', { name: draftFirstName }))}
+				<div class="space-y-4 border-t border-gray-200 pt-4">
+					{@render yesNo(
+						draft,
+						'ownMobile',
+						fmt('frOwnMobile', { name: draftFirstName }),
+						fmt('frNoUseHeads', { name: headFirstName })
+					)}
 					{#if draft.ownMobile}
 						{@render mobileFields(draft, 'm')}
 					{/if}
-					{@render yesNo('ownEmail', fmt('frOwnEmail', { name: draftFirstName }))}
+					{@render yesNo(
+						draft,
+						'ownEmail',
+						fmt('frOwnEmail', { name: draftFirstName }),
+						fmt('frNoUseHeads', { name: headFirstName })
+					)}
 					{#if draft.ownEmail}
 						{@render emailField(draft, 'm')}
 					{/if}
 				</div>
 
-				<div class="space-y-3 border-t border-gray-200 pt-5">
+				<div class="space-y-3 border-t border-gray-200 pt-4">
 					{#if draft.sameAddress}
 						{@render sameRow(
 							t(lang, 'frAddress'),
@@ -964,7 +1028,7 @@
 				</div>
 			</form>
 		{:else if stage === 'review'}
-			<div class="mb-6">
+			<div class="mb-4">
 				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frReviewTitle')}</h1>
 				<p class="mt-1 text-sm text-gray-600">{t(lang, 'frReviewHint')}</p>
 			</div>
@@ -1014,19 +1078,11 @@
 		{:else}
 			<div class="pt-10 text-center">
 				<CheckCircle2 class="mx-auto mb-4 h-16 w-16 text-green-600" />
-				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frDoneTitle')}</h1>
-				<p class="mt-2 text-gray-600">
-					{fmt('frDoneWhatsapp', { number: head.whatsappSame ? head.mobile : head.whatsapp })}
-				</p>
-				<p class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-					{t(lang, 'frKeepWhatsapp')}
-				</p>
-				<a
-					href={passHref}
-					class="mt-6 block rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-				>
-					{t(lang, 'frViewPass')}
-				</a>
+				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frAlreadyRegistered')}</h1>
+				<div class="mt-6 grid gap-3">
+					<Button onclick={() => goto(passHref)}>{t(lang, 'frViewPass')}</Button>
+					<Button variant="secondary" onclick={startFresh}>{t(lang, 'frFillNewForm')}</Button>
+				</div>
 			</div>
 		{/if}
 

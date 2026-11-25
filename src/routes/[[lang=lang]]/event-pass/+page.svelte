@@ -8,8 +8,9 @@
 	import type { Option } from '$lib/types/option';
 	import { formatDate } from '$lib/utilities/helperFunc';
 	import { generateQrDataUrl } from '$lib/utilities/upiPayment';
-	import { CheckCircle2 } from '@lucide/svelte';
-	import { isRegistrationHost } from '$lib/constants/event';
+	import { CheckCircle2, Download } from '@lucide/svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import { isRegistrationHost, EVENT_NAME_GUJ, EVENT_DATE_GUJ } from '$lib/constants/event';
 	import EventAd from '$lib/components/event/EventAd.svelte';
 
 	const onRegistrationHost = isRegistrationHost();
@@ -17,6 +18,8 @@
 	const lang = $derived(page.params.lang as Lang | undefined);
 	const L = $derived(lang === 'guj' ? 'guj' : 'en');
 	const token = $derived(page.url.searchParams.get('token') ?? '');
+	// Set by the form right after payment: shows the success heading instead of "Entry pass".
+	const justPaid = $derived(page.url.searchParams.get('new') === '1');
 	const langSwitchHref = $derived(
 		(lang === 'guj' ? page.url.pathname.replace(/^\/guj/, '') || '/' : `/guj${page.url.pathname}`) +
 			page.url.search
@@ -30,6 +33,11 @@
 	let qrDataUrl = $state('');
 	let isLoading = $state(true);
 	let notFound = $state(false);
+	let isConfirming = $state(false);
+
+	const CONFIRM_TRIES = 10;
+	const CONFIRM_DELAY_MS = 3000;
+	const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 	onMount(async () => {
 		try {
@@ -39,16 +47,80 @@
 			]);
 			registration = pass.registration;
 			options = opts.options;
-			if (registration.status === 'paid') {
-				// Only the pass code: the admin site's own scanner reads it, so no other site is involved.
-				qrDataUrl = await generateQrDataUrl(token);
-			}
 		} catch {
 			notFound = true;
 		} finally {
 			isLoading = false;
 		}
+
+		// Right after payment, Razorpay can take a few seconds to confirm it; keep checking
+		// so the person sees their QR here instead of "payment not complete".
+		if (justPaid && registration && registration.status !== 'paid') {
+			isConfirming = true;
+			for (let i = 0; i < CONFIRM_TRIES && registration.status !== 'paid'; i++) {
+				await wait(CONFIRM_DELAY_MS);
+				try {
+					registration = (await eventRegistrationApi.pass({ token })).registration;
+				} catch {}
+			}
+			isConfirming = false;
+		}
+
+		if (registration?.status === 'paid') {
+			// Only the pass code: the admin site's own scanner reads it, so no other site is involved.
+			qrDataUrl = await generateQrDataUrl(token);
+		}
 	});
+
+	const head = $derived(registration?.members.find((m) => m.is_head));
+
+	// A tap-to-save image of the pass, as a backup if WhatsApp fails. Not downloaded automatically:
+	// phones block downloads the person didn't tap. The page also asks for a screenshot, since
+	// people of this age find screenshots in the Gallery more easily than files in Downloads.
+	async function savePass() {
+		if (!registration || !qrDataUrl) return;
+		const names = registration.members.map(fullName);
+		const W = 720;
+		const QR = 440;
+		const H = 300 + QR + names.length * 40 + 80;
+
+		const canvas = document.createElement('canvas');
+		canvas.width = W;
+		canvas.height = H;
+		const ctx = canvas.getContext('2d')!;
+		ctx.fillStyle = '#ffffff';
+		ctx.fillRect(0, 0, W, H);
+		ctx.textAlign = 'center';
+		ctx.fillStyle = '#7b1e1e';
+		ctx.font = 'bold 34px sans-serif';
+		ctx.fillText(EVENT_NAME_GUJ, W / 2, 70, W - 60);
+		ctx.fillStyle = '#111827';
+		ctx.font = '26px sans-serif';
+		ctx.fillText(EVENT_DATE_GUJ, W / 2, 115, W - 60);
+		ctx.font = 'bold 30px sans-serif';
+		ctx.fillText('Entry Pass', W / 2, 190);
+
+		const img = new Image();
+		img.src = qrDataUrl;
+		await img.decode();
+		ctx.drawImage(img, (W - QR) / 2, 220, QR, QR);
+
+		ctx.font = '26px sans-serif';
+		names.forEach((n, i) => ctx.fillText(n, W / 2, 220 + QR + 50 + i * 40, W - 60));
+		ctx.fillStyle = '#6b7280';
+		ctx.font = '22px sans-serif';
+		ctx.fillText('Show this QR at the entry gate', W / 2, H - 40);
+
+		canvas.toBlob((blob) => {
+			if (!blob) return;
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'entry-pass.png';
+			a.click();
+			setTimeout(() => URL.revokeObjectURL(url), 1000);
+		}, 'image/png');
+	}
 
 	const optionLabel = (list: string, key: string | null) => {
 		const o = options[list]?.find((x) => x.key === key);
@@ -74,9 +146,9 @@
 	}
 </script>
 
-<div class="relative min-h-full bg-white px-4 pt-16 pb-10">
+<div class="min-h-full bg-white px-4 pb-10">
 	<header
-		class="absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-1.5 sm:px-6"
+		class="sticky top-0 z-10 -mx-4 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-1.5 sm:px-6"
 	>
 		<a href={withLang(lang, '/')} class="flex min-w-0 items-center gap-1">
 			<img
@@ -111,14 +183,40 @@
 		{:else if notFound || !registration}
 			<p class="pt-16 text-center text-sm font-medium text-gray-900">{t(lang, 'epNotFound')}</p>
 		{:else}
-			<h1 class="mb-6 text-2xl font-bold text-gray-900">{t(lang, 'epTitle')}</h1>
+			{#if justPaid && registration.status === 'paid'}
+				<div class="mb-6 text-center">
+					<CheckCircle2 class="mx-auto mb-3 h-14 w-14 text-green-600" />
+					<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'epSuccessTitle')}</h1>
+					{#if head}
+						<p class="mt-2 text-gray-600">{t(lang, 'epWhatsappNote').replace('{number}', head.whatsapp)}</p>
+					{/if}
+				</div>
+			{:else}
+				<h1 class="mb-6 text-2xl font-bold text-gray-900">{t(lang, 'epTitle')}</h1>
+			{/if}
 
 			{#if registration.status === 'paid'}
+				<div class="grid">
+					<Button onclick={savePass} disabled={!qrDataUrl}>
+						<span class="flex items-center justify-center gap-1.5">
+							<Download class="h-4 w-4" />
+							{t(lang, 'epSavePass')}
+						</span>
+					</Button>
+				</div>
+				<p class="mt-2 mb-4 text-center text-sm text-gray-600">{t(lang, 'epScreenshotHint')}</p>
 				<div class="rounded-md border border-gray-200 p-4 text-center">
 					{#if qrDataUrl}
 						<img src={qrDataUrl} alt="QR" class="mx-auto h-56 w-56" />
 					{/if}
 					<p class="mt-3 text-sm text-gray-600">{t(lang, 'epShowQr')}</p>
+				</div>
+			{:else if isConfirming}
+				<div class="rounded-md border border-gray-200 p-4 text-center">
+					<div
+						class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"
+					></div>
+					<p class="mt-2 text-sm text-gray-600">{t(lang, 'epConfirming')}</p>
 				</div>
 			{:else}
 				<p class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
