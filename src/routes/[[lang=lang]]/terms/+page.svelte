@@ -75,7 +75,8 @@
 				{
 					title: '7. Privacy',
 					paragraphs: [
-						"Personal information (name, email, phone, address) collected during payment is used only for issuing receipts, scheme records, and communication related to the Trust's activities. We do not sell or share your data with third parties, except as required by law or to process payments via Razorpay."
+						"Personal information (name, email, phone, address) collected during payment is used only for issuing receipts, scheme records, and communication related to the Trust's activities. We do not sell or share your data with third parties, except as required by law or to process payments via Razorpay.",
+						'For event registration, we use your WhatsApp number to send your entry pass. Messages you send to our WhatsApp number are stored in our records.'
 					]
 				},
 				{
@@ -157,7 +158,8 @@
 				{
 					title: '7. ગોપનીયતા',
 					paragraphs: [
-						'ચુકવણી દરમિયાન એકત્રિત કરવામાં આવેલ વ્યક્તિગત માહિતી (નામ, ઇમેઇલ, ફોન, સરનામું) ફક્ત રસીદ આપવા, યોજનાના રેકોર્ડ રાખવા અને ટ્રસ્ટની પ્રવૃત્તિઓ સંબંધિત સંદેશાવ્યવહાર માટે જ ઉપયોગમાં લેવાય છે. કાયદા દ્વારા જરૂરી હોય અથવા Razorpay મારફતે ચુકવણી કરવા સિવાય, અમે તમારો ડેટા તૃતીય પક્ષોને વેચતા કે શેર કરતા નથી.'
+						'ચુકવણી દરમિયાન એકત્રિત કરવામાં આવેલ વ્યક્તિગત માહિતી (નામ, ઇમેઇલ, ફોન, સરનામું) ફક્ત રસીદ આપવા, યોજનાના રેકોર્ડ રાખવા અને ટ્રસ્ટની પ્રવૃત્તિઓ સંબંધિત સંદેશાવ્યવહાર માટે જ ઉપયોગમાં લેવાય છે. કાયદા દ્વારા જરૂરી હોય અથવા Razorpay મારફતે ચુકવણી કરવા સિવાય, અમે તમારો ડેટા તૃતીય પક્ષોને વેચતા કે શેર કરતા નથી.',
+						'કાર્યક્રમ નોંધણી માટે, અમે તમારો એન્ટ્રી પાસ મોકલવા તમારા WhatsApp નંબરનો ઉપયોગ કરીએ છીએ. તમે અમારા WhatsApp નંબર પર મોકલેલા સંદેશા અમારા રેકોર્ડમાં સાચવવામાં આવે છે.'
 					]
 				},
 				{

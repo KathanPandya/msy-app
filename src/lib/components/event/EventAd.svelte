@@ -2,7 +2,7 @@
 	href="https://wa.me/917265944555"
 	target="_blank"
 	rel="noopener noreferrer"
-	class="mt-10 block"
+	class="mt-8 block"
 >
 	<p class="mb-1 text-xs text-gray-400">Advertisement</p>
 	<img

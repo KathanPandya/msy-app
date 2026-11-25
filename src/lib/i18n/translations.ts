@@ -614,9 +614,17 @@ export const dict = {
 	frMonth: { en: 'Month', guj: 'મહિનો' },
 	frYear: { en: 'Year', guj: 'વર્ષ' },
 	frMobile: { en: 'Mobile number', guj: 'મોબાઇલ નંબર' },
-	frWhatsappSame: { en: 'WhatsApp is on this same number', guj: 'આ જ નંબર પર WhatsApp છે' },
+	frWhatsappSameQ: {
+		en: 'Is WhatsApp on this same number?',
+		guj: 'શું આ જ નંબર પર WhatsApp છે?'
+	},
+	frWhatsappDifferent: { en: 'No, different number', guj: 'ના, અલગ નંબર' },
 	frWhatsapp: { en: 'WhatsApp number', guj: 'WhatsApp નંબર' },
 	frEmail: { en: 'Email', guj: 'ઇમેલ' },
+	frPassOnWhatsapp: {
+		en: 'Your Entry Pass will be sent to this WhatsApp number. Please enter a correct number that has WhatsApp.',
+		guj: 'તમારો પ્રવેશ પાસ આ WhatsApp નંબર પર મોકલવામાં આવશે. કૃપા કરી WhatsApp ચાલુ હોય તેવો સાચો નંબર લખો.'
+	},
 	frEmailOptional: { en: 'Email (optional)', guj: 'ઇમેલ (વૈકલ્પિક)' },
 	frAddress: { en: 'Home address', guj: 'ઘરનું સરનામું' },
 	frAddressHint: { en: 'House no., society, area', guj: 'ઘર નં., સોસાયટી, વિસ્તાર' },
@@ -624,11 +632,10 @@ export const dict = {
 	frPincode: { en: 'Pincode', guj: 'પિનકોડ' },
 	frErrPincode: { en: 'Enter a 6-digit pincode', guj: '6 અંકનો પિનકોડ લખો' },
 	frFee: { en: 'Fee', guj: 'ફી' },
-	frFree: { en: 'Free', guj: 'મફત' },
 	frTotal: { en: 'Total', guj: 'કુલ' },
-	frErrNeedAdult: {
-		en: 'At least one member must be above 10 years of age.',
-		guj: 'ઓછામાં ઓછો એક સભ્ય 10 વર્ષથી મોટો હોવો જોઈએ.'
+	frMemberAgeRule: {
+		en: 'Registration is must for every member aged 10 and above.',
+		guj: '10 વર્ષ કે તેથી મોટા દરેક સભ્યની નોંધણી ફરજિયાત છે.'
 	},
 	frNeedsReview: {
 		en: 'Payment received, but the amount does not match. We will check it and contact you.',
@@ -644,13 +651,27 @@ export const dict = {
 		en: 'Show this QR at the entrance on the day of the event.',
 		guj: 'કાર્યક્રમના દિવસે પ્રવેશદ્વાર પર આ QR બતાવો.'
 	},
+	epSuccessTitle: { en: 'Registration Successful', guj: 'નોંધણી સફળ થઈ' },
+	epWhatsappNote: {
+		en: 'You will receive your Entry Pass on your WhatsApp {number}.',
+		guj: 'તમને તમારો પ્રવેશ પાસ તમારા WhatsApp {number} પર મળશે.'
+	},
+	epConfirming: {
+		en: 'Confirming your payment…',
+		guj: 'તમારી ચુકવણીની ખાતરી થઈ રહી છે…'
+	},
+	epSavePass: { en: 'Save pass to phone', guj: 'પાસ ફોનમાં સાચવો' },
+	epScreenshotHint: {
+		en: 'Also take a screenshot of this page.',
+		guj: 'આ પેજનો સ્ક્રીનશોટ પણ લઈ લો.'
+	},
 	epNotPaid: {
 		en: 'Payment for this form is not complete yet.',
 		guj: 'આ ફોર્મની ચુકવણી હજુ પૂરી થઈ નથી.'
 	},
 	epNotFound: { en: 'This pass link is not valid.', guj: 'આ પાસ લિંક માન્ય નથી.' },
 	epEntered: { en: 'Entered', guj: 'પ્રવેશ થયો' },
-	frVatan: { en: 'Vatan (native place)', guj: 'વતન' },
+	frVatan: { en: 'Native Place (Vatan)', guj: 'વતન' },
 	frVatanHint: { en: 'Village or town name', guj: 'ગામ અથવા શહેરનું નામ' },
 	frSelect: { en: 'Select', guj: 'પસંદ કરો' },
 	frNext: { en: 'Next', guj: 'આગળ' },
@@ -692,18 +713,15 @@ export const dict = {
 		en: 'Please do not close or refresh this page.',
 		guj: 'કૃપા કરી આ પેજ બંધ કે રિફ્રેશ કરશો નહીં.'
 	},
-	frDoneTitle: { en: 'Form submitted', guj: 'ફોર્મ સબમિટ થઈ ગયું' },
-	frDoneWhatsapp: {
-		en: 'You will receive a WhatsApp message on {number}.',
-		guj: 'તમને {number} પર WhatsApp મેસેજ મળશે.'
-	},
-	frKeepWhatsapp: {
-		en: 'Please do not delete this message. It will be required on that day.',
-		guj: 'કૃપા કરી આ મેસેજ ડિલીટ કરશો નહીં. તે દિવસે તેની જરૂર પડશે.'
-	},
+	frAlreadyRegistered: { en: 'You are already registered', guj: 'તમારી નોંધણી થઈ ગઈ છે' },
+	frFillNewForm: { en: 'Fill a new form', guj: 'નવું ફોર્મ ભરો' },
 	frErrRequired: { en: 'Please fill this', guj: 'કૃપા કરી આ ભરો' },
 	frErrChoose: { en: 'Please choose one', guj: 'કૃપા કરી એક પસંદ કરો' },
 	frErrDob: { en: 'Select day, month and year', guj: 'દિવસ, મહિનો અને વર્ષ પસંદ કરો' },
+	frErrChild: {
+		en: "Children below 10 years don't need registration.",
+		guj: '10 વર્ષથી નાના બાળકોની નોંધણી જરૂરી નથી.'
+	},
 	frErrMobile: { en: 'Enter a 10-digit mobile number', guj: '10 અંકનો મોબાઇલ નંબર લખો' },
 	frErrEmail: {
 		en: 'Enter a correct email, e.g. name@gmail.com',

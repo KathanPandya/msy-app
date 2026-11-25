@@ -11,6 +11,7 @@ export type EventPaymentResult =
 	| { kind: 'processing' }
 	| { kind: 'needs_review' }
 	| { kind: 'cancelled' }
+	| { kind: 'alreadyPaid' }
 	| { kind: 'failed'; reason: string }
 	| { kind: 'createFailed'; message: string };
 
@@ -61,6 +62,8 @@ export async function runEventRegistrationPayment({
 			loadCheckoutScript()
 		]);
 	} catch (err: any) {
+		// The saved form was paid already (e.g. the phone closed before our page heard back).
+		if (err?.response?.status === 409) return { kind: 'alreadyPaid' };
 		return {
 			kind: 'createFailed',
 			message: parseRegistrationError(err, err?.message || 'Could not start the payment.')
