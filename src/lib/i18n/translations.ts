@@ -630,13 +630,13 @@ export const dict = {
 	frAddressHint: { en: 'House no., society, area', guj: 'ઘર નં., સોસાયટી, વિસ્તાર' },
 	frCity: { en: 'City', guj: 'શહેર' },
 	frPincode: { en: 'Pincode', guj: 'પિનકોડ' },
+	frErrOneWord: {
+		en: 'Only one word. No spaces or numbers.',
+		guj: 'ફક્ત એક શબ્દ લખો. જગ્યા કે આંકડા નહીં.'
+	},
 	frErrPincode: { en: 'Enter a 6-digit pincode', guj: '6 અંકનો પિનકોડ લખો' },
 	frFee: { en: 'Fee', guj: 'ફી' },
 	frTotal: { en: 'Total', guj: 'કુલ' },
-	frMemberAgeRule: {
-		en: 'Registration is must for every member aged 10 and above.',
-		guj: '10 વર્ષ કે તેથી મોટા દરેક સભ્યની નોંધણી ફરજિયાત છે.'
-	},
 	frNeedsReview: {
 		en: 'Payment received, but the amount does not match. We will check it and contact you.',
 		guj: 'ચુકવણી મળી છે, પણ રકમ મેળ ખાતી નથી. અમે તપાસ કરીને તમારો સંપર્ક કરીશું.'
@@ -677,12 +677,11 @@ export const dict = {
 	frNext: { en: 'Next', guj: 'આગળ' },
 	frBack: { en: 'Back', guj: 'પાછળ' },
 	frMembers: { en: 'Members', guj: 'સભ્યો' },
-	frAddMoreHint: { en: 'You can add more members to this form.', guj: 'તમે આ ફોર્મમાં વધુ સભ્યો ઉમેરી શકો છો.' },
 	frYouTag: { en: 'You', guj: 'તમે' },
 	frAddMember: { en: 'Add member', guj: 'સભ્ય ઉમેરો' },
 	frNewMember: { en: 'New member', guj: 'નવા સભ્ય' },
 	frEditMember: { en: 'Edit member', guj: 'સભ્યની માહિતી બદલો' },
-	frRelationWith: { en: "{member} is {head}'s…", guj: '{member} એ {head}ના શું થાય?' },
+	frRelationWith: { en: "{member} is {head}'s…", guj: '{member} એ {head} ના શું થાય?' },
 	frSameAs: { en: 'Same as {name}', guj: '{name} જેવું જ' },
 	frChange: { en: 'Change', guj: 'બદલો' },
 	frEdit: { en: 'Edit', guj: 'બદલો' },
@@ -696,17 +695,16 @@ export const dict = {
 		guj: 'શું {name} પાસે પોતાનો ઇમેલ છે?'
 	},
 	frYes: { en: 'Yes', guj: 'હા' },
-	frNoUseHeads: { en: "No, use {name}'s", guj: 'ના, {name}નો વાપરો' },
+	frNoUseHeads: { en: "No, use {name}'s", guj: 'ના, {name} નો વાપરો' },
 	frSaveMember: { en: 'Save member', guj: 'સભ્ય સાચવો' },
-	frRemoveConfirm: { en: 'Remove {name} from the list?', guj: '{name}ને યાદીમાંથી દૂર કરવા છે?' },
-	frMembersCount: { en: '{n} members', guj: '{n} સભ્યો' },
-	frMemberCountOne: { en: '{n} member', guj: '{n} સભ્ય' },
+	frRemoveConfirm: { en: 'Remove {name} from the list?', guj: '{name} ને યાદીમાંથી દૂર કરવા છે?' },
+	frAgeYears: { en: '{n} yrs', guj: '{n} વર્ષ' },
+	frAddMemberHint: {
+		en: 'Must for every member aged 10 and above',
+		guj: '10 વર્ષ કે તેથી મોટા દરેક સભ્ય માટે ફરજિયાત'
+	},
 	frSubmit: { en: 'Review & pay', guj: 'તપાસો અને ચૂકવો' },
 	frReviewTitle: { en: 'Check your details', guj: 'તમારી માહિતી તપાસો' },
-	frReviewHint: {
-		en: 'Please check everything once. Tap Edit to correct anything.',
-		guj: 'એક વાર બધું તપાસી લો. કંઈ સુધારવું હોય તો "બદલો" દબાવો.'
-	},
 	frPaySubmit: { en: 'Pay ₹{amount} & submit', guj: '₹{amount} ચૂકવો અને સબમિટ કરો' },
 	frPaying: { en: 'Processing payment…', guj: 'ચુકવણી થઈ રહી છે…' },
 	frDontClose: {
