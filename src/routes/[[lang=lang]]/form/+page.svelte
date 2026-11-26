@@ -12,7 +12,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
-	import { CalendarDays, CheckCircle2, Info, MapPin, Plus } from '@lucide/svelte';
+	import { CalendarDays, CheckCircle2, Info, MapPin, Pencil, Plus, Trash2 } from '@lucide/svelte';
 	import { isRegistrationHost } from '$lib/constants/event';
 	import EventAd from '$lib/components/event/EventAd.svelte';
 
@@ -264,6 +264,18 @@
 			.map((n) => n.trim())
 			.filter(Boolean)
 			.join(' ');
+	// By list position, so cards next to each other never share a colour.
+	const AVATAR_COLORS = [
+		'bg-amber-100 text-amber-800',
+		'bg-emerald-100 text-emerald-800',
+		'bg-rose-100 text-rose-800',
+		'bg-violet-100 text-violet-800',
+		'bg-orange-100 text-orange-800',
+		'bg-teal-100 text-teal-800',
+		'bg-pink-100 text-pink-800',
+		'bg-lime-100 text-lime-800'
+	];
+	const avatarColor = (index: number) => AVATAR_COLORS[index % AVATAR_COLORS.length];
 	const dobLabel = (p: Person) =>
 		p.dobDay && p.dobMonth && p.dobYear
 			? `${p.dobDay} ${MONTHS[L][Number(p.dobMonth) - 1]} ${p.dobYear}`
@@ -285,7 +297,7 @@
 	}
 	const totalAmount = $derived((members.length + 1) * FEE_PER_MEMBER);
 
-	function reviewRows(p: Person, isHead: boolean) {
+	function reviewRows(p: Person) {
 		const mobile = p.ownMobile ? p.mobile : head.mobile;
 		const whatsapp = p.ownMobile
 			? p.whatsappSame
@@ -295,9 +307,6 @@
 				? head.mobile
 				: head.whatsapp;
 		return [
-			...(isHead
-				? []
-				: [{ label: t(lang, 'relation'), value: optionLabel('relation', p.relation) }]),
 			{ label: t(lang, 'dateOfBirth'), value: dobLabel(p) },
 			{ label: t(lang, 'frProfession'), value: optionLabel('profession', p.profession) },
 			{ label: t(lang, 'frMobile'), value: mobile },
@@ -534,6 +543,23 @@
 	const passHref = $derived(withLang(lang, `/event-pass?token=${token}`));
 
 	const digitsOnly = (value: string, length = 10) => value.replace(/\D/g, '').slice(0, length);
+	// Place names: English and Gujarati digits removed.
+	const noDigits = (value: string) => value.replace(/[0-9૦-૯]/g, '');
+	// Each name box takes one word: a space or digit is refused, not silently removed,
+	// so "Kathan Rajesh" can't quietly become "KathanRajesh".
+	const NOT_IN_NAME = /[\s0-9૦-૯]/;
+	function blockNameChars(field: 'firstName' | 'middleName' | 'lastName') {
+		return (e: InputEvent) => {
+			if (e.data && NOT_IN_NAME.test(e.data)) {
+				e.preventDefault();
+				errors[field] = t(lang, 'frErrOneWord');
+			} else if (errors[field] === t(lang, 'frErrOneWord')) {
+				delete errors[field];
+			}
+		};
+	}
+	// Fallback for keyboards that skip beforeinput: cut at the first bad character instead of merging.
+	const nameOnly = (value: string) => value.split(NOT_IN_NAME)[0];
 </script>
 
 {#snippet fieldLabel(text: string, forId?: string)}
@@ -557,6 +583,8 @@
 		id={`${prefix}-first-name`}
 		label={t(lang, 'firstName')}
 		bind:value={p.firstName}
+		onbeforeinput={blockNameChars('firstName')}
+		onChange={() => (p.firstName = nameOnly(p.firstName))}
 		error={errors.firstName}
 		required
 	/>
@@ -564,6 +592,8 @@
 		id={`${prefix}-middle-name`}
 		label={t(lang, 'middleName')}
 		bind:value={p.middleName}
+		onbeforeinput={blockNameChars('middleName')}
+		onChange={() => (p.middleName = nameOnly(p.middleName))}
 		error={errors.middleName}
 		required
 	/>
@@ -571,6 +601,8 @@
 		id={`${prefix}-last-name`}
 		label={t(lang, 'frLastName')}
 		bind:value={p.lastName}
+		onbeforeinput={blockNameChars('lastName')}
+		onChange={() => (p.lastName = nameOnly(p.lastName))}
 		error={errors.lastName}
 		required
 	/>
@@ -642,6 +674,7 @@
 		type="email"
 		inputmode="email"
 		bind:value={p.email}
+		onblur={() => (p.email = p.email.trim())}
 		error={errors.email}
 	/>
 {/snippet}
@@ -653,6 +686,7 @@
 			id={`${prefix}-address`}
 			rows="2"
 			bind:value={p.address}
+			onblur={() => (p.address = p.address.trim())}
 			class="w-full resize-y rounded-md border px-3 py-2 text-base text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm {errors.address
 				? 'border-red-500'
 				: 'border-gray-300'}"
@@ -668,6 +702,8 @@
 			id={`${prefix}-city`}
 			label={t(lang, 'frCity')}
 			bind:value={p.city}
+			onChange={() => (p.city = noDigits(p.city))}
+			onblur={() => (p.city = p.city.trim())}
 			error={errors.city}
 			required
 		/>
@@ -702,6 +738,8 @@
 			id={`${prefix}-vatan`}
 			label={t(lang, 'frVatan')}
 			bind:value={p.vatan}
+			onChange={() => (p.vatan = noDigits(p.vatan))}
+			onblur={() => (p.vatan = p.vatan.trim())}
 			error={errors.vatan}
 			required
 		/>
@@ -717,19 +755,21 @@
 )}
 	<div>
 		{@render fieldLabel(question)}
-		<div class="grid grid-cols-2 gap-2">
-			<Button
-				variant={p[field] === true ? 'primary' : 'secondary'}
-				onclick={() => (p[field] = true)}
-			>
-				{t(lang, 'frYes')}
-			</Button>
-			<Button
-				variant={p[field] === false ? 'primary' : 'secondary'}
-				onclick={() => (p[field] = false)}
-			>
-				{noLabel}
-			</Button>
+		<div class="grid gap-2">
+			{#each [[true, t(lang, 'frYes')], [false, noLabel]] as const as [value, label] (value)}
+				{@const selected = p[field] === value}
+				<Button variant={selected ? 'choiceSelected' : 'choice'} onclick={() => (p[field] = value)}>
+					<span
+						class={[
+							'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2',
+							selected ? 'border-blue-600' : 'border-gray-400'
+						]}
+					>
+						{#if selected}<span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>{/if}
+					</span>
+					<span class="text-left">{label}</span>
+				</Button>
+			{/each}
 		</div>
 		{@render fieldError(field)}
 	</div>
@@ -761,35 +801,70 @@
 	{/if}
 {/snippet}
 
-{#snippet personCardHeader(
-	name: string,
-	isHead: boolean,
+{#snippet memberCard(
+	p: Person,
+	index: number,
 	onedit: () => void,
-	onremove?: () => void
+	onremove?: () => void,
+	withDetails = false
 )}
-	<div class="flex items-center justify-between gap-2">
-		<p class="flex min-w-0 items-center gap-2 font-semibold text-gray-900">
-			<span class="truncate">{name}</span>
-			{#if isHead}
-				<span class="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">
-					{t(lang, 'frYouTag')}
-				</span>
-			{/if}
-		</p>
-		<div class="flex shrink-0 gap-3">
+	{@const isHead = index === 0}
+	{@const name = fullName(p)}
+	{@const details = [
+		optionLabel('relation', p.relation),
+		p.dobYear ? fmt('frAgeYears', { n: ageToday(p) }) : ''
+	].filter(Boolean)}
+	<div class="rounded-md border border-gray-200">
+		<div class="flex items-center gap-3 px-3 py-2.5">
+			<span
+				class={[
+					'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+					avatarColor(index)
+				]}
+			>
+				{[p.firstName, p.lastName].map((n) => Array.from(n.trim())[0] ?? '').join('').toUpperCase()}
+			</span>
+			<div class="min-w-0 flex-1">
+				<p class="flex min-w-0 items-center gap-2 font-semibold text-gray-900">
+					<span class="truncate">{name}</span>
+					{#if isHead}
+						<span class="shrink-0 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">
+							{t(lang, 'frYouTag')}
+						</span>
+					{/if}
+				</p>
+				{#if details.length}
+					<p class="truncate text-xs text-gray-500">{details.join(' · ')}</p>
+				{/if}
+			</div>
+		</div>
+		{#if withDetails}
+			<dl class="divide-y divide-gray-100 border-t border-gray-200 px-3 text-sm">
+				{#each reviewRows(p) as row (row.label)}
+					<div class="flex gap-3 py-2">
+						<dt class="w-28 shrink-0 text-gray-500">{row.label}</dt>
+						<dd class="min-w-0 break-words text-gray-900">{row.value || '-'}</dd>
+					</div>
+				{/each}
+			</dl>
+		{/if}
+		<!-- Full-width halves: big, well-separated tap targets so Remove isn't hit by mistake. -->
+		<div class="flex divide-x divide-gray-200 border-t border-gray-200 text-sm font-medium">
 			<button
 				type="button"
 				onclick={onedit}
-				class="text-sm font-medium text-blue-600 hover:text-blue-800"
+				class="flex flex-1 items-center justify-center gap-1.5 py-2 text-blue-700 hover:bg-blue-50"
 			>
+				<Pencil class="h-4 w-4" />
 				{t(lang, 'frEdit')}
 			</button>
 			{#if onremove}
 				<button
 					type="button"
 					onclick={onremove}
-					class="text-sm font-medium text-red-600 hover:text-red-800"
+					class="flex flex-1 items-center justify-center gap-1.5 py-2 text-red-600 hover:bg-red-50"
 				>
+					<Trash2 class="h-4 w-4" />
 					{t(lang, 'regRemove')}
 				</button>
 			{/if}
@@ -797,7 +872,7 @@
 	</div>
 {/snippet}
 
-<div class="min-h-full bg-white px-4 pb-10">
+<div class={['min-h-full bg-white px-4', stage !== 'review' && 'pb-10']}>
 	<header
 		class="sticky top-0 z-10 -mx-4 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-1.5 sm:px-6"
 	>
@@ -875,13 +950,7 @@
 			</div>
 		{:else if stage === 'head'}
 			<div class="mb-4">
-				<div class="flex gap-1.5">
-					{#each HEAD_STEPS as _, i (i)}
-						<span class="h-1.5 flex-1 rounded-full {i <= step ? 'bg-blue-600' : 'bg-gray-200'}"
-						></span>
-					{/each}
-				</div>
-				<div class="mt-3 flex items-baseline justify-between gap-3">
+				<div class="flex items-baseline justify-between gap-3">
 					<h2 class="text-lg font-semibold text-gray-900">{t(lang, HEAD_STEPS[step].title)}</h2>
 					<p class="shrink-0 text-sm text-gray-500">
 						{t(lang, 'regStepOf').replace('{step}', String(step + 1))}
@@ -911,46 +980,35 @@
 				</div>
 			</form>
 		{:else if stage === 'family'}
-			<div class="mb-4">
-				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frMembers')}</h1>
-				<p class="mt-1 text-sm text-gray-600">{t(lang, 'frAddMoreHint')}</p>
+			<div class="mb-4 flex items-center gap-2">
+				<h1 class="text-2xl leading-none font-bold text-gray-900">{t(lang, 'frMembers')}</h1>
+				<span class="flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-100 px-2 text-sm leading-none font-semibold text-gray-700">
+					{members.length + 1}
+				</span>
 			</div>
 
 			<ul class="space-y-3">
-				<li class="rounded-md border border-blue-200 bg-blue-50/50 px-3 py-2.5">
-					{@render personCardHeader(fullName(head), true, () => editHead('family'))}
-				</li>
+				<li>{@render memberCard(head, 0, () => editHead('family'))}</li>
 				{#each members as m, i (i)}
-					<li class="rounded-md border border-gray-200 px-3 py-2.5">
-						{@render personCardHeader(
-							fullName(m),
-							false,
-							() => openMember(i),
-							() => removeMember(i)
-						)}
-					</li>
+					<li>{@render memberCard(m, i + 1, () => openMember(i), () => removeMember(i))}</li>
 				{/each}
 			</ul>
 
-			<div
-				class="mt-3 flex gap-2.5 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"
-			>
-				<Info class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-				<p>{t(lang, 'frMemberAgeRule')}</p>
-			</div>
 			<button
 				type="button"
 				onclick={() => openMember(null)}
-				class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+				class="mt-3 flex w-full items-center gap-3 rounded-md border border-dashed border-blue-400 bg-white px-3 py-3 text-left hover:bg-blue-50"
 			>
-				<Plus class="h-4 w-4" />
-				{t(lang, 'frAddMember')}
+				<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+					<Plus class="h-5 w-5" />
+				</span>
+				<span>
+					<span class="block font-semibold text-blue-700">{t(lang, 'frAddMember')}</span>
+					<span class="block text-xs text-gray-500">{t(lang, 'frAddMemberHint')}</span>
+				</span>
 			</button>
 
 			<div class="mt-5 grid gap-3 border-t border-gray-200 pt-5">
-				<p class="text-center text-sm text-gray-500">
-					{fmt(members.length ? 'frMembersCount' : 'frMemberCountOne', { n: members.length + 1 })}
-				</p>
 				{@render formErrorBox()}
 				<Button onclick={openReview}>{t(lang, 'frSubmit')}</Button>
 			</div>
@@ -1028,30 +1086,23 @@
 				</div>
 			</form>
 		{:else if stage === 'review'}
-			<div class="mb-4">
-				<h1 class="text-2xl font-bold text-gray-900">{t(lang, 'frReviewTitle')}</h1>
-				<p class="mt-1 text-sm text-gray-600">{t(lang, 'frReviewHint')}</p>
-			</div>
+			<h1 class="mb-4 text-2xl font-bold text-gray-900">{t(lang, 'frReviewTitle')}</h1>
 
 			<div class="space-y-3">
-				{#each [{ p: head, isHead: true, i: -1 }, ...members.map( (p, i) => ({ p, isHead: false, i }) )] as entry (entry.i)}
-					<section class="rounded-md border border-gray-200 px-3 py-2.5">
-						{@render personCardHeader(fullName(entry.p), entry.isHead, () =>
-							entry.isHead ? editHead('review') : openMember(entry.i, 'review')
-						)}
-						<dl class="mt-1 divide-y divide-gray-100 text-sm">
-							{#each reviewRows(entry.p, entry.isHead) as row (row.label)}
-								<div class="flex gap-3 py-2">
-									<dt class="w-28 shrink-0 text-gray-500">{row.label}</dt>
-									<dd class="min-w-0 break-words text-gray-900">{row.value || '-'}</dd>
-								</div>
-							{/each}
-						</dl>
+				<section>
+					{@render memberCard(head, 0, () => editHead('review'), undefined, true)}
+				</section>
+				{#each members as m, i (i)}
+					<section>
+						{@render memberCard(m, i + 1, () => openMember(i, 'review'), undefined, true)}
 					</section>
 				{/each}
 			</div>
 
-			<!-- Pinned so Pay stays visible however long the review list is. -->
+			<EventAd />
+
+			<!-- Pinned so Pay stays visible however long the review list is. Must stay the last
+			     thing on the page: sticky stops working once anything comes after it. -->
 			<div class="sticky bottom-0 -mx-4 mt-6 space-y-3 border-t border-gray-200 bg-white px-4 py-3">
 				<div class="flex items-baseline justify-between">
 					<p class="font-semibold text-gray-900">{t(lang, 'frTotal')}</p>
@@ -1086,7 +1137,7 @@
 			</div>
 		{/if}
 
-		{#if stage !== 'landing' && stage !== 'paying'}
+		{#if stage !== 'landing' && stage !== 'paying' && stage !== 'review'}
 			<EventAd />
 		{/if}
 	</div>

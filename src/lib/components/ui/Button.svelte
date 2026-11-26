@@ -1,6 +1,6 @@
 <script lang="ts">
 	type ButtonProps = {
-		variant?: 'primary' | 'success' | 'secondary' | 'danger';
+		variant?: 'primary' | 'success' | 'secondary' | 'danger' | 'choice' | 'choiceSelected';
 		size?: 'xs' | 'sm' | 'md';
 		type?: 'button' | 'submit' | 'reset';
 		onclick?: () => void;
@@ -31,7 +31,12 @@
 		primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
 		success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
 		secondary: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500',
-		danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
+		danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+		// Answer options (Yes/No), deliberately unlike action buttons.
+		choice:
+			'flex items-center gap-2 bg-white text-gray-700 border border-gray-300 hover:border-gray-400 focus:ring-blue-500',
+		choiceSelected:
+			'flex items-center gap-2 bg-blue-50 text-blue-800 border border-blue-600 focus:ring-blue-500'
 	};
 </script>
 
