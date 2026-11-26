@@ -631,8 +631,8 @@ export const dict = {
 	frCity: { en: 'City', guj: 'શહેર' },
 	frPincode: { en: 'Pincode', guj: 'પિનકોડ' },
 	frErrOneWord: {
-		en: 'Only one word. No spaces or numbers.',
-		guj: 'ફક્ત એક શબ્દ લખો. જગ્યા કે આંકડા નહીં.'
+		en: 'Only one word. No spaces, numbers or symbols.',
+		guj: 'ફક્ત એક શબ્દ લખો. જગ્યા, આંકડા કે ચિહ્ન નહીં.'
 	},
 	frErrPincode: { en: 'Enter a 6-digit pincode', guj: '6 અંકનો પિનકોડ લખો' },
 	frFee: { en: 'Fee', guj: 'ફી' },

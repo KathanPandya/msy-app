@@ -329,7 +329,8 @@
 				case 'firstName':
 				case 'middleName':
 				case 'lastName':
-					if (!p[f].trim()) e[f] = req;
+					if (!cleanName(p[f])) e[f] = req;
+					else if (NOT_IN_NAME.test(cleanName(p[f]))) e[f] = t(lang, 'frErrOneWord');
 					break;
 				case 'dob':
 					if (!p.dobDay || !p.dobMonth || !p.dobYear) e.dob = t(lang, 'frErrDob');
@@ -545,21 +546,17 @@
 	const digitsOnly = (value: string, length = 10) => value.replace(/\D/g, '').slice(0, length);
 	// Place names: English and Gujarati digits removed.
 	const noDigits = (value: string) => value.replace(/[0-9૦-૯]/g, '');
-	// Each name box takes one word: a space or digit is refused, not silently removed,
-	// so "Kathan Rajesh" can't quietly become "KathanRajesh".
-	const NOT_IN_NAME = /[\s0-9૦-૯]/;
-	function blockNameChars(field: 'firstName' | 'middleName' | 'lastName') {
-		return (e: InputEvent) => {
-			if (e.data && NOT_IN_NAME.test(e.data)) {
-				e.preventDefault();
-				errors[field] = t(lang, 'frErrOneWord');
-			} else if (errors[field] === t(lang, 'frErrOneWord')) {
-				delete errors[field];
-			}
+	// One word per name box. Keystrokes aren't blocked: phone suggestions insert "word + space" in one go.
+	// Edge spaces, and the dot phones add on a double space, are cleaned on blur; anything else that isn't
+	// a letter (inner space, digit, symbol) is kept as typed and shown as an error.
+	const NOT_IN_NAME = /[^\p{L}\p{M}]/u;
+	const cleanName = (value: string) => value.trim().replace(/\.+$/, '').trim();
+	function checkName(p: Person, field: 'firstName' | 'middleName' | 'lastName') {
+		return () => {
+			if (NOT_IN_NAME.test(cleanName(p[field]))) errors[field] = t(lang, 'frErrOneWord');
+			else if (errors[field] === t(lang, 'frErrOneWord')) delete errors[field];
 		};
 	}
-	// Fallback for keyboards that skip beforeinput: cut at the first bad character instead of merging.
-	const nameOnly = (value: string) => value.split(NOT_IN_NAME)[0];
 </script>
 
 {#snippet fieldLabel(text: string, forId?: string)}
@@ -583,8 +580,8 @@
 		id={`${prefix}-first-name`}
 		label={t(lang, 'firstName')}
 		bind:value={p.firstName}
-		onbeforeinput={blockNameChars('firstName')}
-		onChange={() => (p.firstName = nameOnly(p.firstName))}
+		onChange={checkName(p, 'firstName')}
+		onblur={() => (p.firstName = cleanName(p.firstName))}
 		error={errors.firstName}
 		required
 	/>
@@ -592,8 +589,8 @@
 		id={`${prefix}-middle-name`}
 		label={t(lang, 'middleName')}
 		bind:value={p.middleName}
-		onbeforeinput={blockNameChars('middleName')}
-		onChange={() => (p.middleName = nameOnly(p.middleName))}
+		onChange={checkName(p, 'middleName')}
+		onblur={() => (p.middleName = cleanName(p.middleName))}
 		error={errors.middleName}
 		required
 	/>
@@ -601,8 +598,8 @@
 		id={`${prefix}-last-name`}
 		label={t(lang, 'frLastName')}
 		bind:value={p.lastName}
-		onbeforeinput={blockNameChars('lastName')}
-		onChange={() => (p.lastName = nameOnly(p.lastName))}
+		onChange={checkName(p, 'lastName')}
+		onblur={() => (p.lastName = cleanName(p.lastName))}
 		error={errors.lastName}
 		required
 	/>

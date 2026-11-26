@@ -28,7 +28,6 @@
 		onChange?: (event: Event) => void;
 		onkeydown?: (event: KeyboardEvent) => void;
 		onpaste?: (event: ClipboardEvent) => void;
-		onbeforeinput?: (event: InputEvent) => void;
 	};
 
 	let {
@@ -47,8 +46,7 @@
 		inputmode,
 		onChange,
 		onkeydown,
-		onpaste,
-		onbeforeinput
+		onpaste
 	}: InputProps = $props();
 
 	// State for password visibility
@@ -100,7 +98,6 @@
 			{onblur}
 			{onkeydown}
 			{onpaste}
-			{onbeforeinput}
 			class={inputClasses}
 			oninput={onChange}
 		/>
